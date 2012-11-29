@@ -32,3 +32,4 @@ Currently skills/setting use in this document
 	index.rst.latex_ok can generate latex which can generate pdf through iMac TexShop.
 	index.rst.latex_not_ok cannot generate pdf through iMac TexShop.
 
+another account write test
