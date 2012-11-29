@@ -1,0 +1,5 @@
+def FMADDS : AForm_1<59, 29,
+                    (ops F4RC:$FRT, F4RC:$FRA, F4RC:$FRC, F4RC:$FRB),
+                    "fmadds $FRT, $FRA, $FRC, $FRB",
+                    [(set F4RC:$FRT, (fadd (fmul F4RC:$FRA, F4RC:$FRC),
+                                           F4RC:$FRB))]>;

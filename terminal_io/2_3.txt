@@ -1,0 +1,12 @@
+[Gamma@localhost cmake_debug_build]$ cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug  -G "Unix Makefiles" ../src/
+
+-- Targeting Cpu0 
+...
+-- Targeting XCore 
+-- Configuring done 
+-- Generating done 
+-- Build files have been written to: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build 
+
+[Gamma@localhost cmake_debug_build]$ make 
+...
+[100%] Built target gtest_main

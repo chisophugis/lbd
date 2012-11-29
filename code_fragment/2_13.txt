@@ -1,0 +1,5 @@
+extern "C" void LLVMInitializeCpu0Target() { 
+} 
+
+extern "C" void LLVMInitializeCpu0TargetMC() { 
+}

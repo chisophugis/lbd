@@ -1,0 +1,7 @@
+d = a * c
+e = d + b
+...
+
+%d = fmul %a, %c
+%e = fadd %d, %b
+...

@@ -1,0 +1,6 @@
+load	rb, M(sp+8); // assume b allocate in sp+8, sp is stack point register
+load	rc, M(sp+16);
+add	ra, rb, rc;
+load	rd, M(sp+24);
+sub	rd, ra, rd;
+fmadd	re, ra, rc, rb;

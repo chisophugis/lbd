@@ -1,0 +1,18 @@
+define i32 @main() nounwind uwtable { 
+       %1 = alloca i32, align 4 
+       %2 = alloca i32, align 4 
+      ...
+      store i32 0, i32* %1
+      store i32 5, i32* %2, align 4 
+      ...
+      ret i32 0 
+
+=> # BB#0: 
+	addiu	$sp, $sp, -56 
+$tmp1: 
+	addiu	$3, $zero, 0 
+	st	$3, 52($sp)   // %1 is the first frame index local variable, so allocate in 52($sp)
+	addiu	$2, $zero, 5 
+	st	$2, 48($sp)    // %2 is the second frame index local variable, so allocate in 48($sp)
+                ...
+                ret	$lr

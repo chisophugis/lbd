@@ -1,0 +1,31 @@
+//  Cpu0MCTargetDesc.cpp
+static MCAsmInfo *createCpu0MCAsmInfo(const Target &T, StringRef TT) {
+  MCAsmInfo *MAI = new Cpu0MCAsmInfo(T, TT);
+
+  MachineLocation Dst(MachineLocation::VirtualFP);
+  MachineLocation Src(Cpu0::SP, 0);
+  MAI->addInitialFrameState(0, Dst, Src);
+
+  return MAI;
+}
+
+static MCInstPrinter *createCpu0MCInstPrinter(const Target &T,
+                                              unsigned SyntaxVariant,
+                                              const MCAsmInfo &MAI,
+                                              const MCInstrInfo &MII,
+                                              const MCRegisterInfo &MRI,
+                                              const MCSubtargetInfo &STI) {
+  return new Cpu0InstPrinter(MAI, MII, MRI);
+}
+
+extern "C" void LLVMInitializeCpu0TargetMC() {
+  // Register the MC asm info.
+  RegisterMCAsmInfoFn X(TheCpu0Target, createCpu0MCAsmInfo);
+  RegisterMCAsmInfoFn Y(TheCpu0elTarget, createCpu0MCAsmInfo);
+
+  // Register the MCInstPrinter.
+  TargetRegistry::RegisterMCInstPrinter(TheCpu0Target,
+                                        createCpu0MCInstPrinter);
+  TargetRegistry::RegisterMCInstPrinter(TheCpu0elTarget,
+                                        createCpu0MCInstPrinter);
+}

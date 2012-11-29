@@ -1,0 +1,14 @@
+//  Cpu0InstPrinter.cpp
+#include "Cpu0GenAsmWriter.inc" 
+
+void Cpu0InstPrinter::printRegName(raw_ostream &OS, unsigned RegNo) const { 
+//- getRegisterName(RegNo) defined in Cpu0GenAsmWriter.inc which came from Cpu0.td indicate. 
+  OS << '$' << StringRef(getRegisterName(RegNo)).lower(); 
+} 
+
+void Cpu0InstPrinter::printInst(const MCInst *MI, raw_ostream &O, 
+                                StringRef Annot) { 
+//- printInstruction(MI, O) defined in Cpu0GenAsmWriter.inc which came from Cpu0.td indicate. 
+  printInstruction(MI, O); 
+  printAnnotation(O, Annot); 
+} 

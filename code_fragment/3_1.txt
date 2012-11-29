@@ -1,0 +1,98 @@
+//- TargetMachine.h 
+class TargetMachine { 
+  TargetMachine(const TargetMachine &);   // DO NOT IMPLEMENT 
+  void operator=(const TargetMachine &);  // DO NOT IMPLEMENT 
+
+public: 
+  // Interfaces to the major aspects of target machine information: 
+  // -- Instruction opcode and operand information 
+  // -- Pipelines and scheduling information 
+  // -- Stack frame information 
+  // -- Selection DAG lowering information 
+  // 
+  virtual const TargetInstrInfo         *getInstrInfo() const { return 0; } 
+  virtual const TargetFrameLowering *getFrameLowering() const { return 0; } 
+  virtual const TargetLowering    *getTargetLowering() const { return 0; } 
+  virtual const TargetSelectionDAGInfo *getSelectionDAGInfo() const{ return 0; } 
+  virtual const TargetData             *getTargetData() const { return 0; } 
+  ... 
+  /// getSubtarget - This method returns a pointer to the specified type of 
+  /// TargetSubtargetInfo.  In debug builds, it verifies that the object being 
+  /// returned is of the correct type. 
+  template<typename STC> const STC &getSubtarget() const { 
+    return *static_cast<const STC*>(getSubtargetImpl()); 
+  } 
+
+} 
+
+//- TargetMachine.h 
+class LLVMTargetMachine : public TargetMachine { 
+protected: // Can only create subclasses. 
+  LLVMTargetMachine(const Target &T, StringRef TargetTriple, 
+                    StringRef CPU, StringRef FS, TargetOptions Options, 
+                    Reloc::Model RM, CodeModel::Model CM, 
+                    CodeGenOpt::Level OL); 
+	... 
+}; 
+
+class Cpu0TargetMachine : public LLVMTargetMachine { 
+  Cpu0Subtarget       Subtarget; 
+  const TargetData    DataLayout; // Calculates type size & alignment 
+  Cpu0InstrInfo       InstrInfo;	//- Instructions 
+  Cpu0FrameLowering   FrameLowering;	//- Stack(Frame) and Stack direction 
+  Cpu0TargetLowering  TLInfo;	//- Stack(Frame) and Stack direction 
+  Cpu0SelectionDAGInfo TSInfo;	//- Map .bc DAG to backend DAG 
+public: 
+  virtual const Cpu0InstrInfo   *getInstrInfo()     const 
+  { return &InstrInfo; } 
+  virtual const TargetFrameLowering *getFrameLowering()     const 
+  { return &FrameLowering; } 
+  virtual const Cpu0Subtarget   *getSubtargetImpl() const 
+  { return &Subtarget; } 
+  virtual const TargetData      *getTargetData()    const 
+  { return &DataLayout;} 
+   virtual const Cpu0TargetLowering *getTargetLowering() const { 
+    return &TLInfo; 
+  } 
+
+  virtual const Cpu0SelectionDAGInfo* getSelectionDAGInfo() const { 
+    return &TSInfo; 
+  } 
+}; 
+
+//- TargetInstInfo.h 
+class TargetInstrInfo : public MCInstrInfo { 
+  TargetInstrInfo(const TargetInstrInfo &);  // DO NOT IMPLEMENT 
+  void operator=(const TargetInstrInfo &);   // DO NOT IMPLEMENT 
+public: 
+	... 
+} 
+
+//- TargetInstInfo.h 
+class TargetInstrInfoImpl : public TargetInstrInfo { 
+protected: 
+  TargetInstrInfoImpl(int CallFrameSetupOpcode = -1, 
+                      int CallFrameDestroyOpcode = -1) 
+    : TargetInstrInfo(CallFrameSetupOpcode, CallFrameDestroyOpcode) {} 
+public: 
+	... 
+} 
+
+//- Cpu0GenInstInfo.inc which generate from Cpu0InstrInfo.td 
+#ifdef GET_INSTRINFO_HEADER 
+#undef GET_INSTRINFO_HEADER 
+namespace llvm { 
+struct Cpu0GenInstrInfo : public TargetInstrInfoImpl { 
+  explicit Cpu0GenInstrInfo(int SO = -1, int DO = -1); 
+}; 
+} // End llvm namespace 
+#endif // GET_INSTRINFO_HEADER 
+
+#define GET_INSTRINFO_HEADER 
+#include "Cpu0GenInstrInfo.inc" 
+//- Cpu0InstInfo.h 
+class Cpu0InstrInfo : public Cpu0GenInstrInfo { 
+  Cpu0TargetMachine &TM; 
+public: 
+  explicit Cpu0InstrInfo(Cpu0TargetMachine &TM); 
+};
