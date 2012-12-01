@@ -33,3 +33,4 @@ Currently skills/setting use in this document
 	index.rst.latex_not_ok cannot generate pdf through iMac TexShop.
 
 another account write test
+yet another account write test (-Anoushe)
