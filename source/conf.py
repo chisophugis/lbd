@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Write an llvm backend tutorial for cpu0'
+project = u'Write An LLVM Backend Tutorial For Cpu0'
 copyright = u'2012, LLVM'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -105,7 +105,7 @@ html_theme = 'haiku'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "Write an llvm backend tutorial for cpu0"
+html_title = "Write An LLVM Backend Tutorial For Cpu0"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -166,7 +166,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GammaLLVMBackendBook'
+htmlhelp_basename = 'WriteAnLLVMBackendTutorialForCpu0'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -185,7 +185,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'GammaLLVMBackendBook.tex', u'Write an llvm backend tutorial for cpu0',
+  ('index', 'WriteAnLLVMBackendTutorialForCpu0.tex', u'Write An LLVM Backend Tutorial For Cpu0',
    u'Chen Chung-Shu and Anoushe Jamshidi', 'manual'),
 ]
 
@@ -215,7 +215,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'GammaLLVMBackendBook', u'Write an llvm backend Documentation',
+    ('index', 'WriteAnLLVMBackendTutorialForCpu0', u'Write An LLVM Backend Documentation',
      [u'Chen Chung-Shu', u'Anoushe Jamshidi'], 1)
 ]
 
@@ -229,8 +229,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Write an llvm backend tutorial for cpu0', u'Write an llvm backend tutorial for cpu0',
-   u'Chen Chung-Shu 陳鍾樞 gamma_chen@yahoo.com.tw', u'Anoushe Jamshidi ajamshidi@gmail.com', 'Write an llvm backend tutorial for cpu0', 'Guide to write an llvm backend.js.',
+  ('index', 'WriteAnLLVMBackendTutorialForCpu0', u'Write An LLVM Backend Tutorial For Cpu0',
+   u'Chen Chung-Shu 陳鍾樞 gamma_chen@yahoo.com.tw and Anoushe Jamshidi ajamshidi@gmail.com', 'Write An LLVM Backend Tutorial For Cpu0', 'Guide To Write An LLVM Backend.js.',
    'Computers'),
 ]
 
@@ -247,8 +247,8 @@ texinfo_documents = [
 # -- Options for Epub output ---------------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u'Write an llvm backend tutorial for cpu0'
-epub_author = u'Chen Chung Shu', u'Anoushe Jamshidi'
+epub_title = u'Write An LLVM Backend Tutorial For Cpu0'
+epub_author = u'Chen Chung-Shu 陳鍾樞 gamma_chen@yahoo.com.tw and Anoushe Jamshidi ajamshidi@gmail.com'
 epub_publisher = u'LLVM'
 epub_copyright = u'2012, LLVM'
 
@@ -261,7 +261,7 @@ epub_scheme = 'URL'
 
 # The unique identifier of the text. This can be a ISBN number
 # or the project homepage.
-#epub_identifier = 'http://nikhilm.github.com/uvbook/'
+#epub_identifier = 'http://jonathan2251m.github.com/lbdbook/'
 
 # A unique identification for the text.
 #epub_uid = ''
