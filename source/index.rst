@@ -77,9 +77,9 @@ Readers should be comfortable with the C++ language and Object-Oriented Programm
 
 Already having conceptual knowledge of how compilers work is a plus, and if you already have implemented compilers in the past you will likely have no trouble debugging your code. As this tutorial will build up an LLVM backend step-by-step, we will introduce important concepts as necessary.
 
-This tutorial references the following materials.  We highly recommend you skim these documents:
+This tutorial references the following materials.  We highly recommend you read these documents to get a deeper understanding of what the tutorial is teaching:
 
-tricore_llvm.pdf (Search for it on Google).
+`The Architecture of Open Source Applications Chapter on LLVM <http://www.aosabook.org/en/llvm.html>`_
 
 `LLVM's Target-Independent Code Generation documentation <http://llvm.org/docs/CodeGenerator.html>`_
 
@@ -87,7 +87,10 @@ tricore_llvm.pdf (Search for it on Google).
 
 `LLVM's Writing an LLVM Compiler Backend documentation <http://llvm.org/docs/WritingAnLLVMBackend.html>`_
 
+.. we should find links for these and add them
+tricore_llvm.pdf (Search for it on Google)
 
+Mips ABI document (Search for it on Google)
 
 
 Table of Contents
