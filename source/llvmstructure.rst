@@ -6,7 +6,7 @@ In this chapter, I show you the cpu0 instruction format first. Next, I introduce
 CPU0 processor architecture
 ---------------------------
 
-I copy and redraw some Figure with English in this section. Web site http://ccckmit.wikidot.com/ocs:cpu0 is Chinese version; http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0 is English version.
+I copy and redraw figures in english in this section. This `web site <http://ccckmit.wikidot.com/ocs:cpu0>`_ is chinese version and here is `english version <http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0>`_.
 
 Brief introduction
 ++++++++++++++++++
