@@ -1,10 +1,16 @@
 lbd
 ===
 
-llvm backend document
+llvm backend document:  This document aims to provide a simple, concise, and clear step-by-step tutorial in creating a new LLVM backend from scratch.
 
 
+TODO List
+=========
+- Edit, edit, edit!  :)
 
+
+Notes on reStructuredText editing
+=================================
 Currently skills/setting use in this document
 
 1. Font
@@ -31,6 +37,3 @@ Currently skills/setting use in this document
 5. LaTex issue
 	index.rst.latex_ok can generate latex which can generate pdf through iMac TexShop.
 	index.rst.latex_not_ok cannot generate pdf through iMac TexShop.
-
-another account write test
-yet another account write test (-Anoushe)
