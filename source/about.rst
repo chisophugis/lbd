@@ -41,7 +41,7 @@ LLVM documentation license, To do...
 Preface
 -------
 
-.. start of original text
+.. start of original text (commented out, feel free to erase)
 	LLVM has a well structure for writing a back end. It provide a good frame work to add a new back end for a new CPU instruction set. However, it is harder in reading than front end documents in spite of back end has well documentation on it's web site. The point is LLVM front end documents include the tutorials. Allow user writing a front end compiler by following tutorial step by step, begin from simple and expand to complex more and more.
 
 .. Let's omit this paragraph.
