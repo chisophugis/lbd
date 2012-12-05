@@ -36,8 +36,9 @@ Currently skills/setting use in this document
 	.. literalinclude:: ../code_fragment/2_14.txt
 	Minor issue: cannot set **bold** in literalinclude
 
-5. LaTex issue
+5. LaTeX issue
 	index.rst.latex_ok can generate latex which can generate pdf through iMac TexShop.
 	index.rst.latex_not_ok cannot generate pdf through iMac TexShop.
-	Chinese author name and email symbol @ cannot appear in LaTex, so Jonathan use .png file to display Chinese name.
-	The Chinese name size is OK in html but too large in LaTex.
+	Chinese author name cannot appear in LaTeX, so Jonathan use .png file to display Chinese name.
+	Author name can be display on more than one line by \\and, but will shift a little right on the second line.
+	The Chinese name size is OK in html but too large in LaTeX.

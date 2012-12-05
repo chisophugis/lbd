@@ -186,7 +186,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'WriteAnLLVMBackendTutorialForCpu0.tex', u'Write An LLVM Backend Tutorial For Cpu0',
-   u'Chen Chung-Shu and Anoushe Jamshidi', 'manual'),
+   u'Chen Chung-Shu \ \ \ \ \ gamma\_chen@yahoo.com.tw \\and Anoushe Jamshidi \ \ \ \ \ ajamshidi@gmail.com', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
