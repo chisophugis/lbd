@@ -209,9 +209,9 @@ In Target/Cpu0 directory, we have 2 files CMakeLists.txt  and LLVMBuild.txt, con
 
 .. literalinclude:: ../code_fragment/2_11.txt
 
-LLVMBuild.txt files are written in a simple variant of the INI or configuration file format. # is comment in both 2 files. I explain the setting for these 2 files in comments. Please spend a little time to read it.
+LLVMBuild.txt files are written in a simple variant of the INI or configuration file format. Comments are prefixed by ``#`` in both files. I explain the setting for these 2 files in comments. Please spend a little time to read it.
 
-Both CMakeLists.txt and LLVMBuild.txt also exist in sub-directories MCTargetDesc and TargetInfo. Their contents indicate they will generate Cpu0Desc and Cpu0Info libraries. After build, you will find libLLVMCpu0CodeGen.a, libLLVMCpu0Desc .a and libLLVMCpu0Info .a 3 libraries in lib/ of your build directory. http://llvm.org/docs/CMake.html?highlight=cmake and http://llvm.org/docs/LLVMBuild.html are their web site.
+Both CMakeLists.txt and LLVMBuild.txt coexist in sub-directories ``MCTargetDesc`` and ``TargetInfo``. Their contents indicate they will generate Cpu0Desc and Cpu0Info libraries. After building, you will find three libraries: ``libLLVMCpu0CodeGen.a``, ``libLLVMCpu0Desc.a`` and ``libLLVMCpu0Info.a`` in lib/ of your build directory. For more details please see `Building LLVM with CMake <http://llvm.org/docs/CMake.html>`_ and `LLVMBuild Guide <http://llvm.org/docs/LLVMBuild.html>`_.
 
 Target Registration
 -------------------
