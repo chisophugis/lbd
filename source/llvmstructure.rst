@@ -11,7 +11,7 @@ I copy and redraw figures in english in this section. This `web site <http://ccc
 Brief introduction
 ++++++++++++++++++
 
-CPU0 is a 32-bit processor registers R0 .. R15, IR, MAR, MDR, etc., and its structure is shown below.
+CPU0 is a 32-bit processor which has registers R0 .. R15, IR, MAR, MDR, etc., and its structure is shown below.
 
 .. figure:: ../Fig/Fig2_1.png
 	:align: center
@@ -69,20 +69,20 @@ So conditional jump the JGT, JLT, JGE, JLE, JEQ, JNE instruction jumps N, Z flag
 The execution of the instruction step
 +++++++++++++++++++++++++++++++++++++
 
-CPU0 in executing an instruction must be extracted, decoding and execution of three stages.
+CPU0 has three stage pipeline: Instruction fetch, Decode and Execution.
 
-Extraction stage
+#. Instruction fetch
 
-	Action 1, the instruction fetch: IR = [PC]
-	Action 2 update counter: PC = PC + 4
+-	Action 1. The instruction fetch: IR = [PC]
+-	Action 2. Update program counter: PC = PC + 4
 
-Decode stage
+#. Decode
 
-	Action 3, the decoding: the control unit for IR decoding, setting the data flow modes of operation of the switch with the ALU
+-	Action 3. Decode: Control unit decodes IR, then set data flow switch and ALU operation mode.
 
-Runtime stage
+#. Execute
 
-	Action 4 Execution: information inflow ALU, after the operation, the flow back into the specified register
+-	Action 4. Execute: Data flow into ALU. After ALU done the operation, the result stored back into destination register.
 
 Replace ldi instruction by addiu instruction
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -104,7 +104,7 @@ From Fig 2.4 and Fig 2.5, you can find ldi $Ra, 5 can be replaced by addiu $Ra, 
 LLVM structure
 --------------
 
-Following came from http://www.aosabook.org/en/llvm.html.
+Following came from `AOSA <http://www.aosabook.org/en/llvm.html>`_.
 
 The most popular design for a traditional static compiler (like most C compilers) is the three phase design whose major components are the front end, the optimizer and the back end (Fig 2.6). The front end parses source code, checking it for errors, and builds a language-specific Abstract Syntax Tree (AST) to represent the input code. The AST is optionally converted to a new representation for optimization, and the optimizer and back end are run on the code.
 
@@ -171,11 +171,11 @@ The registers td named Cpu0RegisterInfo.td included by Cpu0.td defined as follow
 
 .. literalinclude:: ../code_fragment/2_4.txt
 
-In C++ the data layout is declared by class. Declare meaning tell the variable layout. The define meaning instance the variable (create the real variable). For example,
+In C++ the data layout is declared by class. Declaration tells the variable layout; definition allocates memory for the variable. For example,
 
 .. literalinclude:: ../code_fragment/2_5.txt
 
-Just like C++ class, the keyword “class” is used for declaring data structure layout. Cpu0Reg<string n> declare a derived class from Register<n> which is declared by llvm already, and the n is the argument which type is string. In addition to Register class fields, Cpu0Reg add a new field Num of type 4 bits. Namespace same as  C++'s namespace. “Def” is used by define(instance) a concrete variable.
+Just like C++ class, the keyword “class” is used for declaring data structure layout. ``Cpu0Reg<string n>`` declare a derived clsas from ``Register<n>`` which is declared by llvm already, and the n is the argument which type is string. In addition to Register class fields, Cpu0Reg add a new field Num of type 4 bits. Namespace same as  C++'s namespace. “Def” is used by define(instance) a concrete variable.
 
 As above, we define a ZERO register which type is Cpu0GPRReg, it's field Num is 0 (4 bits) and field n is “ZERO” (declared in Register class). Note the use of “let” expressions to override values that are initially defined in a superclass. For example, let Namespace = “Cpu0” in class Cpu0Reg of our example, will override Namespace declared in Register class. We also define CPURegs is a variable for type of RegisterClass, where the RegisterClass is llvm built-in class. The RegisterClass type is a set/group of Register, so we define a set of Register in CPURegs variable.
 
@@ -209,9 +209,9 @@ In Target/Cpu0 directory, we have 2 files CMakeLists.txt  and LLVMBuild.txt, con
 
 .. literalinclude:: ../code_fragment/2_11.txt
 
-LLVMBuild.txt files are written in a simple variant of the INI or configuration file format. # is comment in both 2 files. I explain the setting for these 2 files in comments. Please spend a little time to read it.
+LLVMBuild.txt files are written in a simple variant of the INI or configuration file format. Comments are prefixed by ``#`` in both files. I explain the setting for these 2 files in comments. Please spend a little time to read it.
 
-Both CMakeLists.txt and LLVMBuild.txt also exist in sub-directories MCTargetDesc and TargetInfo. Their contents indicate they will generate Cpu0Desc and Cpu0Info libraries. After build, you will find libLLVMCpu0CodeGen.a, libLLVMCpu0Desc .a and libLLVMCpu0Info .a 3 libraries in lib/ of your build directory. http://llvm.org/docs/CMake.html?highlight=cmake and http://llvm.org/docs/LLVMBuild.html are their web site.
+Both CMakeLists.txt and LLVMBuild.txt coexist in sub-directories ``MCTargetDesc`` and ``TargetInfo``. Their contents indicate they will generate Cpu0Desc and Cpu0Info libraries. After building, you will find three libraries: ``libLLVMCpu0CodeGen.a``, ``libLLVMCpu0Desc.a`` and ``libLLVMCpu0Info.a`` in lib/ of your build directory. For more details please see `Building LLVM with CMake <http://llvm.org/docs/CMake.html>`_ and `LLVMBuild Guide <http://llvm.org/docs/LLVMBuild.html>`_.
 
 Target Registration
 -------------------
