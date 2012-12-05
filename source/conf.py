@@ -88,6 +88,8 @@ highlight_language = 'c++'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+# Include todo lists & todo's inserted in text
+todo_include_todos = True
 
 # -- Options for HTML output ---------------------------------------------------
 
