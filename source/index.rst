@@ -25,9 +25,9 @@ The book is also available in:
 
     <ul>
     <li>
-    <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.pdf" onClick="_gaq.push(['_trackEvent', 'Downloads', 'Download', 'PDF']);">PDF</a>
+    <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.pdf">PDF</a>
     </li>
     <li>
-    <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.epub" onClick="_gaq.push(['_trackEvent', 'Downloads', 'Download', 'ePub']);">ePub</a>
+    <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.epub">ePub</a>
     </li>
     </ul>
