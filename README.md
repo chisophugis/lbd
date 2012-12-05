@@ -9,11 +9,6 @@ If you would like to to view an up to date version of this book in your browser
 without checking out and building the book, please visit: http://jonathan2251.github.com/lbd/
 
 
-TODO List
-=========
-- Edit, edit, edit!  :)
-
-
 Notes on reStructuredText editing
 =================================
 Currently skills/setting use in this document
