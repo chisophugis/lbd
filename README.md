@@ -39,3 +39,5 @@ Currently skills/setting use in this document
 5. LaTex issue
 	index.rst.latex_ok can generate latex which can generate pdf through iMac TexShop.
 	index.rst.latex_not_ok cannot generate pdf through iMac TexShop.
+	Chinese author name and email symbol @ cannot appear in LaTex, so Jonathan use .png file to display Chinese name.
+	The Chinese name size is OK in html but too large in LaTex.
