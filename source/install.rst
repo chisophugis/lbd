@@ -1,45 +1,76 @@
-Getting StartedInstall llvm and Cpu0 example code
-==================================
+Getting Started: Installing LLVM and the Cpu0 example code
+==========================================================
 
-Before start, I have one thing hope you to know. In fact, you can work with a backend 
-program, even a new CPU, by porting from the similar existed llvm backend or from the 
-existed llvm supported CPU which you familiar with. In that way, maybe it include 
-redundant code. But it's OK since compiler is running on PC or Laptop which got a lots of 
-memory. It's a style for real working in programming. It's a way to learn, I agree. The 
-advantage of this approach came from the fact of most RISC CPUs have similar instruction 
-set in concept and style. All you need to do is porting from an existing CPU into a 
-similar instruction set of CPU with different OP code. According my experience, this 
-solution has two shortage. First, this approach can make progress better in time at 
-beginning, I agree. But the time will be offset in debug and maintenance. The backend 
-program is a kind of system program which is a low level program and most of the functions 
-is triggered by call back function or override function in C++. LLVM call these backend 
-function at proper time. As you can imagine, it's not easy to track the program execution 
-flow. It's harder to debug compare to the front end program which you can track the 
-program flow easily because front end call llvm interface/function when it like to. And 
-more harder and harder then the ordinary UI or high level application because backend is a 
-system program. Second, by this approach you won't get a full knowledge in llvm backend 
-programming. With full llvm backend knowledge equipment, you will find the backend 
-programming is becoming easier and easier for your daily work, day by day. So, if you are 
-a paid time llvm backend programmer, I suggest you learn llvm backend program from 
-beginning when you got time. Of course, put the learning task on aside when you got 
-scheduled job, and pike up the learning task back when your time is available. It's my 
-opinion. Just do your choice.
+.. begin original text
+	Before start, I have one thing hope you to know. In fact, you can work with a backend 
+	program, even a new CPU, by porting from the similar existed llvm backend or from the 
+	existed llvm supported CPU which you familiar with. In that way, maybe it include 
+	redundant code. But it's OK since compiler is running on PC or Laptop which got a lots of 
+	memory. It's a style for real working in programming. It's a way to learn, I agree. The 
+	advantage of this approach came from the fact of most RISC CPUs have similar instruction 
+	set in concept and style. All you need to do is porting from an existing CPU into a 
+	similar instruction set of CPU with different OP code. According my experience, this 
+	solution has two shortage. First, this approach can make progress better in time at 
+	beginning, I agree. But the time will be offset in debug and maintenance. The backend 
+	program is a kind of system program which is a low level program and most of the functions 
+	is triggered by call back function or override function in C++. LLVM call these backend 
+	function at proper time. As you can imagine, it's not easy to track the program execution 
+	flow. It's harder to debug compare to the front end program which you can track the 
+	program flow easily because front end call llvm interface/function when it like to. And 
+	more harder and harder then the ordinary UI or high level application because backend is a 
+	system program. Second, by this approach you won't get a full knowledge in llvm backend 
+	programming. With full llvm backend knowledge equipment, you will find the backend 
+	programming is becoming easier and easier for your daily work, day by day. So, if you are 
+	a paid time llvm backend programmer, I suggest you learn llvm backend program from 
+	beginning when you got time. Of course, put the learning task on aside when you got 
+	scheduled job, and pike up the learning task back when your time is available. It's my 
+	opinion. Just do your choice.
 
-I will show you how I install llvm in iMac and Linux in this chapter. Currently, I can 
-build the llvm source code on iMac Xcode and do debug by lldb. I cannot do debug on IDE 
-Xcode at this point, so if you know how to do debug LLVM on Xcode, please let me know by 
-email. I really need that. In Linux, I can build and debug by gdb on Linux Fedora 17, and 
-the same I don't know how to do debug on IDE like Eclips. About ``cmake`` for llvm please 
-reference `Building LLVM with CMake`_ further. The Xcode version I use in this book is 
-4.5.1, cmake is 2.8.9.
+	I will show you how I install llvm in iMac and Linux in this chapter. Currently, I can 
+	build the llvm source code on iMac Xcode and do debug by lldb. I cannot do debug on IDE 
+	Xcode at this point, so if you know how to do debug LLVM on Xcode, please let me know by 
+	email. I really need that. In Linux, I can build and debug by gdb on Linux Fedora 17, and 
+	the same I don't know how to do debug on IDE like Eclips. About ``cmake`` for llvm please 
+	reference `Building LLVM with CMake`_ further. The Xcode version I use in this book is 
+	4.5.1, cmake is 2.8.9.
+
+	This book is still a work in progress, so sections may be incomplete, but
+	I hope you will enjoy it as it grows.
+.. end original text
+
+Before you start, you should know that you can always examine existing LLVM backend code 
+and attempt to port what you find for your own target architecture.  The majority of this 
+code can be found in the /lib/Target directory of your root LLVM directory. As most major 
+RISC instruction set architectures have some similarities, this may be the avenue you 
+might try if you are both an experienced programmer and knowledgable of compiler backends. 
+However, there is a steep learning curve and you may easily get held up debugging your new 
+backend. You can easily spend a lot of time tracing which methods are callbacks of some 
+function, or which are calling some overridden method deep in the LLVM codebase - and with 
+a codebase as large as LLVM, this can easily become a headache. This tutorial will help 
+you work through this process while learning the fundamentals of LLVM backend design. It 
+will show you what is necessary to get your first backend functional and complete, and it 
+should help you understand how to debug your backend when it does not produce desirable 
+output using the output provided by LLVM.
+
+In this chapter, we will run through how to set up LLVM using if you are using Mac OS X or 
+Linux.  When discussing Mac OS X, we are using Apple's Xcode IDE (version 4.5.1) running 
+on Mac OS X Mountain Lion (version 10.8) to modify and build LLVM from source, and we will 
+be debugging using lldb.  We cannot debug our LLVM builds within Xcode at the moment, but 
+if you have experience with this, please contact us and help us build documentation that 
+covers this.  For Linux machines, we are building and debugging (using gdb) our LLVM 
+installations on a Fedora 17 system.  We will not be using an IDE for Linux, but once 
+again, if you have experience building/debugging LLVM using Eclipse or other major IDEs, 
+please contact the authors. For information regarding using ``cmake`` with LLVM, please 
+refer to the `Building LLVM with CMake`_ documentation for further information.  We are 
+using cmake version 2.8.9.
 
 .. _Building LLVM with CMake: http://llvm.org/docs/CMake.html?highlight=cmake
 
-This book is still a work in progress, so sections may be incomplete, but
-I hope you will enjoy it as it grows.
+.. todo:: Find information on debugging LLVM within Xcode for Macs.
+.. todo:: Find information on building/debugging LLVM within Eclipse for Linux.
 
-Install LLVM, Xcode and cmake on iMac
--------------------------------------
+Setting Up Your Mac: Installing LLVM, Xcode and cmake
+-----------------------------------------------------
 
 Please download llvm version 3.1 (llvm, clang, compiler-rf) from `llvm release download`_. 
 Then, ``tar -zxvf llvm, clang, compiler-rt``, and change the llvm source code root 
@@ -136,14 +167,14 @@ cmake_debug_build/bin/Debug/ as Fig 1.11.
 
 .. figure:: ../Fig/Fig1_11.png
 	:align: center
+	
+	Fig 1.11 Executable files built by Xcode
 
-	Fig 1.11 Execution files built by Xcode
-
-	To access those execution files, edit .profile (if you .profile not exists, please 
+To access those execution files, edit .profile (if you .profile not exists, please 
 create file .profile), save .profile to /Users/Jonathan/, and enable $PATH by command 
 ``source .profile`` as Fig1.12. Please add path 
-/Applications//Xcode.app/Contents/Developer/usr/bin to .profile if you didn't add it after 
-Xcode download.
+/Applications//Xcode.app/Contents/Developer/usr/bin to .profile if you didn't add it 
+after Xcode download.
 
 .. figure:: ../Fig/Fig1_12.png
 	:align: center
