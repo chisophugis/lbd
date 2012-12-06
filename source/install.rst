@@ -105,6 +105,8 @@ Fig 1.3, then click configure button to enter Fig 1.4, and then click Done butto
 
 	Fig 1.5 Create LLVM.xcodeproj by cmake – Before Adjust CMAKE_INSTALL_NAME_TOOL
 
+.. todo:: The html will follow the appear order in \*.rst source context but latexpdf didn't. For example, the Fig 1.4 and Fig 1.5 appear after the below text "Click OK from Fig 1.5..." in pdf. If find the **NoReorder** or **newpage** directive, maybe can solve this problem.
+
 Click OK from Fig 1.5 and select Cmake 2.8-9.app for CMAKE_INSTALL_NAME_TOOL by click the 
 right side button “...” of that row in Fig 1.5 to get Fig 1.6.
 
@@ -166,7 +168,7 @@ after Xcode download.
 .. figure:: ../Fig/Fig1_12.png
 	:height: 158 px
 	:width: 1104 px
-	:scale: 100 %
+	:scale: 90 %
 	:align: center
 
 	Fig 1.12 Edit .profile and save .profile to /Users/Jonathan/
@@ -200,6 +202,9 @@ Remind, currently, the ``cmake`` terminal command can work with lldb debug, but 
 section “1.2 cmake graphic UI steps” cannot.
 
 .. figure:: ../Fig/Fig1_15.png
+	:height: 540 px
+	:width: 1101 px
+	:scale: 90 %
 	:align: center
 
 	Fig 1.15 Build llvm debug cpu0 working project by ``cmake`` terminal command
