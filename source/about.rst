@@ -128,6 +128,6 @@ these documents to get a deeper understanding of what the tutorial is teaching:
 
 `Description of the Tricore LLVM Backend <http://www.opus.ub.uni-erlangen.de/opus/volltexte/2010/1659/pdf/tricore_llvm.pdf>`_
 
-.. we should find a link for this and add it
-
 Mips ABI document (Search for it on Google)
+
+.. todo:: Find official link for Mips ABI.

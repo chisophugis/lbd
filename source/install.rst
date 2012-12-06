@@ -1,43 +1,6 @@
 Getting Started: Installing LLVM and the Cpu0 example code
 ==========================================================
 
-.. begin original text
-	Before start, I have one thing hope you to know. In fact, you can work with a backend 
-	program, even a new CPU, by porting from the similar existed llvm backend or from the 
-	existed llvm supported CPU which you familiar with. In that way, maybe it include 
-	redundant code. But it's OK since compiler is running on PC or Laptop which got a lots of 
-	memory. It's a style for real working in programming. It's a way to learn, I agree. The 
-	advantage of this approach came from the fact of most RISC CPUs have similar instruction 
-	set in concept and style. All you need to do is porting from an existing CPU into a 
-	similar instruction set of CPU with different OP code. According my experience, this 
-	solution has two shortage. First, this approach can make progress better in time at 
-	beginning, I agree. But the time will be offset in debug and maintenance. The backend 
-	program is a kind of system program which is a low level program and most of the functions 
-	is triggered by call back function or override function in C++. LLVM call these backend 
-	function at proper time. As you can imagine, it's not easy to track the program execution 
-	flow. It's harder to debug compare to the front end program which you can track the 
-	program flow easily because front end call llvm interface/function when it like to. And 
-	more harder and harder then the ordinary UI or high level application because backend is a 
-	system program. Second, by this approach you won't get a full knowledge in llvm backend 
-	programming. With full llvm backend knowledge equipment, you will find the backend 
-	programming is becoming easier and easier for your daily work, day by day. So, if you are 
-	a paid time llvm backend programmer, I suggest you learn llvm backend program from 
-	beginning when you got time. Of course, put the learning task on aside when you got 
-	scheduled job, and pike up the learning task back when your time is available. It's my 
-	opinion. Just do your choice.
-
-	I will show you how I install llvm in iMac and Linux in this chapter. Currently, I can 
-	build the llvm source code on iMac Xcode and do debug by lldb. I cannot do debug on IDE 
-	Xcode at this point, so if you know how to do debug LLVM on Xcode, please let me know by 
-	email. I really need that. In Linux, I can build and debug by gdb on Linux Fedora 17, and 
-	the same I don't know how to do debug on IDE like Eclips. About ``cmake`` for llvm please 
-	reference `Building LLVM with CMake`_ further. The Xcode version I use in this book is 
-	4.5.1, cmake is 2.8.9.
-
-	This book is still a work in progress, so sections may be incomplete, but
-	I hope you will enjoy it as it grows.
-.. end original text
-
 Before you start, you should know that you can always examine existing LLVM backend code 
 and attempt to port what you find for your own target architecture.  The majority of this 
 code can be found in the /lib/Target directory of your root LLVM directory. As most major 
@@ -60,7 +23,7 @@ if you have experience with this, please contact us and help us build documentat
 covers this.  For Linux machines, we are building and debugging (using gdb) our LLVM 
 installations on a Fedora 17 system.  We will not be using an IDE for Linux, but once 
 again, if you have experience building/debugging LLVM using Eclipse or other major IDEs, 
-please contact the authors. For information regarding using ``cmake`` with LLVM, please 
+please contact the authors. For information on using ``cmake`` to build LLVM, please 
 refer to the `Building LLVM with CMake`_ documentation for further information.  We are 
 using cmake version 2.8.9.
 
@@ -69,34 +32,55 @@ using cmake version 2.8.9.
 .. todo:: Find information on debugging LLVM within Xcode for Macs.
 .. todo:: Find information on building/debugging LLVM within Eclipse for Linux.
 
-Setting Up Your Mac: Installing LLVM, Xcode and cmake
------------------------------------------------------
 
-Please download llvm version 3.1 (llvm, clang, compiler-rf) from `llvm release download`_. 
-Then, ``tar -zxvf llvm, clang, compiler-rt``, and change the llvm source code root 
-directory into src. After that, move clang source code to src/tools/clang, move 
-compiler-rt source to src/project/compiler-rt as Fig 1.1.
+Setting Up Your Mac
+-------------------
+
+Installing LLVM, Xcode and cmake
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. todo:: Fix centering for figure captions.
+
+Please download LLVM version 3.1 (llvm, clang, compiler-rf) from the 
+`LLVM Download Page`_. Then extract them using 
+``tar -zxvf {llvm-3.1.src.tar, clang-3.1.src.tar, compiler-rt-3.1.src.tar}``, and change 
+the llvm source code root directory into src. After that, move the clang source code to 
+src/tools/clang, and move the compiler-rt source to src/project/compiler-rt as shown in 
+Figure 1.1.
+
+.. todo:: Should we just write out commands in a terminal for people to execute?
 
 .. figure:: ../Fig/Fig1_1.png
 	:align: center
 
-	Fig 1.1 llvm, clang, compiler-rt source code position on iMac
+	Fig 1.1 LLVM, clang, compiler-rt source code positions on Mac OS X
 
-Next, copy llvm source to /Users/Jonathan/llvm/3.1/src by terminal command 
-``cp -rf /Users/Jonathan/Documents/llvmSrc/src /Users/Jonathan/llvm/3.1/.``.
+Next, copy the LLVM source to /Users/Jonathan/llvm/3.1/src by executing the terminal 
+command ``cp -rf /Users/Jonathan/Documents/llvmSrc/src /Users/Jonathan/llvm/3.1/.``.
 
-Install Xcode from App Store as well as cmake from 
-http://www.cmake.org/cmake/resources/software.html. Before install cmake, check the 
-“Anywhere” of “Allow applications download from” of “Security & Privacy” of “System 
-Preferences” as Fig 1.2.
+Install Xcode from the Mac App Store. Then install cmake, which can be found here: 
+http://www.cmake.org/cmake/resources/software.html. Before installing cmake, make sure you 
+can install applications you download from the Internet. Open 
+"System Preferences"->"Security & Privacy." Click the lock to make changes, and under 
+"Allow applications downloaded from:" select the radio button next to "Anywhere." See 
+Figure 1.2 below for an illustration. You may want to revert this setting after installing 
+cmake.
+
 
 .. figure:: ../Fig/Fig1_2.png
 	:align: center
 
-	Fig 1.2  Adjust iMac to allow download cmake
+	Fig 1.2  Adjusting Mac OS X security settings to allow cmake installation.
+	
+Alternatively, you can mount the cmake .dmg image file you downloaded, right-click (or 
+control-click) the cmake .pkg package file and click "Open." Mac OS X will ask you if you 
+are sure you want to install this package, and you can click "Open" to start the 
+installer.
+
+.. stop 12/5/12 10PM (just a bookmark for me to continue from)
 
 Create LLVM.xcodeproj by cmake Graphic UI
------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, I cannot do debug by lldb with cmake graphic UI operations depicted in this 
 section, but I can do debug by lldb with section “1.4 Create LLVM.xcodeproj of support 
@@ -152,7 +136,7 @@ Generate button to get Fig 1.9.
 	Fig 1.9 Click cmake Generate button second time
 
 Build llvm by Xcode
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Now, LLVM.xcodeproj is created. Open the cmake_debug_build/LLVM.xcodeproj by Xcode and 
 click menu “Product – Build” as Fig 1.10.
@@ -182,7 +166,7 @@ after Xcode download.
 	Fig 1.12 Edit .profile and save .profile to /Users/Jonathan/
 
 Create LLVM.xcodeproj of supporting cpu0 by terminal ``cmake`` command
-----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In section 1.2, we create LLVM.xcodeproj by cmake graphic UI. We can create LLVM.xcodeproj 
 by ``cmake`` command on terminal also. Now, let's repeat above steps to create 
@@ -225,7 +209,7 @@ http://lldb.llvm.org/lldb-gdb.html or lldb portal http://lldb.llvm.org/.
 
 
 Install other tools on iMac
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These tools mentioned in this section is for coding and debug. You can work even without 
 these tools. Files compare tools Kdiff3 http://kdiff3.sourceforge.net. FileMerge is a part 
@@ -275,10 +259,11 @@ Fig 1.20. Then select “Front document's file” as Fig 1.21.
 
 	Fig 1.21 Select Front document's file in TextWrangler
 
-
+Setting Up Your Linux Machine
+-----------------------------
 
 Install LLVM 3.1 release build on Linux
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, install the llvm release build by,
 1) Untar llvm source, rename llvm source with src.
@@ -311,7 +296,7 @@ to enable the clang, llc, ..., command search path, as shown in Fig 1.24.
 
 
 Install cpu0 debug build on Linux
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Make another copy /usr/local/llvm/3.1.test/cpu0/1/src for cpu0 debug working project 
 according the following list steps, the corresponding commands shown in Fig 1.25:
@@ -357,7 +342,7 @@ need to download gdb again). Finally, try gdb as Fig 1.26.
 	Fig 1.26 Debug llvm cpu0 backend by gdb
 
 
-.. _llvm release download:
+.. _LLVM Download Page:
 	http://llvm.org/releases/download.html#3.1
 
 
