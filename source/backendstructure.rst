@@ -106,6 +106,9 @@ LLVM Code Generation Sequence
 Following diagram came from tricore_llvm.pdf.
 
 .. figure:: ../Fig/Fig3_5.png
+	:height: 665 px
+	:width: 1276 px
+	:scale: 80 %
 	:align: center
 
 	Fig 3.5 of tricore_llvm.pdf: Code generation sequence. On the path from LLVM code to assembly code, numerous passes are run through and several data structures are used to represent the intermediate results.

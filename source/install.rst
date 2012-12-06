@@ -142,6 +142,9 @@ Now, LLVM.xcodeproj is created. Open the cmake_debug_build/LLVM.xcodeproj by Xco
 click menu “Product – Build” as Fig 1.10.
 
 .. figure:: ../Fig/Fig1_10.png
+	:height: 950 px
+	:width: 1635 px
+	:scale: 60 %
 	:align: center
 
 	Fig 1.10 Click Build button to build LLVM.xcodeproj by Xcode
@@ -161,6 +164,9 @@ create file .profile), save .profile to /Users/Jonathan/, and enable $PATH by co
 after Xcode download.
 
 .. figure:: ../Fig/Fig1_12.png
+	:height: 158 px
+	:width: 1104 px
+	:scale: 100 %
 	:align: center
 
 	Fig 1.12 Edit .profile and save .profile to /Users/Jonathan/
@@ -203,6 +209,9 @@ Fig 1.16. About the lldb debug command, please reference
 http://lldb.llvm.org/lldb-gdb.html or lldb portal http://lldb.llvm.org/.
 
 .. figure:: ../Fig/Fig1_16.png
+	:height: 453 px
+	:width: 1098 px
+	:scale: 90 %
 	:align: center
 
 	Fig 1.16 Run lldb debug
@@ -222,6 +231,9 @@ Dock as Fig 1.18.
 	Fig 1.17 Type FileMerge in Finder – Applications
 
 .. figure:: ../Fig/Fig1_18.png
+	:height: 193 px
+	:width: 1989 px
+	:scale: 50 %
 	:align: center
 
 	Fig 1.18 Drag FileMege into the Dock
@@ -231,6 +243,9 @@ http://www.graphviz.org/Download_macos.php. I choose mountainlion as Fig 1.19 si
 iMac is Mountain Lion.
 
 .. figure:: ../Fig/Fig1_19.png
+	:height: 738 px
+	:width: 1181 px
+	:scale: 80 %
 	:align: center
 
 	Fig 1.19 Download graphviz for llvm IR node display
@@ -239,8 +254,11 @@ After install Graphviz, please set the path to .profile. For example, I install 
 Graphviz in directory /Applications/Graphviz.app/Contents/MacOS/, so add this path to 
 /User/Jonathan/.profile as follows,
 
-118-165-12-177:InputFiles Jonathan$ cat /Users/Jonathan/.profile
-export PATH=$PATH:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/Graphviz.app/Contents/MacOS/:/Users/Jonathan/l lvm/3.1/cmake_debug_build/bin/Debug
+.. code-block:: bash
+
+	118-165-12-177:InputFiles Jonathan$ cat /Users/Jonathan/.profile
+	export PATH=$PATH:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/
+	Graphviz.app/Contents/MacOS/:/Users/Jonathan/llvm/3.1/cmake_debug_build/bin/Debug
 
 The Graphviz information for llvm is in http://llvm.org/docs/CodeGenerator.html? 
 highlight=graph%20view and http://llvm.org/docs/ProgrammersManual.html#ViewGraph.
@@ -318,6 +336,9 @@ by command ``cd src/lib/Target/`` and
 ``make`` in cpu0 example code build.
 
 .. figure:: ../Fig/Fig1_25.png
+	:height: 952 px
+	:width: 1050 px
+	:scale: 80 %
 	:align: center
 
 	Fig 1.25 Create llvm 3.1 debug copy
