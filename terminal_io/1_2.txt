@@ -4,11 +4,13 @@ Scanning dependencies of target LLVMSupport
 [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/APInt.cpp.o
 [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/APSInt.cpp.o
 [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/Allocator.cpp.o
-[ 1%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/BlockFrequency.cpp.o ...
+[ 1%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/BlockFrequency.
+cpp.o ...
 Linking CXX static library ../../lib/libgtest.a
 [100%] Built target gtest
 Scanning dependencies of target gtest_main
-[100%] Building CXX object utils/unittest/CMakeFiles/gtest_main.dir/UnitTestMain/
+[100%] Building CXX object utils/unittest/CMakeFiles/gtest_main.dir/UnitTestMain
+/
 TestMain.cpp.o Linking CXX static library ../../lib/libgtest_main.a
 [100%] Built target gtest_main
 [Gamma@localhost cmake_debug_build]$

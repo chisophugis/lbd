@@ -11,8 +11,10 @@ define i32 @main() nounwind uwtable {
 	addiu	$sp, $sp, -56 
 $tmp1: 
 	addiu	$3, $zero, 0 
-	st	$3, 52($sp)   // %1 is the first frame index local variable, so allocate in 52($sp)
+	st	$3, 52($sp)   // %1 is the first frame index local variable, so allocate
+                      // in 52($sp)
 	addiu	$2, $zero, 5 
-	st	$2, 48($sp)    // %2 is the second frame index local variable, so allocate in 48($sp)
-                ...
-                ret	$lr
+	st	$2, 48($sp)   // %2 is the second frame index local variable, so 
+                      // allocate in 48($sp)
+    ...
+    ret	$lr

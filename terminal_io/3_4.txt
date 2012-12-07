@@ -1,8 +1,12 @@
-[Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+[Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
 Target didn't implement TargetInstrInfo::storeRegToStackSlot! 
-UNREACHABLE executed at /usr/local/llvm/3.1.test/cpu0/1/src/include/llvm/Target/TargetInstrInfo.h:390! 
+UNREACHABLE executed at /usr/local/llvm/3.1.test/cpu0/1/src/include/llvm/Target/
+TargetInstrInfo.h:390! 
 Stack dump: 
-0.	Program arguments: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+0.	Program arguments: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc
+ -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
 1.	Running pass 'Function Pass Manager' on module 'ch3.bc'. 
-2.	Running pass 'Prologue/Epilogue Insertion & Frame Finalization' on function '@main' 
+2.	Running pass 'Prologue/Epilogue Insertion & Frame Finalization' on function 
+'@main' 
 Aborted (core dumped) 

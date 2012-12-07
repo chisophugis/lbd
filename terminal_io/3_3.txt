@@ -1,2 +1,4 @@
-[Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-/usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc: target does not support generation of this file type! 
+[Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+/usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc: target does not suppo
+rt generation of this file type! 
