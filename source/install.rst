@@ -145,12 +145,7 @@ Build llvm by Xcode
 Now, LLVM.xcodeproj is created. Open the cmake_debug_build/LLVM.xcodeproj by Xcode and 
 click menu “Product – Build” as Fig 1.10.
 
-.. todo:: scale can solve the html picture too big problem but have side effect on pdf.
-
 .. figure:: ../Fig/Fig1_10.png
-	:height: 950 px
-	:width: 1635 px
-	:scale: 60 %
 	:align: center
 
 	Fig 1.10 Click Build button to build LLVM.xcodeproj by Xcode
@@ -240,9 +235,6 @@ Dock as Fig 1.18.
 	Fig 1.17 Type FileMerge in Finder – Applications
 
 .. figure:: ../Fig/Fig1_18.png
-	:height: 193 px
-	:width: 1989 px
-	:scale: 50 %
 	:align: center
 
 	Fig 1.18 Drag FileMege into the Dock
