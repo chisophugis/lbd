@@ -50,10 +50,12 @@ Figure 1.1.
 
 .. todo:: Should we just write out commands in a terminal for people to execute?
 
+.. _figlem:
+
 .. figure:: ../Fig/Fig1_1.png
 	:align: center
 
-	Fig 1.1 LLVM, clang, compiler-rt source code positions on Mac OS X
+	LLVM, clang, compiler-rt source code positions on Mac OS X
 
 Next, copy the LLVM source to /Users/Jonathan/llvm/3.1/src by executing the terminal 
 command ``cp -rf /Users/Jonathan/Documents/llvmSrc/src /Users/Jonathan/llvm/3.1/.``.
@@ -142,6 +144,8 @@ Build llvm by Xcode
 
 Now, LLVM.xcodeproj is created. Open the cmake_debug_build/LLVM.xcodeproj by Xcode and 
 click menu “Product – Build” as Fig 1.10.
+
+.. todo:: scale can solve the html picture too big problem but have side effect on pdf.
 
 .. figure:: ../Fig/Fig1_10.png
 	:height: 950 px
