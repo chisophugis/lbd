@@ -19,7 +19,7 @@ Cpu0TargetMachine class contains it's own instruction class, frame/stack class,
 DAG (Directed-Acyclic-Graph) class, and register class. 
 The Cpu0TargetMachine contents as follows,
 
-.. literalinclude:: ../code_fragment/3_1.txt
+.. literalinclude:: ../code_fragment/backendstructure/1.txt
 
 .. _backendstructure_f1: 
 .. figure:: ../Fig/backendstructure/1.png
@@ -81,7 +81,7 @@ Following is the code fragment from Cpu0GenInstrInfo.inc.
 Code between “#if def  GET_INSTRINFO_HEADER” and “#endif // GET_INSTRINFO_HEADER” 
 will be extracted by Cpu0InstrInfo.h.
 
-.. literalinclude:: ../code_fragment/3_2.txt
+.. literalinclude:: ../code_fragment/backendstructure/2.txt
 
 http://llvm.org/docs/WritingAnLLVMBackend.html#TargetMachine
 
@@ -92,7 +92,7 @@ and .cpp), Cpu0FrameLowering (Cpu0FrameLowering.h and .cpp), Cpu0TargetLowering
 and .cpp). 
 CMakeLists.txt  modified with those new added \*.cpp as follows,
 
-.. literalinclude:: ../code_fragment/3_3.txt
+.. literalinclude:: ../code_fragment/backendstructure/3.txt
 
 Please take a look for 3/1 code. 
 After that, we build 3/1 by make as chapter 2 (of course, you should remove old 
@@ -103,7 +103,7 @@ By remove \*.inc, all files those have included .inc will be rebuild, then your
 Target library will regenerate. 
 Command as follows,
 
-.. literalinclude:: ../terminal_io/3_1.txt
+.. literalinclude:: ../terminal_io/backendstructure/1.txt
 
 Add RegisterInfo
 ----------------
@@ -114,13 +114,13 @@ So in 3/2/Cpu0, we add Cpu0RegisterInfo class (Cpu0RegisterInfo.h,
 Cpu0RegisterInfo.cpp), and Cpu0RegisterInfo class in files Cpu0InstrInfo.h, 
 Cpu0InstrInfo.cpp, Cpu0TargetMachine.h, and modify CMakeLists.txt as follows,
 
-.. literalinclude:: ../code_fragment/3_4.txt
+.. literalinclude:: ../code_fragment/backendstructure/4.txt
 
 Now, let's replace 3/1/Cpu0 with 3/2/Cpu0 for adding register class definition 
 and rebuild. 
 After that, we try to run the llc compile command to see what happen,
 
-.. literalinclude:: ../terminal_io/3_2.txt
+.. literalinclude:: ../terminal_io/backendstructure/2.txt
 
 The errors say that we have not Target AsmPrinter. 
 Let's add it in next section.
@@ -133,7 +133,7 @@ Add AsmPrinter
 Cpu0.td to support AssemblyWriter. 
 Cpu0.td is added with the following fragment,
 
-.. literalinclude:: ../code_fragment/3_5.txt
+.. literalinclude:: ../code_fragment/backendstructure/5.txt
 
 As comments indicate, it will generate Cpu0GenAsmWrite.inc which is included 
 by Cpu0InstPrinter.cpp. 
@@ -147,7 +147,7 @@ class Cpu0InstPrinter and include them.
 File 3/3/Cpu0/InstPrinter/Cpu0InstPrinter.cpp include Cpu0GenAsmWrite.inc and 
 call the auto-generated functions as follows,
 
-.. literalinclude:: ../code_fragment/3_6.txt
+.. literalinclude:: ../code_fragment/backendstructure/6.txt
 
 Next, add Cpu0AsmPrinter (Cpu0AsmPrinter.h, Cpu0AsmPrinter.cpp), 
 Cpu0MCInstLower (Cpu0MCInstLower.h, Cpu0MCInstLower.cpp), Cpu0BaseInfo.h, 
@@ -157,13 +157,13 @@ sub-directory MCTargetDesc.
 Finally, add code in Cpu0MCTargetDesc.cpp to register Cpu0InstPrinter as 
 follows,
 
-.. literalinclude:: ../code_fragment/3_7.txt
+.. literalinclude:: ../code_fragment/backendstructure/7.txt
 
 Now, it's time to work with AsmPrinter. According section 
 “3.6 Target Registration”, we can register our AsmPrinter when we need it as 
 follows,
 
-.. literalinclude:: ../code_fragment/3_8.txt
+.. literalinclude:: ../code_fragment/backendstructure/8.txt
 
 The dynamic register mechanism is a good idea, right.
 
@@ -171,11 +171,11 @@ Except add the new .cpp files to CMakeLists.txt, please remember to add
 subdirectory InstPrinter, enable asmprinter, add libraries AsmPrinter and 
 Cpu0AsmPrinter to LLVMBuild.txt as follows,
 
-.. literalinclude:: ../code_fragment/3_9.txt
+.. literalinclude:: ../code_fragment/backendstructure/9.txt
 
 Now, run 3/3/Cpu0 for AsmPrinter support, we get error message as follows,
 
-.. literalinclude:: ../terminal_io/3_3.txt
+.. literalinclude:: ../terminal_io/backendstructure/3.txt
 
 The llc fails to compile IR code into machine code since we didn't implement 
 class Cpu0DAGToDAGISel. Before the implementation, I will introduce the LLVM 
@@ -201,7 +201,7 @@ representation.
 Comment is “;” in llvm representation. 
 Following is the llvm SSA instructions.
 
-.. literalinclude:: ../code_fragment/3_10.txt
+.. literalinclude:: ../code_fragment/backendstructure/10.txt
 
 I explain the code generation process as below. 
 If you don't feel comfortable, please check tricore_llvm.pdf section 4.2 first. 
@@ -215,11 +215,11 @@ article for DAG and Instruction Selection.
 
 1. Instruction Selection
 
-.. literalinclude:: ../code_fragment/3_11.txt
+.. literalinclude:: ../code_fragment/backendstructure/11.txt
 
 2. Scheduling and Formation
 
-.. literalinclude:: ../code_fragment/3_12.txt
+.. literalinclude:: ../code_fragment/backendstructure/12.txt
 
 3. SSA-based Machine Code Optimization
 
@@ -256,7 +256,7 @@ block into DAG. For example, the basic block code and it's corresponding DAG as
 If b is not live on exit from the block, then we can do common expression 
 remove to get the following code.
 
-.. literalinclude:: ../code_fragment/3_13.txt
+.. literalinclude:: ../code_fragment/backendstructure/13.txt
 
 As you can imagine, the common expression remove can apply in IR or machine 
 code.
@@ -300,7 +300,7 @@ previous chapter.
 And It will expand to the following Pattern as mentioned in section Write td 
 (Target Description) of the previous chapter as follows,
 
-.. literalinclude:: ../code_fragment/3_14.txt
+.. literalinclude:: ../code_fragment/backendstructure/14.txt
 
 This pattern meaning the IR DAG node **add** can translate into machine 
 instruction DAG node ADDiu by pattern match mechanism. 
@@ -313,21 +313,21 @@ It can be represented by DAG list (fadd (fmul ra, rc), rb).
 For this implementation, we can assign fmadd DAG pattern to instruction td as 
 follows,
 
-.. literalinclude:: ../code_fragment/3_15.txt
+.. literalinclude:: ../code_fragment/backendstructure/15.txt
 
 Similar with ADDiu, [(set F4RC:$FRT, (fadd (fmul F4RC:$FRA, F4RC:$FRC), 
 F4RC:$FRB))] is the pattern which include node **fmul** and node **fadd**.
 
 Now, for the following basic block notation IR and llvm SSA IR code,
 
-.. literalinclude:: ../code_fragment/3_16.txt
+.. literalinclude:: ../code_fragment/backendstructure/16.txt
 
 The llvm SelectionDAG Optimization Phase (is part of Instruction Selection 
 Process) prefered to translate this 2 IR DAG node (fmul %a, %b) (fadd %d, %c) 
 into one machine instruction DAG node (**fmadd** %a, %c, %b), than translate 
 them into 2 machine instruction nodes **fmul** and **fadd**.
 
-.. literalinclude:: ../code_fragment/3_17.txt
+.. literalinclude:: ../code_fragment/backendstructure/17.txt
 
 As you can see, the IR notation representation is easier to read then llvm SSA 
 IR form. 
@@ -335,12 +335,12 @@ So, we  use the notation form in this book sometimes.
 
 For the following basic block code,
 
-.. literalinclude:: ../code_fragment/3_18.txt
+.. literalinclude:: ../code_fragment/backendstructure/18.txt
 
 We can apply :ref:`backendstructure_f7` Instruction tree pattern to get the 
 following machine code,
 
-.. literalinclude:: ../code_fragment/3_19.txt
+.. literalinclude:: ../code_fragment/backendstructure/19.txt
 
 
 Add Cpu0DAGToDAGISel class
@@ -350,29 +350,29 @@ We have introduced the IR DAG to machine instruction DAG transformation in the
 previous section. 
 Now, let's check what IR DAG node the file ch3.bc has. List ch3.ll as follows,
 
-.. literalinclude:: ../code_fragment/3_20.txt
+.. literalinclude:: ../code_fragment/backendstructure/20.txt
 
 As above, ch3.ll use the IR DAG node **store**, **ret**. Actually, it also use 
 **add** for sp (stack point) register adjust. 
 So, the definitions in Cpu0InstInfo.td as follows is enough. 
 IR DAG is defined in file  include/llvm/Target/TargetSelectionDAG.td.
 
-.. literalinclude:: ../code_fragment/3_21.txt
+.. literalinclude:: ../code_fragment/backendstructure/21.txt
 
 Add  class Cpu0DAGToDAGISel (Cpu0ISelDAGToDAG.cpp) to CMakeLists.txt, and add 
 following fragment to Cpu0TargetMachine.cpp,
 
-.. literalinclude:: ../code_fragment/3_22.txt
+.. literalinclude:: ../code_fragment/backendstructure/22.txt
 
 In this version, we add the following code in Cpu0InstInfo.cpp to enable debug 
 information which called by llvm at proper time.
 
-.. literalinclude:: ../code_fragment/3_23.txt
+.. literalinclude:: ../code_fragment/backendstructure/23.txt
 
 Build 3/4, run it, we find the error message in 3/3 is gone. The new error 
 message for 3/4 as follows,
 
-.. literalinclude:: ../terminal_io/3_4.txt
+.. literalinclude:: ../terminal_io/backendstructure/4.txt
 
 
 Add Prologue/Epilogue functions
@@ -413,7 +413,7 @@ I will explain the Prologue and Epilogue further by example code.
 So for the following llvm IR code, Cpu0 back end will emit the corresponding 
 machine instructions as follows,
 
-.. literalinclude:: ../terminal_io/3_5.txt
+.. literalinclude:: ../terminal_io/backendstructure/5.txt
 
 LLVM get the stack size by parsing IR and counting how many virtual registers 
 is assigned to local variables. After that, it call emitPrologue(). 
@@ -421,7 +421,7 @@ This function will emit machine instructions to adjust sp (stack pointer
 register) for local variables since we don't use fp (frame pointer register). 
 For our example, it will emit the instructions,
 
-.. literalinclude:: ../code_fragment/3_24.txt
+.. literalinclude:: ../code_fragment/backendstructure/24.txt
 
 The  emitEpilogue will emit “addiu  $sp, $sp, 8”, 8 is the stack size.
 
@@ -433,13 +433,13 @@ example) into stack offset according the frame index order upward (stack grow
 up downward from high address to low address, 0($sp) is the top, 52($sp) is the 
 bottom) as follows,
 
-.. literalinclude:: ../terminal_io/3_6.txt
+.. literalinclude:: ../terminal_io/backendstructure/6.txt
 
 After add these Prologue and Epilogue functions, and build with 3/5/Cpu0. 
 Now we are ready to compile our example code ch3.bc into cpu0 assembly code. 
 Following is the command and output file ch3.cpu0.s,
 
-.. literalinclude:: ../terminal_io/3_7.txt
+.. literalinclude:: ../terminal_io/backendstructure/7.txt
 
 Summary of this Chapter
 -----------------------

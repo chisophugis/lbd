@@ -229,7 +229,7 @@ The most important aspect of it, though, is that it is itself defined as a
 first class language with well-defined semantics. 
 To make this concrete, here is a simple example of a .ll file:
 
-.. literalinclude:: ../code_fragment/2_1.txt
+.. literalinclude:: ../code_fragment/llvmstructure/1.txt
 
 As you can see from this example, LLVM IR is a low-level RISC-like virtual 
 instruction set. 
@@ -295,7 +295,7 @@ For example, the x86 back end defines a register class that holds all of its
 32-bit registers named "GR32" (in the .td files, target specific definitions 
 are all caps) like this:
 
-.. literalinclude:: ../code_fragment/2_2.txt
+.. literalinclude:: ../code_fragment/llvmstructure/2.txt
 
 
 Write td (Target Description)
@@ -311,18 +311,18 @@ http://llvm.org/docs/TableGenFundamentals.html is the web site.
 Every back end has a target td which define it's own target information. 
 Td is like C++ in syntax. For example we have Cpu0.td as follows,
 
-.. literalinclude:: ../code_fragment/2_3.txt
+.. literalinclude:: ../code_fragment/llvmstructure/3.txt
 
 The registers td named Cpu0RegisterInfo.td included by Cpu0.td defined as 
 follows,
 
-.. literalinclude:: ../code_fragment/2_4.txt
+.. literalinclude:: ../code_fragment/llvmstructure/4.txt
 
 In C++ the data layout is declared by class. Declaration tells the variable 
 layout; definition allocates memory for the variable. 
 For example,
 
-.. literalinclude:: ../code_fragment/2_5.txt
+.. literalinclude:: ../code_fragment/llvmstructure/5.txt
 
 Just like C++ class, the keyword “class” is used for declaring data structure 
 layout. 
@@ -345,24 +345,24 @@ Register in CPURegs variable.
 
 I named the instructions td as Cpu0InstrInfo.td which contents as follows,
 
-.. literalinclude:: ../code_fragment/2_6.txt
+.. literalinclude:: ../code_fragment/llvmstructure/6.txt
 
 The Cpu0InstrFormats.td is included by Cpu0InstInfo.td as follows,
 
-.. literalinclude:: ../code_fragment/2_7.txt
+.. literalinclude:: ../code_fragment/llvmstructure/7.txt
 
 ADDiu is class ArithLogicI inherited from FL, can expand and get member value 
 as follows,
 
-.. literalinclude:: ../code_fragment/2_8.txt
+.. literalinclude:: ../code_fragment/llvmstructure/8.txt
 
 Expand with FL further,
 
-.. literalinclude:: ../code_fragment/2_9.txt
+.. literalinclude:: ../code_fragment/llvmstructure/9.txt
 
 Expand with Cpu0Inst further,
 
-.. literalinclude:: ../code_fragment/2_10.txt
+.. literalinclude:: ../code_fragment/llvmstructure/10.txt
 
 It's a lousy process. 
 Similarly, LW and ST instruction definition can be expanded in this way. 
@@ -378,7 +378,7 @@ Write cmake file
 In Target/Cpu0 directory, we have 2 files CMakeLists.txt and LLVMBuild.txt, 
 contents as follows,
 
-.. literalinclude:: ../code_fragment/2_11.txt
+.. literalinclude:: ../code_fragment/llvmstructure/11.txt
 
 LLVMBuild.txt files are written in a simple variant of the INI or configuration 
 file format. 
@@ -411,12 +411,12 @@ and use the RegisterTarget template to register the target.
 For example, the file TargetInfo/Cpu0TargetInfo.cpp register TheCpu0Target for 
 big endian and TheCpu0elTarget for little endian, as follows.
 
-.. literalinclude:: ../code_fragment/2_12.txt
+.. literalinclude:: ../code_fragment/llvmstructure/12.txt
 
 Files Cpu0TargetMachine.cpp and MCTargetDesc/Cpu0MCTargetDesc.cpp just define 
 the empty initialize function since we register nothing in them for this moment.
 
-.. literalinclude:: ../code_fragment/2_13.txt
+.. literalinclude:: ../code_fragment/llvmstructure/13.txt
 
 http://llvm.org/docs/WritingAnLLVMBackend.html#TargetRegistration for reference.
 
@@ -438,43 +438,43 @@ Please check files in src_files_modify/src/.
 You can search cpu0 without case sensitive to find the modified files by 
 command,
 
-.. literalinclude:: ../terminal_io/2_1.txt
+.. literalinclude:: ../terminal_io/llvmstructure/1.txt
 
 You can update your llvm working copy by,
 
-.. literalinclude:: ../terminal_io/2_2.txt
+.. literalinclude:: ../terminal_io/llvmstructure/2.txt
 
 Now, run the cmake and make command to build td (the following cmake command is 
 for my setting),
 
-.. literalinclude:: ../terminal_io/2_3.txt
+.. literalinclude:: ../terminal_io/llvmstructure/3.txt
 
 After build, you can type command llc –version to find the cpu0 backend,
 
-.. literalinclude:: ../terminal_io/2_4.txt
+.. literalinclude:: ../terminal_io/llvmstructure/4.txt
 
 The “llc -version” can display “cpu0” and “cpu0el” message, because the 
 following code from file TargetInfo/Cpu0TargetInfo.cpp what in section Target 
 Registration we made. 
 List them as follows again,
 
-.. literalinclude:: ../code_fragment/2_14.txt
+.. literalinclude:: ../code_fragment/llvmstructure/14.txt
 
 Now try to do llc command to compile input file ch3.cpp as follows,
 
-.. literalinclude:: ../code_fragment/2_15.txt
+.. literalinclude:: ../code_fragment/llvmstructure/15.txt
 
 First step, compile it with clang and get output ch3.bc as follows,
 
-.. literalinclude:: ../terminal_io/2_5.txt
+.. literalinclude:: ../terminal_io/llvmstructure/5.txt
 
 Next step, transfer bitcode .bc to human readable text format as follows,
 
-.. literalinclude:: ../terminal_io/2_6.txt
+.. literalinclude:: ../terminal_io/llvmstructure/6.txt
 
 Now, compile ch3.bc into ch3.cpu0.s, we get the error message as follows,
 
-.. literalinclude:: ../terminal_io/2_7.txt
+.. literalinclude:: ../terminal_io/llvmstructure/7.txt
 
 Currently we just define target td files (Cpu0.td, Cpu0RegisterInfo.td, ...). 
 According to LLVM structure, we need to define our target machine and include 
