@@ -403,11 +403,11 @@ like build the 3.1 release, but we do Debug build and use clang as our compiler
 instead, 
 as follows,
 
-.. literalinclude:: ../terminal_io/1_1.txt
+.. literalinclude:: ../terminal_io/install/1.txt
 
 Then do make as follows,
 
-.. literalinclude:: ../terminal_io/1_2.txt
+.. literalinclude:: ../terminal_io/install/2.txt
 
 Now, we are ready for the cpu0 backend development. We can run gdb debug as 
 follows. 

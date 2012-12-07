@@ -1,17 +1,1 @@
-[Gamma@localhost cmake_debug_build]$ grep -R -i "cpu0" ../src/ 
-../src/CMakeLists.txt:  Cpu0 
-../src/lib/Target/LLVMBuild.txt:subdirectories = ARM CellSPU CppBackend Hexagon 
-MBlaze MSP430 Mips Cpu0 PTX PowerPC Sparc X86 XCore ../src/lib/MC/MCExpr.cpp:  
-case VK_Cpu0_GPREL: return "GPREL"; 
-...
-../src/lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TLSGD: 
-...
-../src/lib/MC/MCDwarf.cpp:  // AT_language, a 4 byte value.  We use DW_LANG_Cpu0
-_Assembler as the dwarf2 
-../src/lib/MC/MCDwarf.cpp: // MCOS->EmitIntValue(dwarf::DW_LANG_Cpu0_Assembler, 
-2); 
-../src/lib/Support/Triple.cpp:  case cpu0:    return "cpu0";
- ...
-../src/include/llvm/Support/ELF.h:  EM_LATTICEMICO32 = 138, // RISC processor fo
-r Lattice CPU0 architecture
-...
+[Gamma@localhost cmake_debug_build]$ rm -rf lib/Target/Cpu0/* 

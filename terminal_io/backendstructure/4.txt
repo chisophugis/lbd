@@ -1,16 +1,12 @@
-[Gamma@localhost cmake_debug_build]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug
-_build/bin/llc --version 
-LLVM (http://llvm.org/): 
-  LLVM version 3.1svn 
-  DEBUG build with assertions. 
-  Built Sep 21 2012 (18:27:58). 
-  Default target: x86_64-unknown-linux-gnu 
-  Host CPU: penryn 
-
-  Registered Targets: 
-    arm      - ARM 
-    cellspu  - STI CBEA Cell SPU [experimental] 
-    cpp      - C++ backend 
-    cpu0     - Cpu0 
-    cpu0el   - Cpu0el 
-...
+[Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+Target didn't implement TargetInstrInfo::storeRegToStackSlot! 
+UNREACHABLE executed at /usr/local/llvm/3.1.test/cpu0/1/src/include/llvm/Target/
+TargetInstrInfo.h:390! 
+Stack dump: 
+0.	Program arguments: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc
+ -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+1.	Running pass 'Function Pass Manager' on module 'ch3.bc'. 
+2.	Running pass 'Prologue/Epilogue Insertion & Frame Finalization' on function 
+'@main' 
+Aborted (core dumped) 
