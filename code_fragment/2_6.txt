@@ -1,29 +1,29 @@
-/===- Cpu0InstrInfo.td - Target Description for Cpu0 Target -*- tablegen -*-=// 
+/===- Cpu0InstrInfo.td - Target Description for Cpu0 Target -*- tablegen -*-=//
 // 
 //                     The LLVM Compiler Infrastructure 
 // 
 // This file is distributed under the University of Illinois Open Source 
 // License. See LICENSE.TXT for details. 
 // 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // 
 // This file contains the Cpu0 implementation of the TargetInstrInfo class. 
 // 
-//===----------------------------------------------------------------------===// 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 // Instruction format superclass 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
  include "Cpu0InstrFormats.td" 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Cpu0 profiles and nodes 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>; 
 // Return 
 def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain, 
                      SDNPOptInGlue]>; 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Cpu0 Operand, Complex Patterns and Transformations Definitions. 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 def simm16      : Operand<i32> { 
   let DecoderMethod= "DecodeSimm16"; 
 } 
@@ -39,11 +39,12 @@ def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 
 // Cpu0 Address Mode! SDNode frameindex could possibily be a match 
 // since load and store instructions from stack used it. 
-def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], [SDNPWantParent]>; 
+def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], [SDNPWantParent]>
+; 
 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Pattern fragment for load/store 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 class AlignedLoad<PatFrag Node> : 
   PatFrag<(ops node:$ptr), (Node node:$ptr), [{ 
   LoadSDNode *LD = cast<LoadSDNode>(N); 
@@ -57,9 +58,9 @@ class AlignedStore<PatFrag Node> :
 // Load/Store PatFrags. 
 def load_a          : AlignedLoad<load>; 
 def store_a         : AlignedStore<store>; 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Instructions specific format 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Arithmetic and logical instructions with 2 register operands. 
 class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode, 
                   Operand Od, PatLeaf imm_type, RegisterClass RC> : 
@@ -113,12 +114,12 @@ multiclass StoreM32<bits<8> op, string instr_asm, PatFrag OpNode,
                     bit Pseudo = 0> { 
   def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>; 
 } 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Instruction definition 
-//===----------------------------------------------------------------------===// 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 // Cpu0I Instructions 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 /// Load and Store Instructions 
 ///  aligned 
 defm LW      : LoadM32<0x00,  "lw",  load_a>; 
@@ -134,9 +135,9 @@ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
   def RET : FJ <0x2C, (outs), (ins CPURegs:$target), 
                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>; 
 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 //  Arbitrary patterns that map to one or more instructions 
-//===----------------------------------------------------------------------===// 
+//===----------------------------------------------------------------------===//
 // Small immediates 
 
 def : Pat<(i32 immSExt16:$in), 

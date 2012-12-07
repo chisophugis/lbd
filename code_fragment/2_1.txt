@@ -15,7 +15,8 @@ recurse:
 done:
   ret i32 %b
 }
-This LLVM IR corresponds to this C code, which provides two different ways to add integers:
+This LLVM IR corresponds to this C code, which provides two different ways to
+ add integers:
 unsigned add1(unsigned a, unsigned b) {
   return a+b;
 }

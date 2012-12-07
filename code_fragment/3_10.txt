@@ -1,4 +1,7 @@
-store i32 0, i32* %a  ; store i32 type of 0 to virtual register %a, %a is pointer type which point to i32 value
-store i32 %b, i32* %c ; store %b contents to %c point to, %b isi32 type virtual register, %c is pointer type which point to i32 value.
-%a1 = load i32* %a    ; load the memory value where %a point to and assign the memory value to %a1
+store i32 0, i32* %a  ; store i32 type of 0 to virtual register %a, %a is
+                      ;  pointer type which point to i32 value
+store i32 %b, i32* %c ; store %b contents to %c point to, %b isi32 type virtual
+                      ;  register, %c is pointer type which point to i32 value.
+%a1 = load i32* %a    ; load the memory value where %a point to and assign the
+                      ;  memory value to %a1
 %a3 = add i32 %a2, 1  ; add %a2 and 1 and save to %a3
