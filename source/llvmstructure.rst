@@ -5,7 +5,7 @@ In this chapter, I show you the cpu0 instruction format first.
 Next, I introduce the llvm structure by copy and paste the related article from 
 llvm web site. 
 After that I will show you how to write register and instruction definitions 
-(Target Description File) which will be used in chapter 3.
+(Target Description File) which will be used in next chapter.
 
 CPU0 processor architecture
 ---------------------------
@@ -26,7 +26,7 @@ and its structure is shown below.
 .. figure:: ../Fig/llvmstructure/1.png
 	:align: center
 
-	The structure of the processor of Figure 2.1: CPU0
+	The structure of the processor of CPU0
 
 Uses of each register as follows:
 

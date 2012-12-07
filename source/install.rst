@@ -54,7 +54,7 @@ compiler-rt source to src/project/compiler-rt as shown in :ref:`install_f1`.
 
 .. todo:: Should we just write out commands in a terminal for people to execute?
 
-.. _install_f1:
+.. _install_f1: 
 .. figure:: ../Fig/install/1.png
 	:align: center
 
@@ -395,7 +395,7 @@ command
 	:scale: 80 %
 	:align: center
 
-	Fig 1.25 Create llvm 3.1 debug copy
+	Create llvm 3.1 debug copy
 
 Now, go into directory 3.1.test/cpu0/1, create directory cmake_debug_build and 
 do cmake 
