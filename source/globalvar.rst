@@ -13,7 +13,7 @@ These DAG optimization steps result can be viewed by Graphviz graphic tool
 which display very useful information by graphic view. 
 You will appreciate Graphviz support in debug, we think. 
 Next, we adjust cpu0 instructions to support data type for C language in 
-`section Adjust cpu0 instruction and support type of local variable pointer`.
+`section Adjust cpu0 instruction and support type of local variable pointer`_.
 Finally, `section Operator mod, %`_ to take care the C operator %.
 
 
@@ -1076,14 +1076,15 @@ the final result.
         addiu   $sp, $sp, 16
         ret $lr
     ...
-    
+
+
 Display llvm IR nodes with Graphviz
 ------------------------------------
 
 In the previous section, you know the llc -debug will show the DAG translation 
 process in text on terminal. 
 The llc supply the graphic display. 
-In section “1.5 Install other tools on iMac” `section Install other tools on imac`_, we mentioned the web for llc 
+In `section Install other tools on imac`_, we mentioned the web for llc 
 graphic display information. 
 We introduce the llc graphic display and tool Graphviz in this section. 
 The graphic display is more readable by eye than display text in terminal. 
@@ -1854,7 +1855,7 @@ support. You can compile it and check the result.
     http://jonathan2251.github.com/lbd/globalvar.html#operator-not
 
 .. _section Display llvm IR nodes with Graphviz:
-    http://jonathan2251.github.com/lbd/globalvar.html#display-llvm-IR-nodes-with-Graphviz
+    http://jonathan2251.github.com/lbd/globalvar.html#display-llvm-ir-nodes-with-graphviz
 
 .. _section Adjust cpu0 instruction and support type of local variable pointer:
     http://jonathan2251.github.com/lbd/globalvar.html#adjust-cpu0-instruction-and-support-type-of-local-variable-pointer
