@@ -13,6 +13,8 @@ Table of Contents
    install
    llvmstructure
    backendstructure
+   otherinst
+   globalvar
    todo
    
 
