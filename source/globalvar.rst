@@ -6,9 +6,10 @@ Now, we begin from global variable access translation for cpu0 instruction in
 this chapter. After that, we introduce struct and array type of variable access 
 and their corresponding llvm IR statement, and cpu0 how to translate these 
 llvm IR statements in `section Array and struct support`_. 
-The logic operation “not” support and translation in `section Operator “not” !`_. 
-`section Display llvm IR nodes with Graphviz`_ will show you the DAG optimization steps and 
-their corresponding llc display options. 
+The logic operation “not” support and translation in 
+`section Operator “not” !`_. `section Display llvm IR nodes with Graphviz`_ 
+will show you the DAG optimization steps and their corresponding llc display 
+options. 
 These DAG optimization steps result can be viewed by Graphviz graphic tool 
 which display very useful information by graphic view. 
 You will appreciate Graphviz support in debug, we think. 
