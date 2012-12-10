@@ -160,8 +160,8 @@ follows,
 .. literalinclude:: ../code_fragment/backendstructure/7.txt
 
 Now, it's time to work with AsmPrinter. According section 
-“3.6 Target Registration”, we can register our AsmPrinter when we need it as 
-follows,
+`section Target Registration`_, we can register our AsmPrinter when we need it 
+as follows,
 
 .. literalinclude:: ../code_fragment/backendstructure/8.txt
 
@@ -465,3 +465,7 @@ Even the complicate X86 CPU which CISC outside and RISC inside (micro
 instruction), has only 45,000 lines with comments. 
 In next chapter, I will show you that add a new instruction support is as easy 
 as 123.
+
+
+.. _section Target Registration:
+    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
