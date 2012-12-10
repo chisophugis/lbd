@@ -23,7 +23,7 @@ Table of Contents
 Book example code
 -----------------
 
-The book is also available in:
+The example code is available in:
 
 .. raw:: html
 
