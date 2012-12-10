@@ -454,8 +454,8 @@ After build, you can type command llc –version to find the cpu0 backend,
 .. literalinclude:: ../terminal_io/llvmstructure/4.txt
 
 The “llc -version” can display “cpu0” and “cpu0el” message, because the 
-following code from file TargetInfo/Cpu0TargetInfo.cpp what in section Target 
-Registration we made. 
+following code from file TargetInfo/Cpu0TargetInfo.cpp what in 
+`section Target Registration`_ we made. 
 List them as follows again,
 
 .. literalinclude:: ../code_fragment/llvmstructure/14.txt
@@ -480,3 +480,7 @@ Currently we just define target td files (Cpu0.td, Cpu0RegisterInfo.td, ...).
 According to LLVM structure, we need to define our target machine and include 
 those td related files. 
 The error message say we didn't define our target machine.
+
+
+.. _section Target Registration:
+    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
