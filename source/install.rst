@@ -91,8 +91,8 @@ Create LLVM.xcodeproj by cmake Graphic UI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, I cannot do debug by lldb with cmake graphic UI operations depicted 
-in this section, but I can do debug by lldb with section “1.4 Create 
-LLVM.xcodeproj of support cpu0 by terminal cmake command”. 
+in this section, but I can do debug by lldb with `section Create LLVM.xcodeproj 
+of supporting cpu0 by terminal cmake command`_. 
 Even though, let's build LLVM project with cmake graphic UI now since this LLVM 
 build is to build the release version for clang, llvm-as, llc, ..., execution 
 command use, not for working backend program. First, create LLVM.xcodeproj as 
@@ -192,10 +192,11 @@ if you didn't add it after Xcode download.
 
 	Edit .profile and save .profile to /Users/Jonathan/
 
-Create LLVM.xcodeproj of supporting cpu0 by terminal ``cmake`` command
+Create LLVM.xcodeproj of supporting cpu0 by terminal cmake command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In section 2.2, we create LLVM.xcodeproj by cmake graphic UI. 
+In `section Create LLVM.xcodeproj by cmake Graphic UI`_, we create 
+LLVM.xcodeproj by cmake graphic UI. 
 We can create LLVM.xcodeproj by ``cmake`` command on terminal also. 
 Now, let's repeat above steps to create llvm/3.1.test with cpu0 modified code 
 as :ref:`install_f13`.
@@ -225,7 +226,7 @@ Now, it's ready for building 1/Cpu0 code by command
 ``cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE
 =Debug -G "Xcode" ../src/`` as :ref:`install_f15`. 
 Remind, currently, the ``cmake`` terminal command can work with lldb debug, but 
-the section “1.2 cmake graphic UI steps” cannot.
+the `section Create LLVM.xcodeproj by cmake Graphic UI`_ cannot.
 
 .. _install_f15:
 .. figure:: ../Fig/install/15.png
@@ -426,3 +427,10 @@ Finally, try gdb as :ref:`install_f26`.
 	http://llvm.org/releases/download.html#3.1
 
 
+.. _section Create LLVM.xcodeproj of supporting cpu0 by terminal cmake command:
+    http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-of-
+    supporting-cpu0-by-terminal-cmake-command
+
+.. _section Create LLVM.xcodeproj by cmake Graphic UI:
+    http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-by-
+    cmake-graphic-ui
