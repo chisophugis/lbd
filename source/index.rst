@@ -15,6 +15,8 @@ Table of Contents
    backendstructure
    otherinst
    globalvar
+   ctrlflow
+   funccall
    todo
    
 

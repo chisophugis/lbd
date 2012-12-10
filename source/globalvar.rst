@@ -1165,8 +1165,8 @@ Adjust cpu0 instruction and support type of local variable pointer
 -------------------------------------------------------------------
 
 We decide add instructions udiv and sra to avoid compiler errors for C language 
-operators “/” in unsigned int and “>>” in signed int as section 
-“4.1 Other instructions” mentioned. 
+operators “/” in unsigned int and “>>” in signed int as 
+`section Support arithmetic instructions`_ mentioned. 
 To support these 2 operators, we only need to add these code in 
 Cpu0InstsInfo.td as follows,
 
@@ -1308,7 +1308,7 @@ According cpu0 web site instruction definition.
 There is no addiu instruction definition. 
 We add addiu instruction because we find this instruction is more powerful and 
 reasonable than ldi instruction. 
-We highlight this change in section “2.1 CPU0 processor architecture”. 
+We highlight this change in `section CPU0 processor architecture`_. 
 Even with that, we show you how to change our addiu with ldi according the cpu0 
 original design. 
 5/5_2 is the code changes for use ldi instruction. 
@@ -1866,3 +1866,10 @@ support. You can compile it and check the result.
 
 .. _section Install other tools on imac:
     http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
+
+.. _section CPU0 processor architecture:
+    http://jonathan2251.github.com/lbd/llvmstructure.html#cpu0-processor-architecture
+
+.. _section Support arithmetic instructions:
+    http://jonathan2251.github.com/lbd/otherinst.html#support-arithmetic-instructions
+
