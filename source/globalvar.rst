@@ -1085,7 +1085,7 @@ Display llvm IR nodes with Graphviz
 In the previous section, you know the llc -debug will show the DAG translation 
 process in text on terminal. 
 The llc supply the graphic display. 
-In `section Install other tools on imac`_, we mentioned the web for llc 
+In `section Install other tools on iMac`_, we mentioned the web for llc 
 graphic display information. 
 We introduce the llc graphic display and tool Graphviz in this section. 
 The graphic display is more readable by eye than display text in terminal. 
@@ -1866,7 +1866,7 @@ support. You can compile it and check the result.
 .. _section Operator mod, %:
     http://jonathan2251.github.com/lbd/globalvar.html#operator-mod
 
-.. _section Install other tools on imac:
+.. _section Install other tools on iMac:
     http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
 
 .. _section CPU0 processor architecture:
