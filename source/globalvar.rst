@@ -7,7 +7,7 @@ this chapter. After that, we introduce struct and array type of variable access
 and their corresponding llvm IR statement, and cpu0 how to translate these 
 llvm IR statements in `section Array and struct support`_. 
 The logic operation “not” support and translation in 
-`section Operator “not” !`_. `section Display llvm IR nodes with Graphviz`_ 
+`section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
 will show you the DAG optimization steps and their corresponding llc display 
 options. 
 These DAG optimization steps result can be viewed by Graphviz graphic tool 
