@@ -20,6 +20,19 @@ Table of Contents
    todo
    
 
+Book example code
+-----------------
+
+The book is also available in:
+
+.. raw:: html
+
+    <ul>
+    <li>
+    <a href="http://jonathan2251.github.com/lbd/LLVMBackendTutorialExampleCode.tar.gz">tar.gz</a>
+    </li>
+    </ul>
+
 Alternate formats
 -----------------
 

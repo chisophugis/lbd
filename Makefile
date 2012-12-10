@@ -15,7 +15,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 # Custom
-GH_PAGES_SOURCES = code_fragment Fig source Table terminal_io Makefile
+GH_PAGES_SOURCES = code_fragment Fig source Table terminal_io LLVMBackendTutorialExampleCode Makefile
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext gh-pages
 
@@ -162,6 +162,7 @@ gh-pages:
 	rm -rf build _sources _static _images
 	git checkout master $(GH_PAGES_SOURCES)
 	git reset HEAD
+	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
 	make html latexpdf epub
 	mv -fv build/html/* ./
 	mv -fv build/latex/WriteAnLLVMBackendTutorialForCpu0.pdf "./WriteAnLLVMBackendTutorialForCpu0.pdf"
