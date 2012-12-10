@@ -355,8 +355,8 @@ Now, let's examine Cpu0MCTargetDesc.cpp.
                                             createCpu0MCInstPrinter); 
 	}
 
-Cpu0MCTargetDesc.cpp do the target registration as mentioned in section Target 
-Registration of the last chapter. 
+Cpu0MCTargetDesc.cpp do the target registration as mentioned in 
+`section Target Registration`_ of the last chapter. 
 I draw the register function and those class it registered in 
 :ref:`otherinst_f1` to :ref:`otherinst_f9` for explanation.
 
@@ -515,5 +515,8 @@ Like :ref:`otherinst_f1` to :ref:`otherinst_f4`, it has been defined in
 4/1/Cpu0 code for assembly file generated support.
 
 
+
+.. _section Target Registration:
+    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
 
 
