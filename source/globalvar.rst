@@ -7,7 +7,7 @@ this chapter. After that, we introduce struct and array type of variable access
 and their corresponding llvm IR statement, and cpu0 how to translate these 
 llvm IR statements in `section Array and struct support`_. 
 The logic operation “not” support and translation in 
-`section Operator “not” !`_. The `section Display llvm IR nodes with graphviz`_ 
+`section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
 will show you the DAG optimization steps and their corresponding llc display 
 options. 
 These DAG optimization steps result can be viewed by Graphviz graphic tool 
@@ -1855,11 +1855,13 @@ support. You can compile it and check the result.
 .. _section Operator “not” !:
     http://jonathan2251.github.com/lbd/globalvar.html#operator-not
 
-.. _section Display llvm IR nodes with graphviz:
-    http://jonathan2251.github.com/lbd/globalvar.html#display-llvm-ir-nodes-with-graphviz
+.. _section Display llvm IR nodes with Graphviz:
+    http://jonathan2251.github.com/lbd/globalvar.html#display-llvm-ir-nodes-
+    with-graphviz
 
 .. _section Adjust cpu0 instruction and support type of local variable pointer:
-    http://jonathan2251.github.com/lbd/globalvar.html#adjust-cpu0-instruction-and-support-type-of-local-variable-pointer
+    http://jonathan2251.github.com/lbd/globalvar.html#adjust-cpu0-instruction-
+    and-support-type-of-local-variable-pointer
 
 .. _section Operator mod, %:
     http://jonathan2251.github.com/lbd/globalvar.html#operator-mod
@@ -1868,8 +1870,10 @@ support. You can compile it and check the result.
     http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
 
 .. _section CPU0 processor architecture:
-    http://jonathan2251.github.com/lbd/llvmstructure.html#cpu0-processor-architecture
+    http://jonathan2251.github.com/lbd/llvmstructure.html#cpu0-processor-
+    architecture
 
 .. _section Support arithmetic instructions:
-    http://jonathan2251.github.com/lbd/otherinst.html#support-arithmetic-instructions
+    http://jonathan2251.github.com/lbd/otherinst.html#support-arithmetic-
+    instructions
 
