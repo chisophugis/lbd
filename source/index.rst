@@ -29,7 +29,7 @@ The example code is available in:
 
     <ul>
     <li>
-    <a href="http://jonathan2251.github.com/lbd/LLVMBackendTutorialExampleCode.tar.gz">tar.gz</a>
+    <a href="http://jonathan2251.github.com/lbd/LLVMBackendTutorialExampleCode.tar.gz">LLVMBackendTutorialExampleCode.tar.gz</a>
     </li>
     </ul>
 
