@@ -31,6 +31,12 @@ For information on using ``cmake`` to build LLVM, please refer to the `Building
 LLVM with CMake`_ documentation for further information.  We are using cmake 
 version 2.8.9.
 
+We will install two llvm directories in this chapter. One is the directory 
+llvm/3.1/ which contains the clang, clang++ compiler we will use to translate 
+the C/C++ input file into llvm IR. 
+The other is the directory llvm/3.1.test/cpu0/1 which contains our cpu0 backend 
+program and without clang and clang++.
+
 .. _Building LLVM with CMake: http://llvm.org/docs/CMake.html?highlight=cmake
 
 .. todo:: Find information on debugging LLVM within Xcode for Macs.
@@ -90,14 +96,18 @@ installer.
 Create LLVM.xcodeproj by cmake Graphic UI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Currently, I cannot do debug by lldb with cmake graphic UI operations depicted 
-in this section, but I can do debug by lldb with `section Create LLVM.xcodeproj 
+We install llvm source code with clang on directory /Users/Jonathan/llvm/3.1/ 
+in last section.
+Now, will generate the LLVM.xcodeproj in this chapter.
+
+Currently, we cannot do debug by lldb with cmake graphic UI operations depicted 
+in this section, but we can do debug by lldb with `section Create LLVM.xcodeproj 
 of supporting cpu0 by terminal cmake command`_. 
-Even though, let's build LLVM project with cmake graphic UI now since this LLVM 
-build is to build the release version for clang, llvm-as, llc, ..., execution 
-command use, not for working backend program. First, create LLVM.xcodeproj as 
-:ref:`install_f3`, then click configure button to enter :ref:`install_f4`, 
-and then click Done button on :ref:`install_f4` to get :ref:`install_f5`.
+Even with that, let's build LLVM project with cmake graphic UI since this LLVM 
+directory contains the release version for clang and clang++ execution file. 
+First, create LLVM.xcodeproj as 
+:ref:`install_f3`, then click **configure** button to enter :ref:`install_f4`, 
+and then click **Done** button on :ref:`install_f4` to get :ref:`install_f5`.
 
 .. _install_f3:
 .. figure:: ../Fig/install/3.png
@@ -120,8 +130,8 @@ and then click Done button on :ref:`install_f4` to get :ref:`install_f5`.
 .. todo:: The html will follow the appear order in \*.rst source context but latexpdf didn't. For example, the :ref:`install_f4` Figure 2.4 and :ref:`install_f5` Figure 2.5 appear after the below text "Click OK from ..." in pdf. If find the **NoReorder** or **newpage** directive, maybe can solve this problem.
 
 Click OK from :ref:`install_f5` and select Cmake 2.8-9.app for CMAKE_INSTALL_NAM
-E_TOOL by click the right side button “...” of that row in :ref:`install_f5` to 
-get :ref:`install_f6`.
+E_TOOL by click the right side button **“...”** of that row in 
+:ref:`install_f5` to get :ref:`install_f6`.
 
 .. _install_f6:
 .. figure:: ../Fig/install/6.png
@@ -194,6 +204,10 @@ if you didn't add it after Xcode download.
 
 Create LLVM.xcodeproj of supporting cpu0 by terminal cmake command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We have install llvm with clang on directory llvm/3.1/. 
+Now, we want to install llvm with our cpu0 backend code on directory 
+llvm/3.1.test/cpu0/1 in this section.
 
 In `section Create LLVM.xcodeproj by cmake Graphic UI`_, we create 
 LLVM.xcodeproj by cmake graphic UI. 
@@ -275,7 +289,7 @@ as :ref:`install_f17` and drag it into the Dock as :ref:`install_f18`.
 
 Download tool Graphviz for display llvm IR nodes in debugging, 
 http://www.graphviz.org/Download_macos.php. 
-I choose mountainlion as :ref:`install_f19` since my iMac is Mountain Lion.
+We choose mountainlion as :ref:`install_f19` since our iMac is Mountain Lion.
 
 .. _install_f19:
 .. figure:: ../Fig/install/19.png
@@ -287,7 +301,7 @@ I choose mountainlion as :ref:`install_f19` since my iMac is Mountain Lion.
 	Download graphviz for llvm IR node display
 
 After install Graphviz, please set the path to .profile. 
-For example, I install the Graphviz in directory 
+For example, we install the Graphviz in directory 
 /Applications/Graphviz.app/Contents/MacOS/, so add this path to 
 /User/Jonathan/.profile as follows,
 
@@ -298,11 +312,14 @@ For example, I install the Graphviz in directory
 	/Applications/Graphviz.app/Contents/MacOS/:/Users/Jonathan/llvm/3.1/
 	cmake_debug_build/bin/Debug
 
-The Graphviz information for llvm is in http://llvm.org/docs/CodeGenerator.html? 
-highlight=graph%20view and http://llvm.org/docs/ProgrammersManual.html#ViewGraph
-.
+The Graphviz information for llvm is in 
+the section "SelectionDAG Instruction Selection Process" of 
+http://llvm.org/docs/CodeGenerator.html and 
+the section "Viewing graphs while debugging code" of 
+http://llvm.org/docs/ProgrammersManual.html.
 TextWrangler is for edit file with line number display and dump binary file 
-like the obj file, \*.o, that will be generated in chapter 3. 
+like the obj file, \*.o, that will be generated in chapter of Other 
+instructions. 
 You can download from App Store. 
 To dump binary file, first, open the binary file, next, select menu 
 “File – Hex Front Document” as :ref:`install_f20`. 
@@ -327,9 +344,12 @@ Install LLVM 3.1 release build on Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, install the llvm release build by,
-1) Untar llvm source, rename llvm source with src.
-2) Untar clang and move it src/tools/clang.
-3) Untar compiler-rt and move it to src/project/compiler-rt as :ref:`install_f22`.
+
+	1) Untar llvm source, rename llvm source with src.
+	
+	2) Untar clang and move it src/tools/clang.
+	
+	3) Untar compiler-rt and move it to src/project/compiler-rt as :ref:`install_f22`.
 
 .. _install_f22:
 .. figure:: ../Fig/install/22.png
