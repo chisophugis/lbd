@@ -1,16 +1,17 @@
 Cpu0 Instruction and LLVM Target Description
 ============================================
 
-In this chapter, I show you the cpu0 instruction format first. 
-Next, I introduce the llvm structure by copy and paste the related article from 
-llvm web site. 
-After that I will show you how to write register and instruction definitions 
+This chapter shows you the cpu0 instruction format first. 
+Next, the llvm structure is introduced to you by copy and paste the related 
+article from llvm web site. The llvm structure introduced here is extracted 
+from the asop web site. You can read the whole article from the asop web site. 
+After that we will show you how to write register and instruction definitions 
 (Target Description File) which will be used in next chapter.
 
 CPU0 processor architecture
 ---------------------------
 
-I copy and redraw figures in english in this section. This 
+We copy and redraw figures in english in this section. This 
 `web site <http://ccckmit.wikidot.com/ocs:cpu0>`_ is chinese version and here 
 is `english version 
 <http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=
@@ -93,27 +94,27 @@ The execution of the instruction step
 
 CPU0 has three stage pipeline: Instruction fetch, Decode and Execution.
 
-.. todo:: Incorrect display 1. Instruction fecth 1. Decode 1. Execute
-
-#. Instruction fetch
+1) Instruction fetch
 
 -	Action 1. The instruction fetch: IR = [PC]
 -	Action 2. Update program counter: PC = PC + 4
 
-#. Decode
+2) Decode
 
--	Action 3. Decode: Control unit decodes IR, then set data flow switch and ALU operation mode. 
+-	Action 3. Decode: Control unit decodes IR, then set data flow switch 
+	and ALU operation mode. 
 
-#. Execute
+3) Execute
 
--	Action 4. Execute: Data flow into ALU. After ALU done the operation, the result stored back into destination register. 
+-	Action 4. Execute: Data flow into ALU. After ALU done the operation, 
+	the result stored back into destination register. 
 
 Replace ldi instruction by addiu instruction
 ++++++++++++++++++++++++++++++++++++++++++++
 
-I have recognized the ldi instruction is a bad design and replace it with mips 
+We have recognized the ldi instruction is a bad design and replace it with mips 
 instruction addiu. 
-The reason I replace ldi with addiu is that ldi use only one register even 
+The reason we replace ldi with addiu is that ldi use only one register even 
 though ldi is L type format and has two registers, as :ref:`llvmstructure_f4`. 
 Mips addiu which allow programmer to do load constant to register like ldi, 
 and add constant to a register. So, it's powerful and fully contains the ldi 
@@ -138,7 +139,7 @@ And more, addiu can do addiu $Ra, $Rb, 5 which add $Rb and 5 then save to $Ra,
 but ldi cannot. 
 As a cpu design, it's common to redesign CPU instruction when find a better 
 solution during design the compiler backend for that CPU. 
-So, I add addiu instruction to cpu0. 
+So, we add addiu instruction to cpu0. 
 The cpu0 is my brother's work, I will find time to talk with him.
 
 LLVM structure
@@ -309,11 +310,11 @@ The \*.inc file is a text file (C++ file) with table driven in concept.
 http://llvm.org/docs/TableGenFundamentals.html is the web site.
 
 Every back end has a target td which define it's own target information. 
-Td is like C++ in syntax. For example we have Cpu0.td as follows,
+File td is like C++ in syntax. For example the Cpu0.td as follows,
 
 .. literalinclude:: ../code_fragment/llvmstructure/3.txt
 
-The registers td named Cpu0RegisterInfo.td included by Cpu0.td defined as 
+The registers td named Cpu0RegisterInfo.td included by Cpu0.td is defined as 
 follows,
 
 .. literalinclude:: ../code_fragment/llvmstructure/4.txt
@@ -326,24 +327,24 @@ For example,
 
 Just like C++ class, the keyword “class” is used for declaring data structure 
 layout. 
-``Cpu0Reg<string n>`` declare a derived clsas from ``Register<n>`` which is 
-declared by llvm already, and the n is the argument which type is string. 
-In addition to Register class fields, Cpu0Reg add a new field Num of type 4 
-bits. 
-Namespace same as  C++'s namespace. 
+``Cpu0Reg<string n>`` declare a derived class from ``Register<n>`` which is 
+declared by llvm already, where n is the argument of type string. 
+In addition to inherited from all the fields of Register class, Cpu0Reg add a 
+new field "Num" of type 4 bits. 
+Namespace is same with  C++ namespace. 
 “Def” is used by define(instance) a concrete variable.
 
 As above, we define a ZERO register which type is Cpu0GPRReg, it's field Num 
 is 0 (4 bits) and field n is “ZERO” (declared in Register class). 
 Note the use of “let” expressions to override values that are initially defined 
-in a superclass. For example, let Namespace = “Cpu0” in class Cpu0Reg of our 
-example, will override Namespace declared in Register class. 
-We also define CPURegs is a variable for type of RegisterClass, where the 
-RegisterClass is llvm built-in class. 
-The RegisterClass type is a set/group of Register, so we define a set of 
-Register in CPURegs variable.
+in a superclass. For example, let Namespace = “Cpu0” in class Cpu0Reg, will 
+override Namespace declared in Register class. 
+The Cpu0RegisterInfo.td also define that CPURegs is a variable for type of 
+RegisterClass, where the RegisterClass is a llvm built-in class. 
+The type of RegisterClass is a set/group of Register, so CPURegs variable is 
+defined with a set of Register.
 
-I named the instructions td as Cpu0InstrInfo.td which contents as follows,
+The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
 
 .. literalinclude:: ../code_fragment/llvmstructure/6.txt
 
@@ -375,7 +376,7 @@ We will use it in DAG transformations later.
 Write cmake file
 ----------------
 
-In Target/Cpu0 directory, we have 2 files CMakeLists.txt and LLVMBuild.txt, 
+Target/Cpu0 directory has two files CMakeLists.txt and LLVMBuild.txt, 
 contents as follows,
 
 .. literalinclude:: ../code_fragment/llvmstructure/11.txt
@@ -383,7 +384,7 @@ contents as follows,
 LLVMBuild.txt files are written in a simple variant of the INI or configuration 
 file format. 
 Comments are prefixed by ``#`` in both files. 
-I explain the setting for these 2 files in comments. 
+We explain the setting for these 2 files in comments. 
 Please spend a little time to read it.
 
 Both CMakeLists.txt and LLVMBuild.txt coexist in sub-directories 
@@ -424,10 +425,10 @@ http://llvm.org/docs/WritingAnLLVMBackend.html#TargetRegistration for reference.
 Build libraries and td
 ----------------------
 
-I put my llvm3.1 source code in /usr/local/llvm/3.1/src and have llvm3.1 
+We put llvm3.1 source code in /usr/local/llvm/3.1/src and have llvm3.1 
 release-build in /usr/local/llvm/3.1/configure_release_build. 
 About how to build llvm, please refer http://clang.llvm.org/get_started.html. 
-I made a copy from /usr/local/llvm/3.1/src to 
+We made a copy from /usr/local/llvm/3.1/src to 
 /usr/local/llvm/3.1.test/cpu0/1/src for working with my Cpu0 target back end. 
 Sub-directories src is for source code and cmake_debug_build is for debug 
 build directory.

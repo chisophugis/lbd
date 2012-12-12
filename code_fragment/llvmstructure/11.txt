@@ -1,9 +1,9 @@
 # CMakeLists.txt 
 # Our td all in Cpu0.td, Cpu0RegisterInfo.td and Cpu0InstrInfo.td included in 
-Cpu0.td 
+#  Cpu0.td 
 set(LLVM_TARGET_DEFINITIONS Cpu0.td) 
 
-# Generate Cpu0GenRegisterInfo.inc and Cpu0GenInstrInfo.inc which include by
+# Generate Cpu0GenRegisterInfo.inc and Cpu0GenInstrInfo.inc which included by
 # your hand code C++ files. 
 # Cpu0GenRegisterInfo.inc came from Cpu0RegisterInfo.td, Cpu0GenInstrInfo.inc
 # came from Cpu0InstrInfo.td. 
@@ -70,9 +70,9 @@ name = Cpu0CodeGen
 parent = Cpu0 
 # If given, a list of the names of Library or LibraryGroup components which must
 #  also be linked in whenever this library is used. That is, the link time 
-# dependencies for this component. When tools are built, the build system will
+#  dependencies for this component. When tools are built, the build system will
 #  include the transitive closure of all required_libraries for the components 
-# the tool needs. 
+#  the tool needs. 
 required_libraries = CodeGen Core MC Cpu0Desc Cpu0Info SelectionDAG Support Target 
 # All LLVMBuild.txt in Target/Cpu0 and subdirectory use 'add_to_library_groups =
 #  Cpu0' 

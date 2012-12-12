@@ -1,5 +1,11 @@
+//===-- Cpu0TargetMachine.cpp - Define TargetMachine for Cpu0 -------------===//
+...
+
 extern "C" void LLVMInitializeCpu0Target() { 
 } 
+...
 
+//===-- Cpu0MCTargetDesc.cpp - Cpu0 Target Descriptions -------------------===//
+...
 extern "C" void LLVMInitializeCpu0TargetMC() { 
 }
