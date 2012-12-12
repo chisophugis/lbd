@@ -425,7 +425,7 @@ http://llvm.org/docs/WritingAnLLVMBackend.html#TargetRegistration for reference.
 Build libraries and td
 ----------------------
 
-We put llvm3.1 source code in /usr/local/llvm/3.1/src and have llvm3.1 
+The llvm3.1 source code is put in /usr/local/llvm/3.1/src and have llvm3.1 
 release-build in /usr/local/llvm/3.1/configure_release_build. 
 About how to build llvm, please refer http://clang.llvm.org/get_started.html. 
 We made a copy from /usr/local/llvm/3.1/src to 
