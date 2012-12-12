@@ -1,14 +1,21 @@
 Back end structure
 ==================
 
-I will introduce the back end class inherit tree and class members first. 
-Next, following the back end structure, add individual class implementation in 
-each section. 
+This chapter introduce the back end class inherit tree and class members first. 
+Next, following the back end structure, adding individual class implementation 
+in each section. 
 There are compiler knowledge like DAG (Directed-Acyclic-Graph) and instruction 
 selection needed in this chapter. 
-I explain these knowledge just when needed. 
+This chapter explains these knowledge just when needed. 
 At the end of this chapter, we will have a back end to compile llvm 
 intermediate code into cpu0 assembly code.
+
+Many code are added in this chapter. They almost are common in every back end 
+except the back end name (cpu0 or mips ...). Actually, we copy almost all the 
+code from mips and replace the name with cpu0. Please focus on the classes 
+relationship in this backend structure. Once knowing the structure, you can 
+create your backend structure as quickly as we did, even though there are 3000 
+lines of code in this chapter.
 
 TargetMachine structure
 -----------------------
@@ -95,7 +102,7 @@ CMakeLists.txt  modified with those new added \*.cpp as follows,
 .. literalinclude:: ../code_fragment/backendstructure/3.txt
 
 Please take a look for 3/1 code. 
-After that, we build 3/1 by make as chapter 2 (of course, you should remove old 
+After that, building 3/1 by make as chapter 2 (of course, you should remove old 
 Target/Cpu0 and replace with 3/1/Cpu0). 
 You can remove lib/Target/Cpu0/\*.inc before do “make” to ensure your code 
 rebuild completely. 
@@ -110,15 +117,15 @@ Add RegisterInfo
 
 As depicted in :ref:`backendstructure_f1`, the Cpu0InstrInfo class should 
 contains Cpu0RegisterInfo. 
-So in 3/2/Cpu0, we add Cpu0RegisterInfo class (Cpu0RegisterInfo.h, 
+So 3/2/Cpu0 add Cpu0RegisterInfo class (Cpu0RegisterInfo.h, 
 Cpu0RegisterInfo.cpp), and Cpu0RegisterInfo class in files Cpu0InstrInfo.h, 
 Cpu0InstrInfo.cpp, Cpu0TargetMachine.h, and modify CMakeLists.txt as follows,
 
 .. literalinclude:: ../code_fragment/backendstructure/4.txt
 
-Now, let's replace 3/1/Cpu0 with 3/2/Cpu0 for adding register class definition 
+Now, let's replace 3/1/Cpu0 with 3/2/Cpu0 of adding register class definition 
 and rebuild. 
-After that, we try to run the llc compile command to see what happen,
+After that, let's try to run the llc compile command to see what happen,
 
 .. literalinclude:: ../terminal_io/backendstructure/2.txt
 
@@ -173,7 +180,7 @@ Cpu0AsmPrinter to LLVMBuild.txt as follows,
 
 .. literalinclude:: ../code_fragment/backendstructure/9.txt
 
-Now, run 3/3/Cpu0 for AsmPrinter support, we get error message as follows,
+Now, run 3/3/Cpu0 for AsmPrinter support, will get error message as follows,
 
 .. literalinclude:: ../terminal_io/backendstructure/3.txt
 
@@ -203,13 +210,13 @@ Following is the llvm SSA instructions.
 
 .. literalinclude:: ../code_fragment/backendstructure/10.txt
 
-I explain the code generation process as below. 
+We explain the code generation process as below. 
 If you don't feel comfortable, please check tricore_llvm.pdf section 4.2 first. 
 You can  read “The LLVM Target-Independent Code Generator” 
 (http://llvm.org/docs/CodeGenerator.html) and “LLVM Language Reference Manual” 
-(http://llvm.org/docs/LangRef.html) before go ahead, but I think read section 
+(http://llvm.org/docs/LangRef.html) before go ahead, but we think read section 
 4.2 of tricore_llvm.pdf is enough. 
-I suggest you read the web site documents as above only when you are still not 
+We suggest you read the web site documents as above only when you are still not 
 quite understand, even though you have read this section and next 2 sections 
 article for DAG and Instruction Selection.
 
@@ -291,7 +298,7 @@ ADD is machine instruction.
 
 	Instruction DAG representation
 
-We can also represent IR DAG and machine instruction DAG as list. 
+The IR DAG and machine instruction DAG can also represented as list. 
 For example, (+ ri, rj), (- ri, 1) are lists for IR DAG; (ADD ri, rj), 
 (SUBI ri, 1) are lists for machine instruction DAG.
 
@@ -346,7 +353,7 @@ following machine code,
 Add Cpu0DAGToDAGISel class
 --------------------------
 
-We have introduced the IR DAG to machine instruction DAG transformation in the 
+The IR DAG to machine instruction DAG transformation is introduced in the 
 previous section. 
 Now, let's check what IR DAG node the file ch3.bc has. List ch3.ll as follows,
 
@@ -364,7 +371,7 @@ following fragment to Cpu0TargetMachine.cpp,
 
 .. literalinclude:: ../code_fragment/backendstructure/22.txt
 
-In this version, we add the following code in Cpu0InstInfo.cpp to enable debug 
+This version adding the following code in Cpu0InstInfo.cpp to enable debug 
 information which called by llvm at proper time.
 
 .. literalinclude:: ../code_fragment/backendstructure/23.txt
@@ -409,7 +416,7 @@ If the addressing mode of the affected instruction cannot handle the address bec
 
 	Addressing of a variable a located on the stack. If the stack frame has a variable size, slot must be addressed relative to the frame pointer
 
-I will explain the Prologue and Epilogue further by example code. 
+We will explain the Prologue and Epilogue further by example code. 
 So for the following llvm IR code, Cpu0 back end will emit the corresponding 
 machine instructions as follows,
 
@@ -447,7 +454,7 @@ Summary of this Chapter
 We have finished a simple assembler for cpu0 which only support **addiu**, 
 **st** and **ret** 3 instructions.
 
-I am satisfied with this result. 
+We are satisfied with this result. 
 But you may think “After so many codes we program, and just get the 3 
 instructions”. 
 The point is we have created a frame work for cpu0 target machine (please 
@@ -463,7 +470,7 @@ directory which include C++ and Obj C support.
 Mips back end has only 15,000 lines with comments. 
 Even the complicate X86 CPU which CISC outside and RISC inside (micro 
 instruction), has only 45,000 lines with comments. 
-In next chapter, I will show you that add a new instruction support is as easy 
+In next chapter, we will show you that add a new instruction support is as easy 
 as 123.
 
 
