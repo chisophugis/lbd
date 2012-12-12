@@ -1,10 +1,9 @@
 Other instructions
 ===================
 
-I will add more cpu0 instructions support in this chapter. Begin from 
-arithmetic instructions. 
-Next, beyond assembly code generated which finished in last chapter, I add the 
-obj file generated support in this chapter.
+This chapter add more cpu0 arithmetic instructions support.
+After that, in addition to assembly code generated, the 
+obj file generated support is added in this chapter.
 
 Support arithmetic instructions
 --------------------------------
@@ -65,11 +64,11 @@ Run the 3/5/Cpu0 llc with input file ch4_1.bc will get the error as follows,
 		0x30d9e80: i32 = FrameIndex<2> [ORD=3] [ID=7] 
 		0x30d9880: i32 = undef [ORD=1] [ID=3] 
 
-This error say we have not instructions to translate IR DAG node add. 
-The ADDiu instruction is defined for node add with operands of 1 register and 1 
-immediate. 
-This node add is for 2 registers. 
-So, we append the following code to Cpu0InstrInfo.td and Cpu0Schedule.td in 
+This error says we have not instructions to translate IR DAG node **add**. 
+The ADDiu instruction is defined for node **add** with operands of 1 register 
+and 1 immediate. 
+This node **add** is for 2 registers. 
+So, appending the following code to Cpu0InstrInfo.td and Cpu0Schedule.td in 
 4/1/Cpu0,
 
 .. code-block:: c++
@@ -117,7 +116,8 @@ So, we append the following code to Cpu0InstrInfo.td and Cpu0Schedule.td in
 
 In RISC CPU like Mips, the multiply/divide function unit and add/sub/logic unit 
 are designed from two different hardware circuits, and more, their data path is 
-separate. 
+separate. We think the cpu0 is the same even though no explanation in it's web 
+site.
 So, these two function units can be executed at same time (instruction level 
 parallelism).
 
@@ -129,7 +129,7 @@ shl, ashr**.
 IR instruction **sdiv** stand for signed div while **udiv** is for unsigned div. 
 The **'ashr'** instruction (arithmetic shift right) returns the first operand 
 shifted to the right a specified number of bits with sign extension. 
-In brief, we call *ashr** is “shift with sign extension fill”.
+In brief, we call **ashr** is “shift with sign extension fill”.
 
 .. code:: 
 
@@ -138,12 +138,12 @@ In brief, we call *ashr** is “shift with sign extension fill”.
 	  <result> = ashr i8 -2, 1   ; yields {i8}:result = -1
 	  <result> = ashr i32 1, 32  ; undefined
 
-The C operator >> for negative operand is dependent on implementation. 
+The C operator **>>** for negative operand is dependent on implementation. 
 Most compiler translate it into “shift with sign extension fill”, for example, 
 Mips **sra** is the instruction. 
 Following is the Micosoft web site explanation,
 
-.. note:: >>, Microsoft Specific
+.. note:: **>>**, Microsoft Specific
 
 	The result of a right shift of a signed negative quantity is implementation 
 	dependent. 
@@ -163,12 +163,12 @@ following meaning.
 In llvm, IR node **sra** is defined for ashr IR instruction, node **srl** is 
 defined for lshr instruction (I don't know why don't use ashr and lshr as the 
 IR node name directly). 
-I assume Cpu0 shr instruction is “shift with zero filled”, and define it with 
+We assume Cpu0 shr instruction is “shift with zero filled”, and define it with 
 IR DAG node srl. 
 But at that way, Cpu0 will fail to compile x >> 1 in case of x is signed 
 integer because clang and most compilers translate it into ashr, which meaning 
 “shift with sign extension fill”. 
-Similarly, Cpu0 div instruction, has the same problem. I assume Cpu0 div 
+Similarly, Cpu0 div instruction, has the same problem. We assume Cpu0 div 
 instruction is for sdiv which can take care both positive and negative integer, 
 but it will fail for divide operation “/ “on unsigned integer operand in C.
 
@@ -357,7 +357,7 @@ Now, let's examine Cpu0MCTargetDesc.cpp.
 
 Cpu0MCTargetDesc.cpp do the target registration as mentioned in 
 `section Target Registration`_ of the last chapter. 
-I draw the register function and those class it registered in 
+Drawing the register function and those class it registered in 
 :ref:`otherinst_f1` to :ref:`otherinst_f9` for explanation.
 
 .. _otherinst_f1:
@@ -459,20 +459,20 @@ I draw the register function and those class it registered in
 
 	MCELFStreamer inherit tree
 
-In :ref:`otherinst_f1`, we register the object of class Cpu0AsmInfo for target 
+In :ref:`otherinst_f1`, registering the object of class Cpu0AsmInfo for target 
 TheCpu0Target and TheCpu0elTarget. 
 TheCpu0Target is for big endian and TheCpu0elTarget is for little endian. 
 Cpu0AsmInfo is derived from MCAsmInfo which is llvm built-in class. 
 Most code is implemented in it's parent, back end reuse those code by inherit.
 
-In :ref:`otherinst_f2`, we instance MCCodeGenInfo, and initialize it by pass 
+In :ref:`otherinst_f2`, instancing MCCodeGenInfo, and initialize it by pass 
 Roloc::PIC because we use command “llc -relocation-model=pic” to tell llc 
 compile using position-independent code mode. 
 Recall the addressing mode in system program book has two mode, one is PIC 
 mode, the other is absolute addressing mode. 
-MC stand for Machine Code.
+MC stands for Machine Code.
 
-In :ref:`otherinst_f3`, we instance MCInstrInfo object X, and initialize it by 
+In :ref:`otherinst_f3`, instancing MCInstrInfo object X, and initialize it by 
 InitCpu0MCInstrInfo(X). 
 Since InitCpu0MCInstrInfo(X) is defined in Cpu0GenInstrInfo.inc, it will add 
 the information fromCpu0InstrInfo.td we specified. 
@@ -480,7 +480,7 @@ the information fromCpu0InstrInfo.td we specified.
 register information specified in Cpu0RegisterInfo.td. 
 They share a lot of code with instruction/register td description.
 
-:ref:`otherinst_f5`, we instance two objects Cpu0MCCodeEmitter, one is for big 
+:ref:`otherinst_f5`, instancing two objects Cpu0MCCodeEmitter, one is for big 
 endian and the other is for little endian. 
 They take care the obj format generated. 
 So, it's not defined in 4/1/Cpu0 which support assembly code only.
@@ -505,11 +505,11 @@ assigned during the target registration process, RegisterXXX().
 Two objects take care big endian and little endian also. 
 It derived from MCAsmBackend. 
 Most of code for object file generated is implemented by MCELFStreamer and it's 
-parent.
+parent, MCAsmBackend.
 
-:ref:`otherinst_f8`, instance MCSubtargetInfo object and initialize with 
+:ref:`otherinst_f8`, instancing MCSubtargetInfo object and initialize with 
 Cpu0.td information. 
-:ref:`otherinst_f9`, instance Cpu0InstPrinter to take care printing function 
+:ref:`otherinst_f9`, instancing Cpu0InstPrinter to take care printing function 
 for instructions. 
 Like :ref:`otherinst_f1` to :ref:`otherinst_f4`, it has been defined in 
 4/1/Cpu0 code for assembly file generated support.
