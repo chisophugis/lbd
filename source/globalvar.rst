@@ -2,19 +2,20 @@ Global variable, struct and array
 ==================================
 
 In the previous two chapter, we only access the local variables. 
-Now, we begin from global variable access translation for cpu0 instruction in 
-this chapter. After that, we introduce struct and array type of variable access 
+This chapter begin from global variable access translation for cpu0 
+instruction. 
+After that, introducing struct and array type of variable access 
 and their corresponding llvm IR statement, and cpu0 how to translate these 
 llvm IR statements in `section Array and struct support`_. 
 The logic operation “not” support and translation in 
 `section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
 will show you the DAG optimization steps and their corresponding llc display 
 options. 
-These DAG optimization steps result can be viewed by Graphviz graphic tool 
+These result of DAG optimization steps can be viewed by Graphviz graphic tool 
 which display very useful information by graphic view. 
 You will appreciate Graphviz support in debug, we think. 
-Next, we adjust cpu0 instructions to support data type for C language in 
-`section Adjust cpu0 instruction and support type of local variable pointer`_.
+In `section Adjust cpu0 instruction and support type of local variable pointer`_, 
+we adjust cpu0 instructions to support data type for C language.
 Finally, `section Operator mod, %`_ to take care the C operator %.
 
 
@@ -129,7 +130,7 @@ Finally, add register $2 and $3 into $2, and load the content of address
 $2+offset 0 into register $2. 
 The “llc -relocation-model=static “ is for static link mode which binding the 
 address in static, compile/link time, not dynamic/run time. 
-Except this, you can translate code with following command,
+In this mode, you can also translate code with following command,
 
 .. code-block:: bash
 
@@ -157,9 +158,9 @@ Section bss and sbss are areas for global variables without initial value
 (for example, int gI;). 
 Allocate variables in sdata or sbss sections is addressable by 16 bits + $gp. 
 The static mode with -cpu0-islinux-format=false is still static mode 
-(variable binding in compile/link time) even it's use $gp relative address. 
+(variable is binding in compile/link time) even it's use $gp relative address. 
 The $gp content is assigned in compile/link time, change only in program be 
-loaded, and is fixed during run the program while the -relocation-model=pic 
+loaded, and is fixed during running the program; while the -relocation-model=pic 
 the $gp can be changed during program running. 
 For example, if $gp is assigned to start of .sdata like this example, then 
 %gp_rel(gI) = (the relative address distance between gI and $gp) (is 0 in this 
@@ -260,19 +261,20 @@ further.
 
 The setOperationAction(ISD::GlobalAddress, MVT::i32, Custom) tell llc that we 
 implement global address operation in C++ function 
-Cpu0TargetLowering::LowerOperation() and llvm will call it when time to 
-translate load IR DAG with gI global variable into machine code. 
-Since may have many setOperationAction(ISD::XXX, MVT::XXX, Custom) in 
-construction function Cpu0TargetLowering() which llvm will call 
-Cpu0TargetLowering::LowerOperation() for each ISD IR DAG node translation, we 
-call LowerGlobalAddress(Op, DAG) by check opcode is case of ISD::GlobalAddress. 
+Cpu0TargetLowering::LowerOperation() and llvm will call this function only when 
+llvm want to translate IR DAG of loading global variable into machine code. 
+Since may have many Custom type of setOperationAction(ISD::XXX, MVT::XXX, 
+Custom) in construction function Cpu0TargetLowering(), and llvm will call 
+Cpu0TargetLowering::LowerOperation() for each ISD IR DAG node of Custom type 
+translation. The global address access can be identified by check the DAG node of 
+opcode is ISD::GlobalAddress. 
 For static mode, LowerGlobalAddress() will check the translation is for 
 IsGlobalInSmallSection() or not. 
 When IsLinuxOpt is true and static mode, IsGlobalInSmallSection() always 
 return false. 
 LowerGlobalAddress() will translate global variable by create 2 DAG IR nodes 
-ABS_HI, ABS_LO for high part and low part of address and one extra node ADD 
-with these two nodes by above code which we list it again as follows.
+ABS_HI and ABS_LO for high part and low part of address and one extra node ADD. 
+List it again as follows.
 
 .. code-block:: c++
 
@@ -287,11 +289,11 @@ with these two nodes by above code which we list it again as follows.
         SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
         return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
     
-The DAG list form for these three DAG nodes above code created can be 
+The DAG list form for these three DAG nodes as above code created can be 
 represented as (ADD (Hi(h1, h2), Lo (l1, l2)). 
-Since some DAG node are not with two arguments, we will define the list as 
+Since some DAG nodes are not with two arguments, we will define the list as 
 (ADD (Hi (...), Lo (...)) or (ADD (Hi, Lo)) sometimes in this book. 
-The corresponding translation machine code of these three nodes are defined in 
+The corresponding machine instructions of these three IR nodes are defined in 
 Cpu0InstrInfo.td as follows,
 
 .. code-block:: c++
@@ -311,7 +313,8 @@ Cpu0InstrInfo.td as follows,
               (ADD CPURegs:$hi, (LDI ZERO, tglobaladdr:$lo))>;
 
 Above code meaning translate ABS_HI into LDI and SHL two instructions. 
-Remember the DAG and Instruction Selection introduced in chapter 3, DAG list 
+Remember the DAG and Instruction Selection introduced in chapter "Back end 
+structure", DAG list 
 (SHL (LDI ...), 16) meaning DAG node LDI and it's parent DAG node SHL two 
 instructions nodes is for list IR DAG ABS_HI. 
 The Pat<> has two list DAG representation. 
@@ -327,7 +330,7 @@ According above code, we know llvm allocate register $2 for the output operand
 of LDI instruction and $2 for SHL instruction in this example. 
 Since (SHL (LDI), 16), the LDI output result will be the SHL first register. 
 The result is “shl $2, 16”. 
-Above code Pat<> also define DAG list (add $hi, (ABS_LO)) will translate into 
+Above Pat<> also define DAG list (add $hi, (ABS_LO)) will translate into 
 (ADD $hi, (LDI ZERO, ...)) where ADD is machine instruction add and LDI is 
 machine instruction ldi which defined in Cpu0InstrInfo.td too. 
 Remember (add $hi, (ABS_LO)) meaning add DAG has two operands, first is $hi and 
@@ -375,7 +378,7 @@ following code to create a DAG list (ADD GOT, GPRel).
 As mentioned just before, all global variables allocated in sdata or sbss 
 sections which is addressable by 16 bits + $gp in compile/link time (address 
 binding in compile time). 
-It equal to offset+GOT where GOT is the base address for global variable and 
+It's equal to offset+GOT where GOT is the base address for global variable and 
 offset is 16 bits. 
 Now, according the following Cpu0InstrInfo.td definition,
 
@@ -465,13 +468,13 @@ emit .cpload asm sudo instruction,
 According Mips Application Binary Interface (ABI), $t9 ($25) is the register 
 used in jalr $25 for long distance function pointer (far subroutine call). 
 The jal %subroutine has 24 bits range of address offset relative to Program 
-Counter (PC) while jalr has 32 bits address range for register size is 32 bits. 
+Counter (PC) while jalr has 32 bits address range in register size is 32 bits. 
 One example of PIC mode is used in share library. 
 Share library is re-entry code which can be loaded in different memory address 
 decided on run time. 
 The static mode (absolute address mode) is usually designed to load in specific 
 memory address decided on compile time. Since share library can be loaded in 
-different memory address, the global variable address cannot be decide in 
+different memory address, the global variable address cannot be decided in 
 compile time. 
 As above, the global variable address is translated into the relative address 
 of $gp. 
@@ -551,12 +554,14 @@ for global variable printing operand function.
 
 OS is the output stream which output to the assembly file.
 
-The global variable Instruction Selection for DAG translation not like the 
+Summary the global variable translation as below.
+
+The global variable Instruction Selection for DAG translation is not like the 
 ordinary IR node translation, it has static (absolute address) and PIC mode. 
-We deal this translation by create DAG nodes in function LowerGlobalAddress() 
-which called by LowerOperation() which is the function take care Custom 
-operation. 
-We set global address for Custom operation by 
+Backend deal this translation by create DAG nodes in function 
+LowerGlobalAddress() which called by LowerOperation(). 
+Function LowerOperation() take care all Custom type of operation. 
+Backend set global address as Custom operation by 
 ”setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);” in 
 Cpu0TargetLowering() constructor. 
 Different address mode has it's corresponding DAG list be created. 
@@ -571,12 +576,12 @@ references.
 Array and struct support
 -------------------------
 
-We shift my work to iMac at this point. 
+Shifting our work to iMac at this point. 
 The Linux platform is fine. 
 The reason we do the shift is for new platform using experience.
 
 LLVM use getelementptr to represent the array and struct type in C. 
-Please reference http://llvm.org/docs/LangRef.html#i_getelementptr. 
+Please reference section getelementptr of http://llvm.org/docs/LangRef.html. 
 For ch5_2.cpp, the llvm IR as follows,
 
 .. code-block:: c++
@@ -692,7 +697,7 @@ follows,
         .4byte  12                      # 0xc
         .size   a, 12
 
-For “day = date.day”, the correct one is “lw $2, 8($2)”, not “lw $2, 0($2)” 
+For “day = date.day”, the correct one is “lw $2, 8($2)”, not “lw $2, 0($2)”, 
 since date.day is offset 8(date). 
 Type int is 4 bytes in cpu0, and the date.day has fields year and month before 
 it. 
@@ -804,8 +809,8 @@ replaced by 1 node GlobalAddress<%struct.Date* @date> + 8.
 The DAG list for a[1] is same. 
 The replacement occurs since TargetLowering.cpp::isOffsetFoldingLegal(...) 
 return true in “llc -static” static addressing mode as below. 
-In Cpu0 the lw instruction format is “lw $r1, offset($r2)” which is load $r2 
-address+offset to $r1. 
+In Cpu0 the lw instruction format is “lw $r1, offset($r2)” which meaning load 
+$r2 address+offset to $r1. 
 So, we just replace the isOffsetFoldingLegal(...) function by override 
 mechanism as below.
 
@@ -832,7 +837,7 @@ mechanism as below.
     // Cpu0TargetLowering.cpp
     bool
     Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
-      // The Mips target isn't yet aware of offsets.
+      // The Cpu0 target isn't yet aware of offsets.
       return false;
     }
 
