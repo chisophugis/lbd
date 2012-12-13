@@ -1,9 +1,9 @@
 Control flow statement
 =======================
 
-We will show you the corresponding IR for control flow statements, like 
+This chapter illustrates the corresponding IR for control flow statements, like 
 “if else”, “while” and “for” loop statements in C, and how to translate these 
-control flow statements of llvm IR into cpu0 instructions in this chapter. 
+control flow statements of llvm IR into cpu0 instructions. 
 
 Control flow statement
 -----------------------
@@ -216,53 +216,53 @@ For explanation, We list the IR DAG as follows,
 
 .. code-block:: bash
 
-	%cond=setcc(%2, Constant<c>, setne)
-	brcond %cond, BasicBlock_02
-	br BasicBlock_01
-		We want to translate them into cpu0 instructions DAG as follows,
-	addiu %3, ZERO, Constant<c>
-	cmp %2, %3
-	jne BasicBlock_02
-	jmp BasicBlock_01
+    %cond=setcc(%2, Constant<c>, setne)
+    brcond %cond, BasicBlock_02
+    br BasicBlock_01
+        We want to translate them into cpu0 instructions DAG as follows,
+    addiu %3, ZERO, Constant<c>
+    cmp %2, %3
+    jne BasicBlock_02
+    jmp BasicBlock_01
 
 For the first addiu instruction as above which move Constant<c> into register, 
 we have defined it before by the following code,
 
 .. code-block:: c++
 
-	// Cpu0InstrInfo.td
-	...
-	// Small immediates
-	def : Pat<(i32 immSExt16:$in),
-			  (ADDiu ZERO, imm:$in)>;
-	
-	// Arbitrary immediates
-	def : Pat<(i32 imm:$imm),
-			  (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), 
-			  (ADDiu ZERO, (LO16 imm:$imm)))>;
+    // Cpu0InstrInfo.td
+    ...
+    // Small immediates
+    def : Pat<(i32 immSExt16:$in),
+              (ADDiu ZERO, imm:$in)>;
+    
+    // Arbitrary immediates
+    def : Pat<(i32 imm:$imm),
+              (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), 
+              (ADDiu ZERO, (LO16 imm:$imm)))>;
 
 For the last IR br, we translate unconditional branch (br BasicBlock_01) into 
 jmp BasicBlock_01 by the following pattern definition,
 
 .. code-block:: c++
 
-	def brtarget    : Operand<OtherVT> {
-	  let EncoderMethod = "getBranchTargetOpValue";
-	  let OperandType = "OPERAND_PCREL";
-	  let DecoderMethod = "DecodeBranchTarget";
-	}
-	...
-	// Unconditional branch
-	class UncondBranch<bits<8> op, string instr_asm>:
-	  BranchBase<op, (outs), (ins brtarget:$imm24),
-				 !strconcat(instr_asm, "\t$imm24"), [(br bb:$imm24)], IIBranch> {
-	  let isBranch = 1;
-	  let isTerminator = 1;
-	  let isBarrier = 1;
-	  let hasDelaySlot = 0;
-	}
-	...
-	def JMP     : UncondBranch<0x26, "jmp">;
+    def brtarget    : Operand<OtherVT> {
+      let EncoderMethod = "getBranchTargetOpValue";
+      let OperandType = "OPERAND_PCREL";
+      let DecoderMethod = "DecodeBranchTarget";
+    }
+    ...
+    // Unconditional branch
+    class UncondBranch<bits<8> op, string instr_asm>:
+      BranchBase<op, (outs), (ins brtarget:$imm24),
+                 !strconcat(instr_asm, "\t$imm24"), [(br bb:$imm24)], IIBranch> {
+      let isBranch = 1;
+      let isTerminator = 1;
+      let isBarrier = 1;
+      let hasDelaySlot = 0;
+    }
+    ...
+    def JMP     : UncondBranch<0x26, "jmp">;
 
 The pattern [(br bb:$imm24)] in class UncondBranch is translated into jmp 
 machine instruction.
@@ -273,63 +273,64 @@ following pattern,
 
 .. code-block:: c++
 
-	// brcond patterns
-	multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
-	  Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
-	  Instruction CMPOp> {
-	…
-	def : Pat<(brcond (i32 (setne RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	...
-	def : Pat<(brcond RC:$cond, bb:$dst),
-			  (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;
+    // brcond patterns
+    multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
+      Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
+      Instruction CMPOp> {
+    …
+    def : Pat<(brcond (i32 (setne RC:$lhs, RC:$rhs)), bb:$dst),
+              (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    ...
+    def : Pat<(brcond RC:$cond, bb:$dst),
+              (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;
 
 Above definition support (setne RC:$lhs, RC:$rhs) register to register compare. 
-There are other compare, seteq, setlt, … .In addition to seteq, setne, …, we 
-define setueq, setune, …,  by reference Mips code even though we didn't find 
-how setune came from. We have tried to define unsigned int type, but clang 
-still generate setne. Pattern search order is according their appear order in 
-context. 
+There are other compare pattern like, seteq, setlt, … . In addition to seteq, 
+setne, …, we define setueq, setune, …,  by reference Mips code even though we 
+didn't find how setune came from. 
+We have tried to define unsigned int type, but clang still generate setne 
+instead of setune. 
+Pattern search order is according their appear order in context. 
 The last pattern (brcond RC:$cond, bb:$dst) is meaning branch to $dst 
 if $cond != 0, it is equal to (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst) in 
 cpu0 translation.
 
-The CMP instruction will set the result to register SW, and JNE is check the 
+The CMP instruction will set the result to register SW, and then JNE check the 
 condition based on SW status. Since SW is a reserved register, it will be 
 correct even an instruction is inserted between CMP and JNE as follows,
 
 .. code-block:: c++
 
-	cmp %2, %3
-	addiu $r1, $r2, 3   // $r1 register never be allocated to $SW
-	jne BasicBlock_02
+    cmp %2, %3
+    addiu $r1, $r2, 3   // $r1 register never be allocated to $SW
+    jne BasicBlock_02
 
 The reserved registers setting by the following function code we defined before,
 
 .. code-block:: c++
-	
-	// Cpu0RegisterInfo.cpp
-	...
-	// pure virtual method
-	BitVector Cpu0RegisterInfo::
-	getReservedRegs(const MachineFunction &MF) const {
-	  static const uint16_t ReservedCPURegs[] = {
-		Cpu0::ZERO, Cpu0::AT, Cpu0::GP, Cpu0::FP,
-		Cpu0::SW, Cpu0::SP, Cpu0::LR, Cpu0::PC
-	  };
-	  BitVector Reserved(getNumRegs());
-	  typedef TargetRegisterClass::iterator RegIter;
-	
-	  for (unsigned I = 0; I < array_lengthof(ReservedCPURegs); ++I)
-		Reserved.set(ReservedCPURegs[I]);
-	
-	  // If GP is dedicated as a global base register, reserve it.
-	  if (MF.getInfo<Cpu0FunctionInfo>()->globalBaseRegFixed()) {
-		Reserved.set(Cpu0::GP);
-	  }
-	
-	  return Reserved;
-	}
+    
+    // Cpu0RegisterInfo.cpp
+    ...
+    // pure virtual method
+    BitVector Cpu0RegisterInfo::
+    getReservedRegs(const MachineFunction &MF) const {
+      static const uint16_t ReservedCPURegs[] = {
+        Cpu0::ZERO, Cpu0::AT, Cpu0::GP, Cpu0::FP,
+        Cpu0::SW, Cpu0::SP, Cpu0::LR, Cpu0::PC
+      };
+      BitVector Reserved(getNumRegs());
+      typedef TargetRegisterClass::iterator RegIter;
+    
+      for (unsigned I = 0; I < array_lengthof(ReservedCPURegs); ++I)
+        Reserved.set(ReservedCPURegs[I]);
+    
+      // If GP is dedicated as a global base register, reserve it.
+      if (MF.getInfo<Cpu0FunctionInfo>()->globalBaseRegFixed()) {
+        Reserved.set(Cpu0::GP);
+      }
+    
+      return Reserved;
+    }
 
 Although the following definition in Cpu0RegisterInfo.td has no real effect in 
 Reserved Registers, you should comment the Reserved Registers in it for 
@@ -337,57 +338,57 @@ readability.
 
 .. code-block:: c++
 
-	// Cpu0RegisterInfo.td
-	...
-	//===----------------------------------------------------------------------===//
-	// Register Classes
-	//===----------------------------------------------------------------------===//
-	
-	def CPURegs : RegisterClass<"Cpu0", [i32], 32, (add
-	  // Return Values and Arguments
-	  V0, V1, A0, A1, 
-	  // Not preserved across procedure calls
-	  T9, 
-	  // Callee save
-	  S0, S1, S2, 
-	  // Reserved
-	  ZERO, AT, GP, FP, SW, SP, LR, PC)>;
+    // Cpu0RegisterInfo.td
+    ...
+    //===----------------------------------------------------------------------===//
+    // Register Classes
+    //===----------------------------------------------------------------------===//
+    
+    def CPURegs : RegisterClass<"Cpu0", [i32], 32, (add
+      // Return Values and Arguments
+      V0, V1, A0, A1, 
+      // Not preserved across procedure calls
+      T9, 
+      // Callee save
+      S0, S1, S2, 
+      // Reserved
+      ZERO, AT, GP, FP, SW, SP, LR, PC)>;
 
 By the following llc option, you can get the obj file and dump it's content by 
 hexdump as follows,
 
 .. code-block:: c++
 
-	118-165-79-206:InputFiles Jonathan$ cat ch6_1_1.cpu0.s 
-	…
-		lw  $3, 32($sp)
-		cmp $3, $2
-		jne $BB0_2
-		jmp $BB0_1
-	$BB0_1:                                 # %if.then
-		lw  $2, 32($sp)
-		addiu   $2, $2, 1
-		st  $2, 32($sp)
-	$BB0_2:                                 # %if.end
-		lw  $2, 28($sp)
-	…
+    118-165-79-206:InputFiles Jonathan$ cat ch6_1_1.cpu0.s 
+    …
+        lw  $3, 32($sp)
+        cmp $3, $2
+        jne $BB0_2
+        jmp $BB0_1
+    $BB0_1:                                 # %if.then
+        lw  $2, 32($sp)
+        addiu   $2, $2, 1
+        st  $2, 32($sp)
+    $BB0_2:                                 # %if.end
+        lw  $2, 28($sp)
+    …
 
 .. code-block:: bash
-	
-	118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
-	cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=obj 
-	ch6_1_1.bc -o ch6_1_1.cpu0.o
+    
+    118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=obj 
+    ch6_1_1.bc -o ch6_1_1.cpu0.o
 
-	118-165-79-206:InputFiles Jonathan$ hexdump ch6_1_1.cpu0.o 
-		// jmp offset is 0x10=16 bytes which is correct
-	0000080 …......................... 10 20 20 02 21 00 00 10
-	
-	0000090 26 00 00 00 …............................................
+    118-165-79-206:InputFiles Jonathan$ hexdump ch6_1_1.cpu0.o 
+        // jmp offset is 0x10=16 bytes which is correct
+    0000080 …......................... 10 20 20 02 21 00 00 10
+    
+    0000090 26 00 00 00 …............................................
 
 The immediate value of jne (op 0x21) is 16; The offset between jne and $BB0_2 
 is 20 (5 words = 5*4 bytes). Suppose the jne address is X, then the label 
 $BB0_2 is X+20. 
-Cpu0 is RISC cpu0 with 3 stages of pipeline which are fetch, decode and 
+Cpu0 is a RISC cpu0 with 3 stages of pipeline which are fetch, decode and 
 execution according to cpu0 web site information. 
 The cpu0 do branch instruction execution at decode stage which like mips. 
 After the jne instruction fetched, the PC (Program Counter) is X+4 since cpu0 
@@ -398,19 +399,19 @@ List and explain this again as follows,
 
 .. code-block:: bash
 
-					// Fetch instruction stage for jne instruction. The fetch stage 
-					// can be divided into 2 cycles. First cycle fetch the 
-					// instruction. Second cycle adjust PC = PC+4. 
-		jne $BB0_2  // Do jne compare in decode stage. PC = X+4 at this stage. 
-					// When jne immediate value is 16, PC = PC+16. It will fetch 
-					//  X+20 which equal to label $BB0_2 instruction, lw $2, 28($sp). 
-		jmp $BB0_1 
-	$BB0_1:                                 # %if.then
-		lw  $2, 32($sp)
-		addiu   $2, $2, 1
-		st  $2, 32($sp)
-	$BB0_2:                                 # %if.end
-		lw  $2, 28($sp)
+                    // Fetch instruction stage for jne instruction. The fetch stage 
+                    // can be divided into 2 cycles. First cycle fetch the 
+                    // instruction. Second cycle adjust PC = PC+4. 
+        jne $BB0_2  // Do jne compare in decode stage. PC = X+4 at this stage. 
+                    // When jne immediate value is 16, PC = PC+16. It will fetch 
+                    //  X+20 which equal to label $BB0_2 instruction, lw $2, 28($sp). 
+        jmp $BB0_1 
+    $BB0_1:                                 # %if.then
+        lw  $2, 32($sp)
+        addiu   $2, $2, 1
+        st  $2, 32($sp)
+    $BB0_2:                                 # %if.end
+        lw  $2, 28($sp)
 
 If cpu0 do jne compare in execution stage, then we should set PC=PC+12, offset 
 of ($BB0_2, jn e $BB02) – 8, in this example.
@@ -426,157 +427,160 @@ Finally we list the code added for full support of control flow statement,
 
 .. code-block:: c++
 
-	// Cpu0MCCodeEmitter.cpp
-	/// getBranchTargetOpValue - Return binary encoding of the branch
-	/// target operand. If the machine operand requires relocation,
-	/// record the relocation and return zero.
-	unsigned Cpu0MCCodeEmitter::
-	getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
-						   SmallVectorImpl<MCFixup> &Fixups) const {
-	
-	  const MCOperand &MO = MI.getOperand(OpNo);
-	  assert(MO.isExpr() && "getBranchTargetOpValue expects only expressions");
-	
-	  const MCExpr *Expr = MO.getExpr();
-	  Fixups.push_back(MCFixup::Create(0, Expr,
-									   MCFixupKind(Cpu0::fixup_Cpu0_PC24)));
-	  return 0;
-	}
-	
-	// Cpu0MCInstLower.cpp
-	MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
-												  MachineOperandType MOTy,
-												  unsigned Offset) const {
-	  …
-	  switch(MO.getTargetFlags()) {
-	  default:                   llvm_unreachable("Invalid target flag!");
-	  case Cpu0II::MO_NO_FLAG:   Kind = MCSymbolRefExpr::VK_None; break;
-	  …
-	  }
-	  ...
-	  switch (MOTy) {
-	  case MachineOperand::MO_MachineBasicBlock:
-		Symbol = MO.getMBB()->getSymbol();
-		break;
-	  …
-	}
-	
-	MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
-											unsigned offset) const {
-	  MachineOperandType MOTy = MO.getType();
-	
-	  switch (MOTy) {
-	  default: llvm_unreachable("unknown operand type");
-	  case MachineOperand::MO_Register:
-	  ...
-	  case MachineOperand::MO_MachineBasicBlock:
-	  case MachineOperand::MO_GlobalAddress:
-	  case MachineOperand::MO_BlockAddress:
-	  …
-	  }
-	  …
-	}
-	
-	// Cpu0ISelLowering.cpp
-	Cpu0TargetLowering::
-	Cpu0TargetLowering(Cpu0TargetMachine &TM)
-	  : TargetLowering(TM, new Cpu0TargetObjectFile()),
-		Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
-	  ...
-	  // Used by legalize types to correctly generate the setcc result.
-	  // Without this, every float setcc comes with a AND/OR with the result,
-	  // we don't want this, since the fpcmp result goes to a flag register,
-	  // which is used implicitly by brcond and select operations.
-	  AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
-	  ...
-	  setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
-	  
-	  // Operations not directly supported by Cpu0.
-	  setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
-	  …
-	}
-	
-	// Cpu0InstrFormats.td
-	class BranchBase<bits<8> op, dag outs, dag ins, string asmstr,
-					  list<dag> pattern, InstrItinClass itin>:
-	  Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
-	{
-	  bits<24> imm24;
-	
-	  let Opcode = op;
-	
-	  let Inst{23-0}  = imm24;
-	}
-	
-	// Cpu0InstrInfo.td
-	// Instruction operand types
-	def brtarget    : Operand<OtherVT> {
-	  let EncoderMethod = "getBranchTargetOpValue";
-	  let OperandType = "OPERAND_PCREL";
-	  let DecoderMethod = "DecodeBranchTarget";
-	}
-	...
-	/// Conditional Branch
-	class CBranch<bits<8> op, string instr_asm, RegisterClass RC>:
-	  BranchBase<op, (outs), (ins RC:$cond, brtarget:$imm24),
-				 !strconcat(instr_asm, "\t$imm24"),
-				 [], IIBranch> {
-	  let isBranch = 1;
-	  let isTerminator = 1;
-	  let hasDelaySlot = 0;
-	}
-	
-	// Unconditional branch
-	class UncondBranch<bits<8> op, string instr_asm>:
-	  BranchBase<op, (outs), (ins brtarget:$imm24),
-				 !strconcat(instr_asm, "\t$imm24"), [(br bb:$imm24)], IIBranch> {
-	  let isBranch = 1;
-	  let isTerminator = 1;
-	  let isBarrier = 1;
-	  let hasDelaySlot = 0;
-	}
-	...
-	/// Jump and Branch Instructions
-	def JEQ     : CBranch<0x20, "jeq", CPURegs>;
-	def JNE     : CBranch<0x21, "jne", CPURegs>;
-	def JLT     : CBranch<0x22, "jlt", CPURegs>;
-	def JGT     : CBranch<0x23, "jgt", CPURegs>;
-	def JLE     : CBranch<0x24, "jle", CPURegs>;
-	def JGE     : CBranch<0x25, "jge", CPURegs>;
-	def JMP     : UncondBranch<0x26, "jmp">;
-	...
-	// brcond patterns
-	multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, Instruction CMPOp, Register ZEROReg> {          
-	def : Pat<(brcond (i32 (seteq RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JEQOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setueq RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JEQOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setne RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setune RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setlt RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JLTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setult RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JLTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setgt RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JGTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setugt RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JGTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setle RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JLEOp (CMPOp RC:$rhs, RC:$lhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setule RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JLEOp (CMPOp RC:$rhs, RC:$lhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setge RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JGEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	def : Pat<(brcond (i32 (setuge RC:$lhs, RC:$rhs)), bb:$dst),
-			  (JGEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
-	
-	def : Pat<(brcond RC:$cond, bb:$dst),
-			  (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;
-	}
-	
-	defm : BrcondPats<CPURegs, JEQ, JNE, JLT, JGT, JLE, JGE, CMP, ZERO>;
+    // Cpu0MCCodeEmitter.cpp
+    /// getBranchTargetOpValue - Return binary encoding of the branch
+    /// target operand. If the machine operand requires relocation,
+    /// record the relocation and return zero.
+    unsigned Cpu0MCCodeEmitter::
+    getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
+                           SmallVectorImpl<MCFixup> &Fixups) const {
+    
+      const MCOperand &MO = MI.getOperand(OpNo);
+      assert(MO.isExpr() && "getBranchTargetOpValue expects only expressions");
+    
+      const MCExpr *Expr = MO.getExpr();
+      Fixups.push_back(MCFixup::Create(0, Expr,
+                                       MCFixupKind(Cpu0::fixup_Cpu0_PC24)));
+      return 0;
+    }
+    
+    // Cpu0MCInstLower.cpp
+    MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
+                                                  MachineOperandType MOTy,
+                                                  unsigned Offset) const {
+      …
+      switch(MO.getTargetFlags()) {
+      default:                   llvm_unreachable("Invalid target flag!");
+      case Cpu0II::MO_NO_FLAG:   Kind = MCSymbolRefExpr::VK_None; break;
+      …
+      }
+      ...
+      switch (MOTy) {
+      case MachineOperand::MO_MachineBasicBlock:
+        Symbol = MO.getMBB()->getSymbol();
+        break;
+      …
+    }
+    
+    MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
+                                            unsigned offset) const {
+      MachineOperandType MOTy = MO.getType();
+    
+      switch (MOTy) {
+      default: llvm_unreachable("unknown operand type");
+      case MachineOperand::MO_Register:
+      ...
+      case MachineOperand::MO_MachineBasicBlock:
+      case MachineOperand::MO_GlobalAddress:
+      case MachineOperand::MO_BlockAddress:
+      …
+      }
+      …
+    }
+    
+    // Cpu0ISelLowering.cpp
+    Cpu0TargetLowering::
+    Cpu0TargetLowering(Cpu0TargetMachine &TM)
+      : TargetLowering(TM, new Cpu0TargetObjectFile()),
+        Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+      ...
+      // Used by legalize types to correctly generate the setcc result.
+      // Without this, every float setcc comes with a AND/OR with the result,
+      // we don't want this, since the fpcmp result goes to a flag register,
+      // which is used implicitly by brcond and select operations.
+      AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
+      ...
+      setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
+      
+      // Operations not directly supported by Cpu0.
+      setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
+      …
+    }
+    
+    // Cpu0InstrFormats.td
+    class BranchBase<bits<8> op, dag outs, dag ins, string asmstr,
+                      list<dag> pattern, InstrItinClass itin>:
+      Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
+    {
+      bits<24> imm24;
+    
+      let Opcode = op;
+    
+      let Inst{23-0}  = imm24;
+    }
+    
+    // Cpu0InstrInfo.td
+    // Instruction operand types
+    def brtarget    : Operand<OtherVT> {
+      let EncoderMethod = "getBranchTargetOpValue";
+      let OperandType = "OPERAND_PCREL";
+      let DecoderMethod = "DecodeBranchTarget";
+    }
+    ...
+    /// Conditional Branch
+    class CBranch<bits<8> op, string instr_asm, RegisterClass RC>:
+      BranchBase<op, (outs), (ins RC:$cond, brtarget:$imm24),
+                 !strconcat(instr_asm, "\t$imm24"),
+                 [], IIBranch> {
+      let isBranch = 1;
+      let isTerminator = 1;
+      let hasDelaySlot = 0;
+    }
+    
+    // Unconditional branch
+    class UncondBranch<bits<8> op, string instr_asm>:
+      BranchBase<op, (outs), (ins brtarget:$imm24),
+                 !strconcat(instr_asm, "\t$imm24"), [(br bb:$imm24)], IIBranch> {
+      let isBranch = 1;
+      let isTerminator = 1;
+      let isBarrier = 1;
+      let hasDelaySlot = 0;
+    }
+    ...
+    /// Jump and Branch Instructions
+    def JEQ     : CBranch<0x20, "jeq", CPURegs>;
+    def JNE     : CBranch<0x21, "jne", CPURegs>;
+    def JLT     : CBranch<0x22, "jlt", CPURegs>;
+    def JGT     : CBranch<0x23, "jgt", CPURegs>;
+    def JLE     : CBranch<0x24, "jle", CPURegs>;
+    def JGE     : CBranch<0x25, "jge", CPURegs>;
+    def JMP     : UncondBranch<0x26, "jmp">;
+    ...
+    // brcond patterns
+    multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, 
+      Instruction JNEOp, Instruction JLTOp, Instruction JGTOp, 
+      Instruction JLEOp, Instruction JGEOp, Instruction CMPOp, 
+      Register ZEROReg> {          
+    def : Pat<(brcond (i32 (seteq RC:$lhs, RC:$rhs)), bb:$dst),
+              (JEQOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setueq RC:$lhs, RC:$rhs)), bb:$dst),
+              (JEQOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setne RC:$lhs, RC:$rhs)), bb:$dst),
+              (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setune RC:$lhs, RC:$rhs)), bb:$dst),
+              (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setlt RC:$lhs, RC:$rhs)), bb:$dst),
+              (JLTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setult RC:$lhs, RC:$rhs)), bb:$dst),
+              (JLTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setgt RC:$lhs, RC:$rhs)), bb:$dst),
+              (JGTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setugt RC:$lhs, RC:$rhs)), bb:$dst),
+              (JGTOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setle RC:$lhs, RC:$rhs)), bb:$dst),
+              (JLEOp (CMPOp RC:$rhs, RC:$lhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setule RC:$lhs, RC:$rhs)), bb:$dst),
+              (JLEOp (CMPOp RC:$rhs, RC:$lhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setge RC:$lhs, RC:$rhs)), bb:$dst),
+              (JGEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    def : Pat<(brcond (i32 (setuge RC:$lhs, RC:$rhs)), bb:$dst),
+              (JGEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
+    
+    def : Pat<(brcond RC:$cond, bb:$dst),
+              (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;
+    }
+    
+    defm : BrcondPats<CPURegs, JEQ, JNE, JLT, JGT, JLE, JGE, CMP, ZERO>;
 
 The ch6_1_2.cpp is for “nest if” test. The ch6_1_3.cpp is the “for loop” as 
 well as “while loop”, “continue”, “break”, “goto”  test. 
@@ -587,114 +591,115 @@ empty function in Cpu0ISelLowering.cpp as follows,
 
 .. code-block:: c++
 
-	// Cpu0ISelLowering.cpp
-	SDValue
-	Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-								  CallingConv::ID CallConv, bool isVarArg,
-								  bool doesNotRet, bool &isTailCall,
-								  const SmallVectorImpl<ISD::OutputArg> &Outs,
-								  const SmallVectorImpl<SDValue> &OutVals,
-								  const SmallVectorImpl<ISD::InputArg> &Ins,
-								  DebugLoc dl, SelectionDAG &DAG,
-								  SmallVectorImpl<SDValue> &InVals) const {
-	  return InChain;
-	}
+    // Cpu0ISelLowering.cpp
+    SDValue
+    Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
+                                  CallingConv::ID CallConv, bool isVarArg,
+                                  bool doesNotRet, bool &isTailCall,
+                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
+                                  const SmallVectorImpl<SDValue> &OutVals,
+                                  const SmallVectorImpl<ISD::InputArg> &Ins,
+                                  DebugLoc dl, SelectionDAG &DAG,
+                                  SmallVectorImpl<SDValue> &InVals) const {
+      return InChain;
+    }
 
 With this LowerCall(), it can translate ch6_1_4.cpp, ch6_1_4.bc to 
 ch6_1_4.cpu0.s as follows,
 
 .. code-block:: c++
 
-	// ch6_1_4.cpp
-	int main()
-	{
-		int a[3]={0, 1, 2};
-		
-		return 0;
-	}
+    // ch6_1_4.cpp
+    int main()
+    {
+        int a[3]={0, 1, 2};
+        
+        return 0;
+    }
 
 .. code-block:: bash
 
-	; ModuleID = 'ch6_1_4 .bc'
-	target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
-	f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
-	target triple = "i386-apple-macosx10.8.0"
-	
-	@_ZZ4mainE1a = private unnamed_addr constant [3 x i32] [i32 0, i32 1, i32 2], 
-	align 4
-	
-	define i32 @main() nounwind ssp {
-	entry:
-	  %retval = alloca i32, align 4
-	  %a = alloca [3 x i32], align 4
-	  store i32 0, i32* %retval
-	  %0 = bitcast [3 x i32]* %a to i8*
-	  call void @llvm.memcpy.p0i8.p0i8.i32(i8* %0, i8* bitcast ([3 x i32]* 
-		@_ZZ4mainE1a to i8*), i32 12, i32 4, i1 false)
-	  ret i32 0
-	}
-	
-	118-165-79-206:InputFiles Jonathan$ cat ch6_1_4.cpu0.s 
-		.section .mdebug.abi32
-		.previous
-		.file   "ch6_1_4.bc"
-		.text
-		.globl  main
-		.align  2
-		.type   main,@function
-		.ent    main                    # @main
-	main:
-		.frame  $sp,24,$lr
-		.mask   0x00000000,0
-		.set    noreorder
-		.cpload $t9
-		.set    nomacro
-	# BB#0:                                 # %entry
-		addiu   $sp, $sp, -24
-		lw  $2, %got(__stack_chk_guard)($gp)
-		lw  $3, 0($2)
-		st  $3, 20($sp)
-		addiu   $3, $zero, 0
-		st  $3, 16($sp)
-		lw  $3, %got($_ZZ4mainE1a)($gp)
-		addiu   $3, $3, %lo($_ZZ4mainE1a)
-		lw  $4, 8($3)
-		st  $4, 12($sp)
-		lw  $4, 4($3)
-		st  $4, 8($sp)
-		lw  $3, 0($3)
-		st  $3, 4($sp)
-		lw  $2, 0($2)
-		lw  $3, 20($sp)
-		cmp $2, $3
-		jne $BB0_2
-		jmp $BB0_1
-	$BB0_1:                                 # %SP_return
-		addiu   $sp, $sp, 24
-		ret $lr
-	$BB0_2:                                 # %CallStackCheckFailBlk
-		.set    macro
-		.set    reorder
-		.end    main
-	$tmp1:
-		.size   main, ($tmp1)-main
-	
-		.type   $_ZZ4mainE1a,@object    # @_ZZ4mainE1a
-		.section    .rodata,"a",@progbits
-		.align  2
-	$_ZZ4mainE1a:
-		.4byte  0                       # 0x0
-		.4byte  1                       # 0x1
-		.4byte  2                       # 0x2
-		.size   $_ZZ4mainE1a, 12
+    ; ModuleID = 'ch6_1_4 .bc'
+    target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
+    f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
+    target triple = "i386-apple-macosx10.8.0"
+    
+    @_ZZ4mainE1a = private unnamed_addr constant [3 x i32] [i32 0, i32 1, i32 2], 
+    align 4
+    
+    define i32 @main() nounwind ssp {
+    entry:
+      %retval = alloca i32, align 4
+      %a = alloca [3 x i32], align 4
+      store i32 0, i32* %retval
+      %0 = bitcast [3 x i32]* %a to i8*
+      call void @llvm.memcpy.p0i8.p0i8.i32(i8* %0, i8* bitcast ([3 x i32]* 
+        @_ZZ4mainE1a to i8*), i32 12, i32 4, i1 false)
+      ret i32 0
+    }
+    
+    118-165-79-206:InputFiles Jonathan$ cat ch6_1_4.cpu0.s 
+        .section .mdebug.abi32
+        .previous
+        .file   "ch6_1_4.bc"
+        .text
+        .globl  main
+        .align  2
+        .type   main,@function
+        .ent    main                    # @main
+    main:
+        .frame  $sp,24,$lr
+        .mask   0x00000000,0
+        .set    noreorder
+        .cpload $t9
+        .set    nomacro
+    # BB#0:                                 # %entry
+        addiu   $sp, $sp, -24
+        lw  $2, %got(__stack_chk_guard)($gp)
+        lw  $3, 0($2)
+        st  $3, 20($sp)
+        addiu   $3, $zero, 0
+        st  $3, 16($sp)
+        lw  $3, %got($_ZZ4mainE1a)($gp)
+        addiu   $3, $3, %lo($_ZZ4mainE1a)
+        lw  $4, 8($3)
+        st  $4, 12($sp)
+        lw  $4, 4($3)
+        st  $4, 8($sp)
+        lw  $3, 0($3)
+        st  $3, 4($sp)
+        lw  $2, 0($2)
+        lw  $3, 20($sp)
+        cmp $2, $3
+        jne $BB0_2
+        jmp $BB0_1
+    $BB0_1:                                 # %SP_return
+        addiu   $sp, $sp, 24
+        ret $lr
+    $BB0_2:                                 # %CallStackCheckFailBlk
+        .set    macro
+        .set    reorder
+        .end    main
+    $tmp1:
+        .size   main, ($tmp1)-main
+    
+        .type   $_ZZ4mainE1a,@object    # @_ZZ4mainE1a
+        .section    .rodata,"a",@progbits
+        .align  2
+    $_ZZ4mainE1a:
+        .4byte  0                       # 0x0
+        .4byte  1                       # 0x1
+        .4byte  2                       # 0x2
+        .size   $_ZZ4mainE1a, 12
 
 
 RISC CPU knowledge
 -------------------
 
-As we mentioned in 6.1, cpu0 is a RISC (Reduced Instruction Set Computer) CPU 
-with 3 stages of pipeline. RISC CPU is full in world. Even the X86 of CISC 
-(Complex Instruction Set Computer) is RISC inside. 
+As mentioned in the previous section, cpu0 is a RISC (Reduced Instruction Set 
+Computer) CPU with 3 stages of pipeline. 
+RISC CPU is full in world. 
+Even the X86 of CISC (Complex Instruction Set Computer) is RISC inside. 
 (It translate CISC instruction into micro-instruction which do pipeline as 
 RISC). Knowledge with RISC will make you satisfied in compiler design. 
 List these two excellent books we have read which include the real RISC CPU 
