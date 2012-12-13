@@ -1,12 +1,12 @@
 Global variable, struct and array
 ==================================
 
-In the previous two chapter, we only access the local variables. 
+In the previous two chapters, we only access the local variables. 
 This chapter begin from global variable access translation for cpu0 
 instruction. 
 After that, introducing struct and array type of variable access 
-and their corresponding llvm IR statement, and cpu0 how to translate these 
-llvm IR statements in `section Array and struct support`_. 
+and their corresponding llvm IR statement, and introducing cpu0 how to 
+translate these llvm IR statements in `section Array and struct support`_. 
 The logic operation “not” support and translation in 
 `section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
 will show you the DAG optimization steps and their corresponding llc display 
@@ -1087,26 +1087,31 @@ the final result.
 Display llvm IR nodes with Graphviz
 ------------------------------------
 
-In the previous section, you know the llc -debug will show the DAG translation 
-process in text on terminal. 
-The llc supply the graphic display. 
-In `section Install other tools on iMac`_, we mentioned the web for llc 
+The previous section, display the DAG translation process in text on terminal 
+by llc -debug option. 
+The llc also support the graphic display. 
+The `section Install other tools on iMac`_ mentioned the web for llc 
 graphic display information. 
-We introduce the llc graphic display and tool Graphviz in this section. 
+The llc graphic display with tool Graphviz is introduced in this section. 
 The graphic display is more readable by eye than display text in terminal. 
-It's not necessary, but sometime it help when you are tired in tracking the DAG 
-translation process. 
-List the llc graphic support options from web 
-http://llvm.org/docs/CodeGenerator.html?highlight=graph%20view as follows,
+It's not necessary, but it help a lot especially when you are tired in tracking 
+the DAG translation process. 
+List the llc graphic support options from the sub-section "SelectionDAG 
+Instruction Selection Process" of web 
+http://llvm.org/docs/CodeGenerator.html as follows,
 
 .. note:: The llc Graphviz DAG display options
 
     -view-dag-combine1-dags displays the DAG after being built, before the 
     first optimization pass. 
+    
     -view-legalize-dags displays the DAG before Legalization. 
+    
     -view-dag-combine2-dags displays the DAG before the second optimization 
     pass. 
+    
     -view-isel-dags displays the DAG before the Select phase. 
+    
     -view-sched-dags displays the DAG before Scheduling. 
     
 By tracking llc -debug, you can see the DAG translation steps as follows,
@@ -1162,8 +1167,8 @@ follows,
 
 The -view-isel-dags is important and often used by an llvm backend writer 
 because it is the DAG before instruction selection. 
-The backend programmer need to know what is the DAG to write the pattern match 
-instruction in target description file .td.
+The backend programmer need to know what is the DAG for writing the pattern 
+match instruction in target description file .td.
 
 
 Adjust cpu0 instruction and support type of local variable pointer
@@ -1314,7 +1319,7 @@ There is no addiu instruction definition.
 We add addiu instruction because we find this instruction is more powerful and 
 reasonable than ldi instruction. 
 We highlight this change in `section CPU0 processor architecture`_. 
-Even with that, we show you how to change our addiu with ldi according the cpu0 
+Even with that, we show you how to replace our addiu with ldi according the cpu0 
 original design. 
 5/5_2 is the code changes for use ldi instruction. 
 The changes is replace addiu with ldi in Cpu0InstrInfo.td and modify 
@@ -1383,9 +1388,9 @@ Cpu0FrameLowering.cpp as follows,
 
 As above code, we use **add** IR binary instruction (1 register operand and 1 
 immediate operand, and the register operand is fixed with ZERO) in our solution 
-since we didn't find the **move** IR unary in instruction. 
+since we didn't find the **move** IR unary instruction. 
 This code is correct since all the immediate value is translated into 
-“ldi Zero, imm/address”, and IR **add** node with address, like 
+“ldi Zero, imm/address”, and the IR **add** node with address, like 
 (add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)), …, is translated into 
 (ADD CPURegs:$gp, (LDI ZERO, tglobaladdr:$in)). 
 Let's run 5/5_2/Cpu0 with ch5_5_1.cpp and ch5_1.cpp to get the correct result 
@@ -1545,8 +1550,8 @@ corresponding llvm IR, as follows,
     }
 
 
-LLVM srem is the IR corresponding “%”, reference 
-http://llvm.org/docs/LangRef.html#i_srem. 
+LLVM srem is the IR corresponding “%”, reference sub-section "srem instruction" 
+of http://llvm.org/docs/LangRef.html. 
 Copy the reference as follows,
 
 .. note:: 'srem' Instruction 
@@ -1586,7 +1591,7 @@ Copy the reference as follows,
 
 
 Run 5/5/Cpu0 with input file ch5_6.bc and llc option –view-isel-dags as follows,
- will get the error message as follows and the llvm DAG of :ref::`globalvar_f2`.
+ will get the error message as follows and the llvm DAG of :ref:`globalvar_f2`.
 
 .. code-block:: bash
 
@@ -1611,7 +1616,7 @@ Run 5/5/Cpu0 with input file ch5_6.bc and llc option –view-isel-dags as follow
 
 LLVM replace srem divide operation with multiply operation in DAG optimization 
 because DIV operation cost more in time than MUL. 
-For example code “int b = 11; b=(b+1)%12;”, it translate into :ref::`globalvar_f2`. 
+For example code “int b = 11; b=(b+1)%12;”, it translate into :ref:`globalvar_f2`. 
 We verify the result and explain by calculate the value in each node. 
 The 0xC*0x2AAAAAAB=0x200000004, (mulhs 0xC, 0x2AAAAAAAB) meaning get the Signed 
 mul high word (32bits). 
@@ -1621,7 +1626,7 @@ The high word result, in this case is 0x2.
 The final result (sub 12, 12) is 0 which match the statement (11+1)%12. 
 
 Let's run 5/6_1/Cpu0 with llc option  -view-sched-dags to get 
-:ref::`globalvar_f3`. 
+:ref:`globalvar_f3`. 
 Similarly, SMMUL get the high word of multiply result.
 
 .. _globalvar_f3:
@@ -1790,7 +1795,7 @@ In Select(), it return the HI part of multiplication result to HI register,
 for IR operations of mulhs or mulhu, and LO part to LO register. 
 After that, MFHI instruction move the HI register to $ra register. 
 MFHI instruction is FL format and only use $ra register, we set the $rb and 
-imm16 to 0. :ref::`globalvar_f4` and ch5_6.cpu0.s are the result of compile 
+imm16 to 0. :ref:`globalvar_f4` and ch5_6.cpu0.s are the result of compile 
 ch5_6.bc.
 
 .. _globalvar_f4:
