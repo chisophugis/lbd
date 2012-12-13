@@ -40,3 +40,8 @@ Currently skills/setting use in this document
 	Chinese author name cannot appear in LaTeX, so Jonathan use .png file to display Chinese name.
 	Author name can be display on more than one line by \\and, but will shift a little right on the second line.
 	The Chinese name size is OK in html but too large in LaTeX.
+	
+6. Use hyper link in reference our book section. But use "section name" of 
+   `web link`_ to reference outside web section. Because I find the hyper link 
+   for reference section of LLVM is changed from version to version.
+    
