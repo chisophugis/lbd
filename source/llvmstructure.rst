@@ -419,8 +419,8 @@ the empty initialize function since we register nothing in them for this moment.
 
 .. literalinclude:: ../code_fragment/llvmstructure/13.txt
 
-http://llvm.org/docs/WritingAnLLVMBackend.html#TargetRegistration for reference.
-
+Please see `Target Registration <http://llvm.org/docs/WritingAnLLVMBackend.html#target-registration>`_
+for reference.
 
 Build libraries and td
 ----------------------
