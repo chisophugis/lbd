@@ -5,8 +5,8 @@ The subroutine/function call of backend code translation is supported in this
 chapter. 
 A lots of code needed in function call. We break it down according llvm 
 supplied interface for easy to explanation. 
-We introduce the Mips stack frame structure first since we borrow many part of 
-ABI from it. 
+This chapter introduce the Mips stack frame structure first since we borrow 
+many part of ABI from it. 
 Although each CPU has it's own ABI, most of RISC CPUs ABI are similar. 
 In addition to support fixed number of arguments function call, cpu0 also 
 upport variable arguments since C/C++ support this feature. 

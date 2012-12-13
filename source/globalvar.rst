@@ -1802,7 +1802,7 @@ ch5_6.bc.
 .. figure:: ../Fig/globalvar/4.png
     :height: 807 px
     :width: 309 px
-    :scale: 100 %
+    :scale: 75 %
     :align: center
 
     DAG for ch5_6.bc with Mips style MULT
