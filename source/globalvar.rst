@@ -570,8 +570,8 @@ mechanism, pattern match, in the Instruction Selection stage.
 
 There are three type for setXXXAction(), they are Promote, Expand and Custom. 
 Except Custom, the other two usually no need to coding. 
-http://llvm.org/docs/WritingAnLLVMBackend.html#InstructionSelector is the 
-references.
+The section "Instruction Selector" of 
+http://llvm.org/docs/WritingAnLLVMBackend.html is the references.
 
 Array and struct support
 -------------------------

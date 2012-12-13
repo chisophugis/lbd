@@ -198,9 +198,9 @@ References as follows,
 
 http://msdn.microsoft.com/en-us/library/336xbhcz%28v=vs.80%29.aspx
 
-http://llvm.org/docs/LangRef.html#i_ashr
+The sub-section "‘ashr‘ Instruction" of http://llvm.org/docs/LangRef.html
 
-http://llvm.org/docs/LangRef.html#i_lshr
+he sub-section "‘lshr‘ Instruction" of http://llvm.org/docs/LangRef.html
 
 The 4/1 version just add 40 lines code in td files. 
 With these 40 lines code, it process 9 operators more for C language and their 
