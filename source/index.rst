@@ -3,6 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. figure:: ../Fig/octopod_addtext.png
+	:height: 697 px
+	:width: 697 px
+	:scale: 100 %
+	:align: right
+
+
 Table of Contents
 =================
 
