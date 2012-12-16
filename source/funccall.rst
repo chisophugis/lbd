@@ -931,7 +931,7 @@ Now, let's run 7/3/Cpu0 with ch7_1.cpp to get result as follows,
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -40
-        BUNDLE                          # 4-byte Folded Spill
+        st	$lr, 36($sp)            # 4-byte Folded Spill
         addiu   $2, $zero, 0
         st  $2, 32($sp)
         !ADJCALLSTACKDOWN 24
@@ -1116,7 +1116,7 @@ get the following result.
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -64
-        BUNDLE                          # 4-byte Folded Spill
+        st	$lr, 60($sp)            # 4-byte Folded Spill
         addiu   $2, $zero, 0
         st  $2, 56($sp)
         addiu   $2, $zero, 6
@@ -1215,7 +1215,7 @@ comment in it for explanation.
         addiu   $sp, $sp, -72
     $tmp5:
         .cfi_def_cfa_offset 72
-        BUNDLE                          # 4-byte Folded Spill
+        st	$lr, 68($sp)            # 4-byte Folded Spill
     $tmp6:
         .cfi_offset 14, -4
         .cprestore  24  // save $gp to 24($sp)
