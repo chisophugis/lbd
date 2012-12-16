@@ -52,7 +52,7 @@ storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   unsigned Opc = 0;
 
   if (RC == Cpu0::CPURegsRegisterClass)
-    Opc = Cpu0::SW;
+    Opc = Cpu0::ST;
   assert(Opc && "Register class not handled!");
   BuildMI(MBB, I, DL, get(Opc)).addReg(SrcReg, getKillRegState(isKill))
     .addFrameIndex(FI).addImm(0).addMemOperand(MMO);
