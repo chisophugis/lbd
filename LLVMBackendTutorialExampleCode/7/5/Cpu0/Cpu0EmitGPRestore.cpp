@@ -66,10 +66,10 @@ bool Inserter::runOnMachineFunction(MachineFunction &F) {
       // Find EH_LABEL first.
       for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
 
-      // Insert lw.
+      // Insert ld.
       ++I;
       DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
-      BuildMI(MBB, I, dl, TII->get(Cpu0::LW), Cpu0::GP).addFrameIndex(FI)
+      BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
                                                        .addImm(0);
       Changed = true;
     }
@@ -82,7 +82,7 @@ bool Inserter::runOnMachineFunction(MachineFunction &F) {
 
       DebugLoc dl = I->getDebugLoc();
       // emit lw $gp, ($gp save slot on stack) after jalr
-      BuildMI(MBB, ++I, dl, TII->get(Cpu0::LW), Cpu0::GP).addFrameIndex(FI)
+      BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
                                                          .addImm(0);
       Changed = true;
     }
