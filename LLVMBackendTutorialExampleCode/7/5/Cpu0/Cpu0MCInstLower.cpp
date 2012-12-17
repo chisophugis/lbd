@@ -115,7 +115,7 @@ void Cpu0MCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
   CreateMCInst(MCInsts[3], Cpu0::ADD, GPReg, GPReg, T9Reg);
 }
 
-// Lower ".cprestore offset" to "sw $gp, offset($sp)".
+// Lower ".cprestore offset" to "st $gp, offset($sp)".
 void Cpu0MCInstLower::LowerCPRESTORE(int64_t Offset,
                                      SmallVector<MCInst, 4>& MCInsts) {
   assert(isInt<32>(Offset) && (Offset >= 0) &&
@@ -131,17 +131,18 @@ void Cpu0MCInstLower::LowerCPRESTORE(int64_t Offset,
     MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
     BaseReg = ATReg;
 
-    // lui   at,hi
-    // addu  at,at,sp
+    // addiu   at,zero,hi
+    // shl     at,at,16
+    // add     at,at,sp
     MCInsts.resize(3);
-    CreateMCInst(MCInsts[0], Cpu0::ADDiu, GPReg, ZEROReg, MCOperand::CreateImm(Hi));
-    CreateMCInst(MCInsts[1], Cpu0::SHL, GPReg, GPReg, MCOperand::CreateImm(16));
+    CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
+    CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
     CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
   }
 
-  MCInst Sw;
-  CreateMCInst(Sw, Cpu0::SW, GPReg, BaseReg, MCOperand::CreateImm(Offset));
-  MCInsts.push_back(Sw);
+  MCInst St;
+  CreateMCInst(St, Cpu0::ST, GPReg, BaseReg, MCOperand::CreateImm(Offset));
+  MCInsts.push_back(St);
 }
 
 MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,

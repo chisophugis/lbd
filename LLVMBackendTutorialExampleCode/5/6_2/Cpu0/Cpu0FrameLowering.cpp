@@ -66,12 +66,12 @@ using namespace llvm;
 // Examples:
 // - reference to the actual stack frame
 //   for any local area var there is smt like : FI >= 0, StackOffset: 4
-//     sw REGX, 4(SP)
+//     st REGX, 4(SP)
 //
 // - reference to previous stack frame
 //   suppose there's a load to the 5th arguments : FI < 0, StackOffset: 16.
 //   The emitted instruction will be something like:
-//     lw REGX, 16+StackSize(SP)
+//     ld REGX, 16+StackSize(SP)
 //
 // Since the total stack size is unknown on LowerFormalArguments, all
 // stack references (ObjectOffset) created to reference the function
@@ -80,6 +80,7 @@ using namespace llvm;
 // their real location.
 //
 //===----------------------------------------------------------------------===//
+
 //- Must have, hasFP() is pure virtual of parent
 // hasFP - Return true if the specified function should have a dedicated frame
 // pointer register.  This is true if the function has variable sized allocas or
@@ -158,7 +159,6 @@ void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
       }
     }
   }
-
 }
 
 void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,

@@ -79,25 +79,25 @@ Run llc with -march=mips for ch7_1.bc, you will get the following result.
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -32
-        sw  $4, 28($sp)
-        sw  $5, 24($sp)
-        sw  $6, 20($sp)
-        sw  $7, 16($sp)
-        lw  $2, 48($sp) // load argument 5
-        sw  $2, 12($sp)
-        lw  $2, 52($sp) // load argument 6
-        sw  $2, 8($sp)
-        lw  $3, 24($sp)
-        lw  $4, 28($sp)
+        st  $4, 28($sp)
+        st  $5, 24($sp)
+        st  $6, 20($sp)
+        st  $7, 16($sp)
+        ld  $2, 48($sp) // load argument 5
+        st  $2, 12($sp)
+        ld  $2, 52($sp) // load argument 6
+        st  $2, 8($sp)
+        ld  $3, 24($sp)
+        ld  $4, 28($sp)
         addu    $3, $4, $3
-        lw  $4, 20($sp)
+        ld  $4, 20($sp)
         addu    $3, $3, $4
-        lw  $4, 16($sp)
+        ld  $4, 16($sp)
         addu    $3, $3, $4
-        lw  $4, 12($sp)
+        ld  $4, 12($sp)
         addu    $3, $3, $4
         addu    $2, $3, $2
-        sw  $2, 4($sp)
+        st  $2, 4($sp)
         addiu   $sp, $sp, 32
         jr  $ra
         nop
@@ -120,23 +120,23 @@ Run llc with -march=mips for ch7_1.bc, you will get the following result.
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -48
-        sw  $ra, 44($sp)            # 4-byte Folded Spill
+        st  $ra, 44($sp)            # 4-byte Folded Spill
         .cprestore  24
-        sw  $zero, 40($sp)
+        st  $zero, 40($sp)
         addiu   $2, $zero, 6
-        sw  $2, 20($sp) // Save argument 6 to 20($sp)
+        st  $2, 20($sp) // Save argument 6 to 20($sp)
         addiu   $2, $zero, 5
-        sw  $2, 16($sp) // Save argument 5 to 16($sp)
-        lw  $25, %call16(_Z5sum_iiiiiii)($gp)
+        st  $2, 16($sp) // Save argument 5 to 16($sp)
+        ld  $25, %call16(_Z5sum_iiiiiii)($gp)
         addiu   $4, $zero, 1    // Pass argument 1 to $4 (=$a0)
         addiu   $5, $zero, 2    // Pass argument 2 to $5 (=$a1)
         addiu   $6, $zero, 3
         addiu   $7, $zero, 4
         jalr    $25
         nop
-        lw  $gp, 24($sp)
-        sw  $2, 36($sp)
-        lw  $ra, 44($sp)            # 4-byte Folded Reload
+        ld  $gp, 24($sp)
+        st  $2, 36($sp)
+        ld  $ra, 44($sp)            # 4-byte Folded Reload
         addiu   $sp, $sp, 48
         jr  $ra
         nop
@@ -351,7 +351,7 @@ Second time is for main() which didn't create any load DAG for no incoming
 argument passing into main(). 
 In addition to LowerFormalArguments() which create the load DAG, we need to 
 define the loadRegFromStackSlot() to issue the machine instruction 
-“lw $r, offset($sp)” to load incoming arguments from stack frame offset.
+“ld $r, offset($sp)” to load incoming arguments from stack frame offset.
 
 .. code-block:: c++
     
@@ -379,7 +379,7 @@ define the loadRegFromStackSlot() to issue the machine instruction
       unsigned Opc = 0;
     
       if (RC == Cpu0::CPURegsRegisterClass)
-        Opc = Cpu0::LW;
+        Opc = Cpu0::LD;
       assert(Opc && "Register class not handled!");
       BuildMI(MBB, I, DL, get(Opc), DestReg).addFrameIndex(FI).addImm(0)
         .addMemOperand(MMO);
@@ -846,7 +846,7 @@ Cpu0InstrInfo.td definition as follows.
     
     // Cpu0InstrInfo.cpp
     ...
-    //- sw SrcReg, MOO(FI)
+    //- st SrcReg, MMO(FI)
     void Cpu0InstrInfo::
     storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                         unsigned SrcReg, bool isKill, int FI,
@@ -859,7 +859,7 @@ Cpu0InstrInfo.td definition as follows.
       unsigned Opc = 0;
     
       if (RC == Cpu0::CPURegsRegisterClass)
-        Opc = Cpu0::SW;
+        Opc = Cpu0::ST;
       assert(Opc && "Register class not handled!");
       BuildMI(MBB, I, DL, get(Opc)).addReg(SrcReg, getKillRegState(isKill))
         .addFrameIndex(FI).addImm(0).addMemOperand(MMO);
@@ -888,26 +888,26 @@ Now, let's run 7/3/Cpu0 with ch7_1.cpp to get result as follows,
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -32
-        lw  $2, 32($sp)
+        ld  $2, 32($sp)
         st  $2, 28($sp)
-        lw  $2, 36($sp)
+        ld  $2, 36($sp)
         st  $2, 24($sp)
-        lw  $2, 40($sp)
+        ld  $2, 40($sp)
         st  $2, 20($sp)
-        lw  $2, 44($sp)
+        ld  $2, 44($sp)
         st  $2, 16($sp)
-        lw  $2, 48($sp)
+        ld  $2, 48($sp)
         st  $2, 12($sp)
-        lw  $2, 52($sp)
+        ld  $2, 52($sp)
         st  $2, 8($sp)
-        lw  $3, 24($sp)
-        lw  $4, 28($sp)
+        ld  $3, 24($sp)
+        ld  $4, 28($sp)
         add $3, $4, $3
-        lw  $4, 20($sp)
+        ld  $4, 20($sp)
         add $3, $3, $4
-        lw  $4, 16($sp)
+        ld  $4, 16($sp)
         add $3, $3, $4
-        lw  $4, 12($sp)
+        ld  $4, 12($sp)
         add $3, $3, $4
         add $2, $3, $2
         st  $2, 4($sp)
@@ -947,11 +947,11 @@ Now, let's run 7/3/Cpu0 with ch7_1.cpp to get result as follows,
         st  $2, 44($sp)
         addiu   $2, $zero, 1
         st  $2, 40($sp)
-        lw  $6, %call24(_Z5sum_iiiiiii)($gp)
+        ld  $6, %call24(_Z5sum_iiiiiii)($gp)
         jalr    $6
         !ADJCALLSTACKUP 24
         st  $2, 28($sp)
-        lw  $lr, 36($sp)            # 4-byte Folded Reload
+        ld  $lr, 36($sp)            # 4-byte Folded Reload
         addiu   $sp, $sp, 40
         ret $lr
         .set    macro
@@ -1073,26 +1073,26 @@ get the following result.
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -32
-        lw  $2, 32($sp)
+        ld  $2, 32($sp)
         st  $2, 28($sp)
-        lw  $2, 36($sp)
+        ld  $2, 36($sp)
         st  $2, 24($sp)
-        lw  $2, 40($sp)
+        ld  $2, 40($sp)
         st  $2, 20($sp)
-        lw  $2, 44($sp)
+        ld  $2, 44($sp)
         st  $2, 16($sp)
-        lw  $2, 48($sp)
+        ld  $2, 48($sp)
         st  $2, 12($sp)
-        lw  $2, 52($sp)
+        ld  $2, 52($sp)
         st  $2, 8($sp)
-        lw  $3, 24($sp)
-        lw  $4, 28($sp)
+        ld  $3, 24($sp)
+        ld  $4, 28($sp)
         add $3, $4, $3
-        lw  $4, 20($sp)
+        ld  $4, 20($sp)
         add $3, $3, $4
-        lw  $4, 16($sp)
+        ld  $4, 16($sp)
         add $3, $3, $4
-        lw  $4, 12($sp)
+        ld  $4, 12($sp)
         add $3, $3, $4
         add $2, $3, $2
         st  $2, 4($sp)
@@ -1131,10 +1131,10 @@ get the following result.
         st  $2, 4($sp)
         addiu   $2, $zero, 1
         st  $2, 0($sp)
-        lw  $6, %call24(_Z5sum_iiiiiii)($gp)
+        ld  $6, %call24(_Z5sum_iiiiiii)($gp)
         jalr    $6
         st  $2, 52($sp)
-        lw  $lr, 60($sp)            # 4-byte Folded Reload
+        ld  $lr, 60($sp)            # 4-byte Folded Reload
         addiu   $sp, $sp, 64
         ret $lr
         .set    macro
@@ -1196,7 +1196,7 @@ comment in it for explanation.
     $tmp1:
         .cfi_def_cfa_offset 32
     ...
-        lw  $3, %got(gI)($gp)   // %got(gI) is offset of (gI - _Z5sum_iiiiiii)
+        ld  $3, %got(gI)($gp)   // %got(gI) is offset of (gI - _Z5sum_iiiiiii)
     ...
         ret $lr
         .set    macro
@@ -1221,10 +1221,10 @@ comment in it for explanation.
         .cprestore  24  // save $gp to 24($sp)
         addiu   $2, $zero, 0
     ...
-        lw  $6, %call24(_Z5sum_iiiiiii)($gp)
+        ld  $6, %call24(_Z5sum_iiiiiii)($gp)
         jalr    $6      // $t9 register number is 6, meaning $6 and %t9 are the 
                         //  same register
-        lw  $gp, 24($sp)    // restore $gp from 24($sp)
+        ld  $gp, 24($sp)    // restore $gp from 24($sp)
     ...
         addiu   $sp, $sp, 72
         ret $lr
@@ -1244,11 +1244,11 @@ comment in it for explanation.
         .size   gI, 4
 
 As above code comment, “.cprestore 24” is a pseudo instruction for save $gp to 
-24($sp); “lw $gp, 24($sp)” will restore the $gp. 
+24($sp); “ld $gp, 24($sp)” will restore the $gp. 
 In other word, $gp is caller saved register, so main() need to save/restore $gp 
 before/after call the shared library _Z5sum_iiiiiii() function. 
 In _Z5sum_iiiiiii() function, we translate global variable gI address by 
-“lw $3, %got(gI)($gp)” where %got(gI) is offset of (gI - _Z5sum_iiiiiii) 
+“ld $3, %got(gI)($gp)” where %got(gI) is offset of (gI - _Z5sum_iiiiiii) 
 (we can write our cpu0 compiler to produce obj code by calculate the offset 
 value).
 
@@ -1266,7 +1266,7 @@ reality and deserve change cpu0 official design as a compiler book.
 Mips use the same solution in 32 bits Mips32 CPU.
 
 Now, as the following code added in 7/5/Cpu0, we can issue “.cprestore” in 
-emitPrologue() and emit lw $gp, ($gp save slot on stack) after jalr by create 
+emitPrologue() and emit ld $gp, ($gp save slot on stack) after jalr by create 
 file Cpu0EmitGPRestore.cpp which run as a function pass.
 
 .. code-block:: c++
@@ -1405,10 +1405,10 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
           // Find EH_LABEL first.
           for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
     
-          // Insert lw.
+          // Insert ld.
           ++I;
           DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
-          BuildMI(MBB, I, dl, TII->get(Cpu0::LW), Cpu0::GP).addFrameIndex(FI)
+          BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
                                                            .addImm(0);
           Changed = true;
         }
@@ -1420,8 +1420,8 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
           }
     
           DebugLoc dl = I->getDebugLoc();
-          // emit lw $gp, ($gp save slot on stack) after jalr
-          BuildMI(MBB, ++I, dl, TII->get(Cpu0::LW), Cpu0::GP).addFrameIndex(FI)
+          // emit ld $gp, ($gp save slot on stack) after jalr
+          BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
                                                              .addImm(0);
           Changed = true;
         }
@@ -1439,63 +1439,68 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     // Cpu0MCInstLower.cpp
     …
     static void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
-                             const MCOperand& Opnd1,
-                             const MCOperand& Opnd2 = MCOperand()) {
+         const MCOperand& Opnd1,
+         const MCOperand& Opnd2 = MCOperand()) {
       Inst.setOpcode(Opc);
       Inst.addOperand(Opnd0);
       Inst.addOperand(Opnd1);
       if (Opnd2.isValid())
         Inst.addOperand(Opnd2);
     }
-    
+  
     // Lower ".cpload $reg" to
     //  "lui   $gp, %hi(_gp_disp)"
     //  "addiu $gp, $gp, %lo(_gp_disp)"
     //  "addu  $gp, $gp, $t9"
-    void MipsMCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
-      MCOperand GPReg = MCOperand::CreateReg(Mips::GP);
-      MCOperand T9Reg = MCOperand::CreateReg(Mips::T9);
+    void Cpu0MCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
+      MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
+      MCOperand T9Reg = MCOperand::CreateReg(Cpu0::T9);
+      MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
       StringRef SymName("_gp_disp");
       const MCSymbol *Sym = Ctx->GetOrCreateSymbol(SymName);
       const MCSymbolRefExpr *MCSym;
-    
-      MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Mips_ABS_HI, *Ctx);
+  
+      MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_HI, *Ctx);
       MCOperand SymHi = MCOperand::CreateExpr(MCSym);
-      MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Mips_ABS_LO, *Ctx);
+      MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_LO, *Ctx);
       MCOperand SymLo = MCOperand::CreateExpr(MCSym);
-    
-      MCInsts.resize(3);
-    
-      CreateMCInst(MCInsts[0], Mips::LUi, GPReg, SymHi);
-      CreateMCInst(MCInsts[1], Mips::ADDiu, GPReg, GPReg, SymLo);
-      CreateMCInst(MCInsts[2], Mips::ADDu, GPReg, GPReg, T9Reg);
+  
+      MCInsts.resize(4);
+  
+      CreateMCInst(MCInsts[0], Cpu0::ADDiu, GPReg, ZEROReg, SymHi);
+      CreateMCInst(MCInsts[1], Cpu0::SHL, GPReg, GPReg, MCOperand::CreateImm(16));
+      CreateMCInst(MCInsts[2], Cpu0::ADDiu, GPReg, GPReg, SymLo);
+      CreateMCInst(MCInsts[3], Cpu0::ADD, GPReg, GPReg, T9Reg);
     }
-    
-    // Lower ".cprestore offset" to "sw $gp, offset($sp)".
-    void MipsMCInstLower::LowerCPRESTORE(int64_t Offset,
-                                         SmallVector<MCInst, 4>& MCInsts) {
+  
+    // Lower ".cprestore offset" to "st $gp, offset($sp)".
+    void Cpu0MCInstLower::LowerCPRESTORE(int64_t Offset,
+               SmallVector<MCInst, 4>& MCInsts) {
       assert(isInt<32>(Offset) && (Offset >= 0) &&
-             "Imm operand of .cprestore must be a non-negative 32-bit value.");
-    
-      MCOperand SPReg = MCOperand::CreateReg(Mips::SP), BaseReg = SPReg;
-      MCOperand GPReg = MCOperand::CreateReg(Mips::GP);
-    
+       "Imm operand of .cprestore must be a non-negative 32-bit value.");
+  
+      MCOperand SPReg = MCOperand::CreateReg(Cpu0::SP), BaseReg = SPReg;
+      MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
+      MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
+  
       if (!isInt<16>(Offset)) {
         unsigned Hi = ((Offset + 0x8000) >> 16) & 0xffff;
         Offset &= 0xffff;
-        MCOperand ATReg = MCOperand::CreateReg(Mips::AT);
+        MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
         BaseReg = ATReg;
-    
-        // lui   at,hi
-        // addu  at,at,sp
-        MCInsts.resize(2);
-        CreateMCInst(MCInsts[0], Mips::LUi, ATReg, MCOperand::CreateImm(Hi));
-        CreateMCInst(MCInsts[1], Mips::ADDu, ATReg, ATReg, SPReg);
+  
+        // addiu   at,zero,hi
+        // shl     at,at,16
+        // add     at,at,sp
+        MCInsts.resize(3);
+        CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
+        CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
+        CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
       }
-    
-      MCInst Sw;
-      CreateMCInst(Sw, Mips::SW, GPReg, BaseReg, MCOperand::CreateImm(Offset));
-      MCInsts.push_back(Sw);
+  
+      MCInst St;
+      CreateMCInst(St, Cpu0::ST, GPReg, BaseReg, MCOperand::CreateImm(Offset));
+      MCInsts.push_back(St);
     }
 
 

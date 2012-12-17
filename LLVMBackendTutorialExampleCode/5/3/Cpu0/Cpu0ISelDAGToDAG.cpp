@@ -200,7 +200,7 @@ SDNode* Cpu0DAGToDAGISel::Select(SDNode *Node) {
   //- %2 = load i32* @gI, align 4
   // =>
   //- .cpload	$gp
-  //- lw	$2, %got(gI)($gp)
+  //- ld	$2, %got(gI)($gp)
   case ISD::GLOBAL_OFFSET_TABLE:
     return getGlobalBaseReg();
 

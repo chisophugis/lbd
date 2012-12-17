@@ -346,7 +346,7 @@ def ADJCALLSTACKUP   : Cpu0Pseudo<(outs), (ins uimm16:$amt1, uimm16:$amt2),
 
 /// Load and Store Instructions
 ///  aligned
-defm LW     : LoadM32<0x00,  "lw",  load_a>;
+defm LD     : LoadM32<0x00,  "ld",  load_a>;
 defm ST     : StoreM32<0x01, "st",  store_a>;
 
 /// Arithmetic Instructions (ALU Immediate)

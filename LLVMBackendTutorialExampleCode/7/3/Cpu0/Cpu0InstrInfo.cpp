@@ -39,7 +39,7 @@ static MachineMemOperand* GetMemOperand(MachineBasicBlock &MBB, int FI,
                                  MFI.getObjectSize(FI), Align);
 }
 
-//- sw SrcReg, MOO(FI)
+//- st SrcReg, MMO(FI)
 void Cpu0InstrInfo::
 storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                     unsigned SrcReg, bool isKill, int FI,
@@ -70,7 +70,7 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   unsigned Opc = 0;
 
   if (RC == Cpu0::CPURegsRegisterClass)
-    Opc = Cpu0::LW;
+    Opc = Cpu0::LD;
   assert(Opc && "Register class not handled!");
   BuildMI(MBB, I, DL, get(Opc), DestReg).addFrameIndex(FI).addImm(0)
     .addMemOperand(MMO);

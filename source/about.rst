@@ -1,5 +1,5 @@
 About
-=====
+======
 
 Authors
 -------
@@ -20,20 +20,20 @@ Anoushe Jamshidi
 Revision history
 ----------------
 
-Version 1, Released
-	Chapter 1, 2, 3
-Version 2, Released February 4, 2012
-	Added Chapter 0, Section 3.3
-	Correct some English & typing errors in book
-Version 3, Released February 19, 2012
-	Shift Chapter 0..2 to Chapter 1..3; Move Section 3.1, 3.2 to 4.1, 4.2; Move 	Section 3.3 to 5.1 Added Section 5.2 to 5.6; Added Chapter 6; Added Section 7.1 to 7.4
-	Added first paragraph in Chapter 1; Added Section” 2.1 CPU0 processor architecture” and shift other sections in Chapter 2
-	Correct some English & typing errors
 Version 3.1.1, Released November 28, 2012
-	Add Revision history
-	Correct ldi instruction error (replace ldi instruction with addiu from the beginning and in the all example code)
-	Move ldi instruction change from section 5.5 to 2.1
-	Correct some English & typing errors
+	Add Revision history.
+	Correct ldi instruction error (replace ldi instruction with addiu from the 
+	beginning and in the all example code).
+	Move ldi instruction change from section of "Adjust cpu0 instruction and 
+	support type of local variable pointer" to Section ”CPU0 
+	processor architecture”.
+	Correct some English & typing errors.
+Version 3.1.2, Released February 28, 2012
+	Fix section 6.1 error by add “def : Pat<(brcond RC:$cond, bb:$dst), 
+	(JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;” in last pattern.
+	Modify section 5.5
+	Fix bug Cpu0InstrInfo.cpp SW to ST.
+	Correct LW to LD; LB to LDB; SB to STB.
 
 Licensing
 ---------

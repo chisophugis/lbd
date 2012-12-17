@@ -239,7 +239,7 @@ class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
 
 /// Load and Store Instructions
 ///  aligned
-defm LW     : LoadM32<0x00,  "lw",  load_a>;
+defm LD     : LoadM32<0x00,  "ld",  load_a>;
 defm ST     : StoreM32<0x01, "st",  store_a>;
 
 /// Arithmetic Instructions (ALU Immediate)

@@ -361,16 +361,16 @@ hexdump as follows,
 
     118-165-79-206:InputFiles Jonathan$ cat ch6_1_1.cpu0.s 
     …
-        lw  $3, 32($sp)
+        ld  $3, 32($sp)
         cmp $3, $2
         jne $BB0_2
         jmp $BB0_1
     $BB0_1:                                 # %if.then
-        lw  $2, 32($sp)
+        ld  $2, 32($sp)
         addiu   $2, $2, 1
         st  $2, 32($sp)
     $BB0_2:                                 # %if.end
-        lw  $2, 28($sp)
+        ld  $2, 28($sp)
     …
 
 .. code-block:: bash
@@ -404,14 +404,14 @@ List and explain this again as follows,
                     // instruction. Second cycle adjust PC = PC+4. 
         jne $BB0_2  // Do jne compare in decode stage. PC = X+4 at this stage. 
                     // When jne immediate value is 16, PC = PC+16. It will fetch 
-                    //  X+20 which equal to label $BB0_2 instruction, lw $2, 28($sp). 
+                    //  X+20 which equal to label $BB0_2 instruction, ld $2, 28($sp). 
         jmp $BB0_1 
     $BB0_1:                                 # %if.then
-        lw  $2, 32($sp)
+        ld  $2, 32($sp)
         addiu   $2, $2, 1
         st  $2, 32($sp)
     $BB0_2:                                 # %if.end
-        lw  $2, 28($sp)
+        ld  $2, 28($sp)
 
 If cpu0 do jne compare in execution stage, then we should set PC=PC+12, offset 
 of ($BB0_2, jn e $BB02) – 8, in this example.
@@ -655,21 +655,21 @@ ch6_1_4.cpu0.s as follows,
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -24
-        lw  $2, %got(__stack_chk_guard)($gp)
-        lw  $3, 0($2)
+        ld  $2, %got(__stack_chk_guard)($gp)
+        ld  $3, 0($2)
         st  $3, 20($sp)
         addiu   $3, $zero, 0
         st  $3, 16($sp)
-        lw  $3, %got($_ZZ4mainE1a)($gp)
+        ld  $3, %got($_ZZ4mainE1a)($gp)
         addiu   $3, $3, %lo($_ZZ4mainE1a)
-        lw  $4, 8($3)
+        ld  $4, 8($3)
         st  $4, 12($sp)
-        lw  $4, 4($3)
+        ld  $4, 4($3)
         st  $4, 8($sp)
-        lw  $3, 0($3)
+        ld  $3, 0($3)
         st  $3, 4($sp)
-        lw  $2, 0($2)
-        lw  $3, 20($sp)
+        ld  $2, 0($2)
+        ld  $3, 20($sp)
         cmp $2, $3
         jne $BB0_2
         jmp $BB0_1

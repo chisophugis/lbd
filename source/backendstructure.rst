@@ -311,7 +311,7 @@ And It will expand to the following Pattern as mentioned in section Write td
 
 This pattern meaning the IR DAG node **add** can translate into machine 
 instruction DAG node ADDiu by pattern match mechanism. 
-Similarly, the machine instruction DAG node LW and ST can be got from IR DAG 
+Similarly, the machine instruction DAG node LD and ST can be got from IR DAG 
 node **load** and **store**.
 
 Some cpu/fpu (floating point processor) has multiply-and-add floating point 

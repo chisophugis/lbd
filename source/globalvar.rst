@@ -84,8 +84,8 @@ first, and explain the code changes after that.
         addiu   $2, $zero, 0
         st  $2, 4($sp)
         st  $2, 0($sp)
-        lw  $2, %got(gI)($gp)
-        lw  $2, 0($2)
+        ld  $2, %got(gI)($gp)
+        ld  $2, 0($2)
         st  $2, 0($sp)
         addiu   $sp, $sp, 8
         ret $lr
@@ -103,7 +103,7 @@ first, and explain the code changes after that.
         .4byte  100                     # 0x64
         .size   gI, 4
 
-As above code, it translate “load i32* @gI, align 4” into “lw  $2, %got(gI)($gp)
+As above code, it translate “load i32* @gI, align 4” into “ld  $2, %got(gI)($gp)
 ” for  llc -march=cpu0 -relocation-model=pic, position-independent mode. 
 It translate the global integer variable gI address into offset of register gp 
 and load from $gp+(the offset) into register $2. 
@@ -120,7 +120,7 @@ We can translate it with absolute address mode by following command,
         shl $2, $2, 16 
         ldi $3, %lo(gI) 
         add $2, $2, $3 
-        lw  $2, 0($2) 
+        ld  $2, 0($2) 
 
 Above code, it load the high address part of gI absolute address (16 bits) to 
 register $2 and shift 16 bits. 
@@ -142,7 +142,7 @@ In this mode, you can also translate code with following command,
     st  $2, 0($sp) 
     ldi $2, %gp_rel(gI)
     add $2, $gp, $2
-    lw  $2, 0($2) 
+    ld  $2, 0($2) 
     ...
     .section    .sdata,"aw",@progbits 
     .globl  gI 
@@ -358,7 +358,7 @@ as follows,
 .. code-block:: c++
 
     %2 = load i32* @gI, align 4 
-    =>  lw  $2, 0($2) 
+    =>  ld  $2, 0($2) 
 
 When IsLinuxOpt is false and static mode, LowerGlobalAddress() will run the 
 following code to create a DAG list (ADD GOT, GPRel).
@@ -436,7 +436,7 @@ Then it translate into the following code,
 
 .. code-block:: c++
 
-    lw  $2, %got(gI)($gp) 
+    ld  $2, %got(gI)($gp) 
 
 Where DAG.getEntryNode() is the register $2 which decide by Register Allocator, 
 and (Wrapper GetGlobalReg(), GA) translate into Base=$gp and the 16 bits Offset 
@@ -662,13 +662,13 @@ follows,
         shl $2, $2, 16
         ldi $3, %lo(date)
         add $2, $2, $3
-        lw  $2, 0($2)       // the correct one is   lw  $2, 8($2)
+        ld  $2, 0($2)       // the correct one is   ld  $2, 8($2)
         st  $2, 8($sp)
         ldi $2, %hi(a)
         shl $2, $2, 16
         ldi $3, %lo(a)
         add $2, $2, $3
-        lw  $2, 0($2)
+        ld  $2, 0($2)
         st  $2, 4($sp)
         addiu   $sp, $sp, 16
         ret $lr
@@ -697,7 +697,7 @@ follows,
         .4byte  12                      # 0xc
         .size   a, 12
 
-For “day = date.day”, the correct one is “lw $2, 8($2)”, not “lw $2, 0($2)”, 
+For “day = date.day”, the correct one is “ld $2, 8($2)”, not “ld $2, 0($2)”, 
 since date.day is offset 8(date). 
 Type int is 4 bytes in cpu0, and the date.day has fields year and month before 
 it. 
@@ -809,7 +809,7 @@ replaced by 1 node GlobalAddress<%struct.Date* @date> + 8.
 The DAG list for a[1] is same. 
 The replacement occurs since TargetLowering.cpp::isOffsetFoldingLegal(...) 
 return true in “llc -static” static addressing mode as below. 
-In Cpu0 the lw instruction format is “lw $r1, offset($r2)” which meaning load 
+In Cpu0 the ld instruction format is “ld $r1, offset($r2)” which meaning load 
 $r2 address+offset to $r1. 
 So, we just replace the isOffsetFoldingLegal(...) function by override 
 mechanism as below.
@@ -901,11 +901,11 @@ Addr.getOperand(1).getOpcode() = ISD::Constant, the Base = SDValue
 (add Cpu0ISD::Hi (Cpu0II::MO_ABS_HI), Cpu0ISD::Lo(Cpu0II::MO_ABS_LO)) and 
 Offset = Constant<8>. 
 After set Base and Offset, the load DAG will translate the global address 
-date.day into machine instruction “lw $r1, 8($r2)” in Instruction Selection 
+date.day into machine instruction “ld $r1, 8($r2)” in Instruction Selection 
 stage.
 
 5/2/Cpu0 include these changes as above, you can run it with ch5_2.cpp to get 
-the correct generated instruction “lw $r1, 8($r2)” for date.day access.
+the correct generated instruction “ld $r1, 8($r2)” for date.day access.
 
 Operator “not” !
 -----------------
@@ -1072,7 +1072,7 @@ the final result.
         addiu   $3, $zero, 5
         st  $3, 8($sp)
         st  $2, 4($sp)
-        lw  $3, 8($sp)
+        ld  $3, 8($sp)
         xor $2, $3, $2
         ldi $3, 1
         xor $2, $2, $3
@@ -1222,7 +1222,7 @@ the result as follows,
         ...
         udiv    $2, $3, $2
         st  $2, 0($sp)
-        lw  $2, 16($sp)
+        ld  $2, 16($sp)
         sra $2, $2, 2
         ...
 
@@ -1443,11 +1443,11 @@ compete to “addiu”, that's the benefit we mentioned in section
         ldi $3, -5
         st  $3, 4($sp)
         st  $2, 0($sp)
-        lw  $2, 12($sp)
-        lw  $3, 4($sp)
+        ld  $2, 12($sp)
+        ld  $3, 4($sp)
         udiv    $2, $3, $2
         st  $2, 0($sp)
-        lw  $2, 16($sp)
+        ld  $2, 16($sp)
         sra $2, $2, 2
         st  $2, 8($sp)
         ldi $fp, 24
@@ -1489,7 +1489,7 @@ compete to “addiu”, that's the benefit we mentioned in section
         st  $2, 0($sp)
         ldi $2, %gp_rel(gI)
         add $2, $gp, $2
-        lw  $2, 0($2)
+        ld  $2, 0($2)
         st  $2, 0($sp)
         ldi $fp, 8
         add $sp, $sp, $fp

@@ -219,7 +219,7 @@ multiclass StoreM32<bits<8> op, string instr_asm, PatFrag OpNode,
 
 /// Load and Store Instructions
 ///  aligned
-defm LW     : LoadM32<0x00,  "lw",  load_a>;
+defm LD     : LoadM32<0x00,  "ld",  load_a>;
 defm ST     : StoreM32<0x01, "st",  store_a>;
 
 def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;

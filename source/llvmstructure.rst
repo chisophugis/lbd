@@ -366,7 +366,7 @@ Expand with Cpu0Inst further,
 .. literalinclude:: ../code_fragment/llvmstructure/10.txt
 
 It's a lousy process. 
-Similarly, LW and ST instruction definition can be expanded in this way. 
+Similarly, LD and ST instruction definition can be expanded in this way. 
 Please notify the Pattern =  
 [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))] which include keyword 
 “add”. 

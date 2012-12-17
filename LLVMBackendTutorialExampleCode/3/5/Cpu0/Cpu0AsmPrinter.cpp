@@ -84,8 +84,8 @@ void Cpu0AsmPrinter::EmitInstruction(const MachineInstr *MI) {
 //    .frame  $fp,48,$ra
 //    .mask   0xc0000000,-8
 //       addiu $sp, $sp, -48
-//       sw $ra, 40($sp)
-//       sw $fp, 36($sp)
+//       st $ra, 40($sp)
+//       st $fp, 36($sp)
 //
 //    With a 0xc0000000 mask, the assembler knows the register 31 (RA) and
 //    30 (FP) are saved at prologue. As the save order on prologue is from
