@@ -1449,7 +1449,8 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     }
   
     // Lower ".cpload $reg" to
-    //  "lui   $gp, %hi(_gp_disp)"
+    //  "addiu   $gp, zero, %hi(_gp_disp)"
+    //  “shl   $gp, $gp, 16
     //  "addiu $gp, $gp, %lo(_gp_disp)"
     //  "addu  $gp, $gp, $t9"
     void Cpu0MCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
