@@ -179,21 +179,21 @@ code 6/1/Cpu0 with ch7_1.cpp and see what happen.
 
 .. code-block:: bash
 
-	118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
-	cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-	ch7_1.bc -o ch7_1.cpu0.s
-	Assertion failed: (InVals.size() == Ins.size() && "LowerFormalArguments didn't 
-	emit the correct number of values!"), function LowerArguments, file /Users/
-	Jonathan/llvm/3.1.test/cpu0/1/src/lib/CodeGen/SelectionDAG/
-	SelectionDAGBuilder.cpp, line 6671.
-	Stack dump:
-	0.  Program arguments: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
-	bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1.bc -o 
-	ch7_1.cpu0.s 
-	1.  Running pass 'Function Pass Manager' on module 'ch7_1.bc'.
-	2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
-	'@_Z5sum_iiiiiii'
-	Illegal instruction: 4
+  118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch7_1.bc -o ch7_1.cpu0.s
+  Assertion failed: (InVals.size() == Ins.size() && "LowerFormalArguments didn't 
+  emit the correct number of values!"), function LowerArguments, file /Users/
+  Jonathan/llvm/3.1.test/cpu0/1/src/lib/CodeGen/SelectionDAG/
+  SelectionDAGBuilder.cpp, line 6671.
+  Stack dump:
+  0.  Program arguments: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1.bc -o 
+  ch7_1.cpu0.s 
+  1.  Running pass 'Function Pass Manager' on module 'ch7_1.bc'.
+  2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
+  '@_Z5sum_iiiiiii'
+  Illegal instruction: 4
 
 Since 6/1/Cpu0 define the LowerFormalArguments() with empty, we get the error 
 message as above. 
@@ -931,7 +931,7 @@ Now, let's run 7/3/Cpu0 with ch7_1.cpp to get result as follows,
         .set    nomacro
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -40
-        st	$lr, 36($sp)            # 4-byte Folded Spill
+        st  $lr, 36($sp)            # 4-byte Folded Spill
         addiu   $2, $zero, 0
         st  $2, 32($sp)
         !ADJCALLSTACKDOWN 24
@@ -960,12 +960,13 @@ Now, let's run 7/3/Cpu0 with ch7_1.cpp to get result as follows,
     $tmp4:
         .size   main, ($tmp4)-main
 
-It store the arguments to wrong offset. We will fix this issue and take care 
-!ADJCALLSTACKUP and !ADJCALLSTACKDOWN in next section.
+It store the arguments to wrong offset. 
+We will fix this issue and take care !ADJCALLSTACKUP and !ADJCALLSTACKDOWN in 
+next two sections.
 
 
-Fix the wrong offset in storing arguments to stack frame and translate pseudo instruction ADJCALLSTACKDOWN and ADJCALLSTACKUP
-------------------------------------------------------------------------------------------------------------------------------
+Fix the wrong offset in storing arguments to stack frame
+---------------------------------------------------------
 
 To fix the wrong offset in storing arguments, we modify the following code 
 in eliminateFrameIndex() as follows. 
@@ -1021,127 +1022,110 @@ arguments into spOffset($sp) (7/3/Cpu0 set them to pOffset+stackSize($sp).
         return FI <= OutArgFIRange.first && FI >= OutArgFIRange.second;
       }
 
-To fix the !ADJSTACKDOWN and !1ADJSTACKUP, we call 
-Cpu0GenInstrInfo(Cpu0::ADJCALLSTACKDOWN, Cpu0::ADJCALLSTACKUP) in 
-Cpu0InstrInfo() constructor function and define eliminateCallFramePseudoInstr() 
-as follows, 
-
-.. code-block:: c++
-
-    // Cpu0InstrInfo.cpp
-    ...
-    Cpu0InstrInfo::Cpu0InstrInfo(Cpu0TargetMachine &tm)
-      : Cpu0GenInstrInfo(Cpu0::ADJCALLSTACKDOWN, Cpu0::ADJCALLSTACKUP),
-    …
-    
-    // Cpu0RegisterInfo.cpp
-    ...
-    // Cpu0
-    // This function eliminate ADJCALLSTACKDOWN,
-    // ADJCALLSTACKUP pseudo instructions
-    void Cpu0RegisterInfo::
-    eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
-                                  MachineBasicBlock::iterator I) const {
-      // Simply discard ADJCALLSTACKDOWN, ADJCALLSTACKUP instructions.
-      MBB.erase(I);
-    }
-
-With above definition, eliminateCallFramePseudoInstr() will be called when 
-llvm meet pseudo instructions ADJCALLSTACKDOWN and ADJCALLSTACKUP. 
-We just discard these 2 pseudo instructions. Run 7/4/Cpu0 with ch7_1.cpp will 
-get the following result.
+Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
 
 .. code-block:: bash
 
-    118-165-65-61:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch7_1.bc -o ch7_1.cpu0.s
-    
-    118-165-65-61:InputFiles Jonathan$ cat ch7_1.cpu0.s 
-        .section .mdebug.abi32
-        .previous
-        .file   "ch7_1.bc"
-        .text
-        .globl  _Z5sum_iiiiiii
-        .align  2
-        .type   _Z5sum_iiiiiii,@function
-        .ent    _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
-    _Z5sum_iiiiiii:
-        .frame  $sp,32,$lr
-        .mask   0x00000000,0
-        .set    noreorder
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -32
-        ld  $2, 32($sp)
-        st  $2, 28($sp)
-        ld  $2, 36($sp)
-        st  $2, 24($sp)
-        ld  $2, 40($sp)
-        st  $2, 20($sp)
-        ld  $2, 44($sp)
-        st  $2, 16($sp)
-        ld  $2, 48($sp)
-        st  $2, 12($sp)
-        ld  $2, 52($sp)
-        st  $2, 8($sp)
-        ld  $3, 24($sp)
-        ld  $4, 28($sp)
-        add $3, $4, $3
-        ld  $4, 20($sp)
-        add $3, $3, $4
-        ld  $4, 16($sp)
-        add $3, $3, $4
-        ld  $4, 12($sp)
-        add $3, $3, $4
-        add $2, $3, $2
-        st  $2, 4($sp)
-        addiu   $sp, $sp, 32
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    _Z5sum_iiiiiii
-    $tmp1:
-        .size   _Z5sum_iiiiiii, ($tmp1)-_Z5sum_iiiiiii
-    
-        .globl  main
-        .align  2
-        .type   main,@function
-        .ent    main                    # @main
-    main:
-        .frame  $sp,64,$lr
-        .mask   0x00004000,-4
-        .set    noreorder
-        .cpload $t9
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -64
-        st	$lr, 60($sp)            # 4-byte Folded Spill
-        addiu   $2, $zero, 0
-        st  $2, 56($sp)
-        addiu   $2, $zero, 6
-        st  $2, 20($sp)
-        addiu   $2, $zero, 5
-        st  $2, 16($sp)
-        addiu   $2, $zero, 4
-        st  $2, 12($sp)
-        addiu   $2, $zero, 3
-        st  $2, 8($sp)
-        addiu   $2, $zero, 2
-        st  $2, 4($sp)
-        addiu   $2, $zero, 1
-        st  $2, 0($sp)
-        ld  $6, %call24(_Z5sum_iiiiiii)($gp)
-        jalr    $6
-        st  $2, 52($sp)
-        ld  $lr, 60($sp)            # 4-byte Folded Reload
-        addiu   $sp, $sp, 64
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    main
-    $tmp4:
-        .size   main, ($tmp4)-main
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
+  asm ch7_1.bc -o ch7_1.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch7_1.cpu0.s
+    .section .mdebug.abi32
+    .previous
+    .file "ch7_1.bc"
+    .text
+    .globl  _Z5sum_iiiiiii
+    .align  2
+    .type _Z5sum_iiiiiii,@function
+    .ent  _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
+  _Z5sum_iiiiiii:
+    .cfi_startproc
+    .frame  $sp,32,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -32
+  $tmp1:
+    .cfi_def_cfa_offset 32
+    ld  $2, 32($sp)
+    st  $2, 28($sp)
+    ld  $2, 36($sp)
+    st  $2, 24($sp)
+    ld  $2, 40($sp)
+    st  $2, 20($sp)
+    ld  $2, 44($sp)
+    st  $2, 16($sp)
+    ld  $2, 48($sp)
+    st  $2, 12($sp)
+    ld  $2, 52($sp)
+    st  $2, 8($sp)
+    ld  $3, 24($sp)
+    ld  $4, 28($sp)
+    add $3, $4, $3
+    ld  $4, 20($sp)
+    add $3, $3, $4
+    ld  $4, 16($sp)
+    add $3, $3, $4
+    ld  $4, 12($sp)
+    add $3, $3, $4
+    add $2, $3, $2
+    st  $2, 4($sp)
+    addiu $sp, $sp, 32
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z5sum_iiiiiii
+  $tmp2:
+    .size _Z5sum_iiiiiii, ($tmp2)-_Z5sum_iiiiiii
+    .cfi_endproc
+  
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,40,$lr
+    .mask   0x00004000,-4
+    .set  noreorder
+    .cpload $t9
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -40
+  $tmp5:
+    .cfi_def_cfa_offset 40
+    st  $lr, 36($sp)            # 4-byte Folded Spill
+  $tmp6:
+    .cfi_offset 14, -4
+    addiu $2, $zero, 0
+    st  $2, 32($sp)
+    !ADJCALLSTACKDOWN 24
+    addiu $2, $zero, 6
+    st  $2, 20($sp)
+    addiu $2, $zero, 5
+    st  $2, 16($sp)
+    addiu $2, $zero, 4
+    st  $2, 12($sp)
+    addiu $2, $zero, 3
+    st  $2, 8($sp)
+    addiu $2, $zero, 2
+    st  $2, 4($sp)
+    addiu $2, $zero, 1
+    st  $2, 0($sp)
+    ld  $6, %call24(_Z5sum_iiiiiii)($gp)
+    jalr  $6
+    !ADJCALLSTACKUP 24
+    st  $2, 28($sp)
+    ld  $lr, 36($sp)            # 4-byte Folded Reload
+    addiu $sp, $sp, 40
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp7:
+    .size main, ($tmp7)-main
+    .cfi_endproc
 
 Summary callee incoming arguments and caller outgoing arguments as 
 :ref:`funccall_t1`.
@@ -1156,7 +1140,141 @@ Summary callee incoming arguments and caller outgoing arguments as
     Callee incoming arguments and caller outgoing arguments
 
 
-$gp register handle in PIC addressing mode
+Pseudo hook instruction ADJCALLSTACKDOWN and ADJCALLSTACKUP
+------------------------------------------------------------
+
+To fix the !ADJSTACKDOWN and !1ADJSTACKUP, we call Cpu0GenInstrInfo(Cpu0::
+ADJCALLSTACKDOWN, Cpu0::ADJCALLSTACKUP) in Cpu0InstrInfo() constructor 
+function and define eliminateCallFramePseudoInstr() as follows, 
+
+.. code-block:: c++
+
+  // Cpu0InstrInfo.cpp
+  ...
+  Cpu0InstrInfo::Cpu0InstrInfo(Cpu0TargetMachine &tm)
+    : Cpu0GenInstrInfo(Cpu0::ADJCALLSTACKDOWN, Cpu0::ADJCALLSTACKUP),
+  …
+  
+  // Cpu0RegisterInfo.cpp
+  ...
+  // Cpu0
+  // This function eliminate ADJCALLSTACKDOWN,
+  // ADJCALLSTACKUP pseudo instructions
+  void Cpu0RegisterInfo::
+  eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
+                  MachineBasicBlock::iterator I) const {
+    // Simply discard ADJCALLSTACKDOWN, ADJCALLSTACKUP instructions.
+    MBB.erase(I);
+  }
+
+With above definition, eliminateCallFramePseudoInstr() will be called when 
+llvm meet pseudo instructions ADJCALLSTACKDOWN and ADJCALLSTACKUP. 
+We just discard these 2 pseudo instructions. 
+Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
+
+.. code-block:: bash
+
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype
+  =asm ch7_1.bc -o ch7_1.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch7_1.cpu0.s
+    .section .mdebug.abi32
+    .previous
+    .file "ch7_1.bc"
+    .text
+    .globl  _Z5sum_iiiiiii
+    .align  2
+    .type _Z5sum_iiiiiii,@function
+    .ent  _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
+  _Z5sum_iiiiiii:
+    .cfi_startproc
+    .frame  $sp,32,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -32
+  $tmp1:
+    .cfi_def_cfa_offset 32
+    ld  $2, 32($sp)
+    st  $2, 28($sp)
+    ld  $2, 36($sp)
+    st  $2, 24($sp)
+    ld  $2, 40($sp)
+    st  $2, 20($sp)
+    ld  $2, 44($sp)
+    st  $2, 16($sp)
+    ld  $2, 48($sp)
+    st  $2, 12($sp)
+    ld  $2, 52($sp)
+    st  $2, 8($sp)
+    ld  $3, 24($sp)
+    ld  $4, 28($sp)
+    add $3, $4, $3
+    ld  $4, 20($sp)
+    add $3, $3, $4
+    ld  $4, 16($sp)
+    add $3, $3, $4
+    ld  $4, 12($sp)
+    add $3, $3, $4
+    add $2, $3, $2
+    st  $2, 4($sp)
+    addiu $sp, $sp, 32
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z5sum_iiiiiii
+  $tmp2:
+    .size _Z5sum_iiiiiii, ($tmp2)-_Z5sum_iiiiiii
+    .cfi_endproc
+  
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,64,$lr
+    .mask   0x00004000,-4
+    .set  noreorder
+    .cpload $t9
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -64
+  $tmp5:
+    .cfi_def_cfa_offset 64
+    st  $lr, 60($sp)            # 4-byte Folded Spill
+  $tmp6:
+    .cfi_offset 14, -4
+    addiu $2, $zero, 0
+    st  $2, 56($sp)
+    addiu $2, $zero, 6
+    st  $2, 20($sp)
+    addiu $2, $zero, 5
+    st  $2, 16($sp)
+    addiu $2, $zero, 4
+    st  $2, 12($sp)
+    addiu $2, $zero, 3
+    st  $2, 8($sp)
+    addiu $2, $zero, 2
+    st  $2, 4($sp)
+    addiu $2, $zero, 1
+    st  $2, 0($sp)
+    ld  $6, %call24(_Z5sum_iiiiiii)($gp)
+    jalr  $6
+    st  $2, 52($sp)
+    ld  $lr, 60($sp)            # 4-byte Folded Reload
+    addiu $sp, $sp, 64
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp7:
+    .size main, ($tmp7)-main
+    .cfi_endproc
+
+
+Handle $gp register in PIC addressing mode
 -------------------------------------------
 
 In `section Global variable`_, we mentioned there are two addressing 
@@ -1215,7 +1333,7 @@ comment in it for explanation.
         addiu   $sp, $sp, -72
     $tmp5:
         .cfi_def_cfa_offset 72
-        st	$lr, 68($sp)            # 4-byte Folded Spill
+        st  $lr, 68($sp)            # 4-byte Folded Spill
     $tmp6:
         .cfi_offset 14, -4
         .cprestore  24  // save $gp to 24($sp)
@@ -1271,238 +1389,436 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
 
 .. code-block:: c++
 
-    // Cpu0TargetMachine.cpp
+  // # CMakeLists.txt
+  ...
+  add_llvm_target(Cpu0CodeGen
     ...
-    bool Cpu0PassConfig::addPreRegAlloc() {
-      // Do not restore $gp if target is Cpu064.
-      // In N32/64, $gp is a callee-saved register.
-    
-        PM->add(createCpu0EmitGPRestorePass(getCpu0TargetMachine()));
-      return true;
+    Cpu0EmitGPRestore.cpp
+  …
+  
+  // Cpu0TargetMachine.cpp
+  ...
+  bool Cpu0PassConfig::addPreRegAlloc() {
+    // Do not restore $gp if target is Cpu064.
+    // In N32/64, $gp is a callee-saved register.
+  
+    PM->add(createCpu0EmitGPRestorePass(getCpu0TargetMachine()));
+    return true;
+  }
+  
+  // Cpu0.h
+    ...
+    FunctionPass *createCpu0EmitGPRestorePass(Cpu0TargetMachine &TM);
+  
+  // Cpu0FrameLowering.cpp
+  …
+  
+  void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
+    ...
+    unsigned RegSize = 4;
+    unsigned LocalVarAreaOffset = Cpu0FI->needGPSaveRestore() ?
+    (MFI->getObjectOffset(Cpu0FI->getGPFI()) + RegSize) :
+    Cpu0FI->getMaxCallFrameSize();
+    ….
+    // Restore GP from the saved stack location
+    if (Cpu0FI->needGPSaveRestore()) {
+    unsigned Offset = MFI->getObjectOffset(Cpu0FI->getGPFI());
+    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::CPRESTORE)).addImm(Offset)
+      .addReg(Cpu0::GP);
     }
-    
-    // Cpu0.h
-      ...
-      FunctionPass *createCpu0EmitGPRestorePass(Cpu0TargetMachine &TM);
-    
-    // Cpu0FrameLowering.cpp
+  }
+  
+  // Cpu0InstrInfo.td
+  …
+  // When handling PIC code the assembler needs .cpload and .cprestore
+  // directives. If the real instructions corresponding these directives
+  // are used, we have the same behavior, but get also a bunch of warnings
+  // from the assembler.
+  let neverHasSideEffects = 1 in
+  def CPRESTORE : Cpu0Pseudo<(outs), (ins i32imm:$loc, CPURegs:$gp),
+                 ".cprestore\t$loc", []>;
+  
+  
+  // Cpu0SelLowering.cpp
+  …
+  SDValue
+  Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
+                  CallingConv::ID CallConv, bool isVarArg,
+                  bool doesNotRet, bool &isTailCall,
+                  const SmallVectorImpl<ISD::OutputArg> &Outs,
+                  const SmallVectorImpl<SDValue> &OutVals,
+                  const SmallVectorImpl<ISD::InputArg> &Ins,
+                  DebugLoc dl, SelectionDAG &DAG,
+                  SmallVectorImpl<SDValue> &InVals) const {
+    ...
+    // If this is the first call, create a stack frame object that points to
+    // a location to which .cprestore saves $gp.
+    if (IsPIC && Cpu0FI->globalBaseRegFixed() && !Cpu0FI->getGPFI())
+    ...
+    if (MaxCallFrameSize < NextStackOffset) {
+    if (Cpu0FI->needGPSaveRestore())
+      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
     …
+  }
+  
+  // Cpu0EmitGPRestore.cpp
+  //===-- Cpu0EmitGPRestore.cpp - Emit GP Restore Instruction ---------------===//
+  //
+  //                     The LLVM Compiler Infrastructure
+  //
+  // This file is distributed under the University of Illinois Open Source
+  // License. See LICENSE.TXT for details.
+  //
+  //===----------------------------------------------------------------------===//
+  //
+  // This pass emits instructions that restore $gp right
+  // after jalr instructions.
+  //
+  //===----------------------------------------------------------------------===//
+  
+  #define DEBUG_TYPE "emit-gp-restore"
+  
+  #include "Cpu0.h"
+  #include "Cpu0TargetMachine.h"
+  #include "Cpu0MachineFunction.h"
+  #include "llvm/CodeGen/MachineFunctionPass.h"
+  #include "llvm/CodeGen/MachineInstrBuilder.h"
+  #include "llvm/Target/TargetInstrInfo.h"
+  #include "llvm/ADT/Statistic.h"
+  
+  using namespace llvm;
+  
+  namespace {
+    struct Inserter : public MachineFunctionPass {
+  
+    TargetMachine &TM;
+    const TargetInstrInfo *TII;
+  
+    static char ID;
+    Inserter(TargetMachine &tm)
+      : MachineFunctionPass(ID), TM(tm), TII(tm.getInstrInfo()) { }
+  
+    virtual const char *getPassName() const {
+      return "Cpu0 Emit GP Restore";
+    }
+  
+    bool runOnMachineFunction(MachineFunction &F);
+    };
+    char Inserter::ID = 0;
+  } // end of anonymous namespace
+  
+  bool Inserter::runOnMachineFunction(MachineFunction &F) {
+    Cpu0FunctionInfo *Cpu0FI = F.getInfo<Cpu0FunctionInfo>();
+  
+    if ((TM.getRelocationModel() != Reloc::PIC_) ||
+      (!Cpu0FI->globalBaseRegFixed()))
+    return false;
+  
+    bool Changed = false;
+    int FI = Cpu0FI->getGPFI();
+  
+    for (MachineFunction::iterator MFI = F.begin(), MFE = F.end();
+       MFI != MFE; ++MFI) {
+    MachineBasicBlock& MBB = *MFI;
+    MachineBasicBlock::iterator I = MFI->begin();
     
-    void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
-      ...
-      unsigned RegSize = 4;
-      unsigned LocalVarAreaOffset = Cpu0FI->needGPSaveRestore() ?
-        (MFI->getObjectOffset(Cpu0FI->getGPFI()) + RegSize) :
-        Cpu0FI->getMaxCallFrameSize();
-      ….
-      // Restore GP from the saved stack location
-      if (Cpu0FI->needGPSaveRestore()) {
-        unsigned Offset = MFI->getObjectOffset(Cpu0FI->getGPFI());
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::CPRESTORE)).addImm(Offset)
-          .addReg(Cpu0::GP);
+     /// IsLandingPad - Indicate that this basic block is entered via an
+    /// exception handler.
+    // If MBB is a landing pad, insert instruction that restores $gp after
+    // EH_LABEL.
+    if (MBB.isLandingPad()) {
+      // Find EH_LABEL first.
+      for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
+  
+      // Insert ld.
+      ++I;
+      DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+      BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
+                               .addImm(0);
+      Changed = true;
+    }
+  
+    while (I != MFI->end()) {
+      if (I->getOpcode() != Cpu0::JALR) {
+      ++I;
+      continue;
       }
+  
+      DebugLoc dl = I->getDebugLoc();
+      // emit ld $gp, ($gp save slot on stack) after jalr
+      BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
+                               .addImm(0);
+      Changed = true;
     }
-    
-    // Cpu0InstrInfo.td
-    …
-    // When handling PIC code the assembler needs .cpload and .cprestore
-    // directives. If the real instructions corresponding these directives
-    // are used, we have the same behavior, but get also a bunch of warnings
-    // from the assembler.
-    let neverHasSideEffects = 1 in
-    def CPRESTORE : Cpu0Pseudo<(outs), (ins i32imm:$loc, CPURegs:$gp),
-                               ".cprestore\t$loc", []>;
-    
-    
-    // Cpu0SelLowering.cpp
-    …
-    SDValue
-    Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-                                  CallingConv::ID CallConv, bool isVarArg,
-                                  bool doesNotRet, bool &isTailCall,
-                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                  const SmallVectorImpl<SDValue> &OutVals,
-                                  const SmallVectorImpl<ISD::InputArg> &Ins,
-                                  DebugLoc dl, SelectionDAG &DAG,
-                                  SmallVectorImpl<SDValue> &InVals) const {
-      ...
-      // If this is the first call, create a stack frame object that points to
-      // a location to which .cprestore saves $gp.
-      if (IsPIC && Cpu0FI->globalBaseRegFixed() && !Cpu0FI->getGPFI())
-      ...
-      if (MaxCallFrameSize < NextStackOffset) {
-        if (Cpu0FI->needGPSaveRestore())
-          MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
-      …
     }
-    
-    // Cpu0EmitGPRestore.cpp
-    //===-- Cpu0EmitGPRestore.cpp - Emit GP Restore Instruction ---------------===//
-    //
-    //                     The LLVM Compiler Infrastructure
-    //
-    // This file is distributed under the University of Illinois Open Source
-    // License. See LICENSE.TXT for details.
-    //
-    //===----------------------------------------------------------------------===//
-    //
-    // This pass emits instructions that restore $gp right
-    // after jalr instructions.
-    //
-    //===----------------------------------------------------------------------===//
-    
-    #define DEBUG_TYPE "emit-gp-restore"
-    
-    #include "Cpu0.h"
-    #include "Cpu0TargetMachine.h"
-    #include "Cpu0MachineFunction.h"
-    #include "llvm/CodeGen/MachineFunctionPass.h"
-    #include "llvm/CodeGen/MachineInstrBuilder.h"
-    #include "llvm/Target/TargetInstrInfo.h"
-    #include "llvm/ADT/Statistic.h"
-    
-    using namespace llvm;
-    
-    namespace {
-      struct Inserter : public MachineFunctionPass {
-    
-        TargetMachine &TM;
-        const TargetInstrInfo *TII;
-    
-        static char ID;
-        Inserter(TargetMachine &tm)
-          : MachineFunctionPass(ID), TM(tm), TII(tm.getInstrInfo()) { }
-    
-        virtual const char *getPassName() const {
-          return "Cpu0 Emit GP Restore";
-        }
-    
-        bool runOnMachineFunction(MachineFunction &F);
-      };
-      char Inserter::ID = 0;
-    } // end of anonymous namespace
-    
-    bool Inserter::runOnMachineFunction(MachineFunction &F) {
-      Cpu0FunctionInfo *Cpu0FI = F.getInfo<Cpu0FunctionInfo>();
-    
-      if ((TM.getRelocationModel() != Reloc::PIC_) ||
-          (!Cpu0FI->globalBaseRegFixed()))
-        return false;
-    
-      bool Changed = false;
-      int FI = Cpu0FI->getGPFI();
-    
-      for (MachineFunction::iterator MFI = F.begin(), MFE = F.end();
-           MFI != MFE; ++MFI) {
-        MachineBasicBlock& MBB = *MFI;
-        MachineBasicBlock::iterator I = MFI->begin();
-        
-         /// IsLandingPad - Indicate that this basic block is entered via an
-        /// exception handler.
-        // If MBB is a landing pad, insert instruction that restores $gp after
-        // EH_LABEL.
-        if (MBB.isLandingPad()) {
-          // Find EH_LABEL first.
-          for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
-    
-          // Insert ld.
-          ++I;
-          DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
-          BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
-                                                           .addImm(0);
-          Changed = true;
-        }
-    
-        while (I != MFI->end()) {
-          if (I->getOpcode() != Cpu0::JALR) {
-            ++I;
-            continue;
-          }
-    
-          DebugLoc dl = I->getDebugLoc();
-          // emit ld $gp, ($gp save slot on stack) after jalr
-          BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
-                                                             .addImm(0);
-          Changed = true;
-        }
+  
+    return Changed;
+  }
+  
+  /// createCpu0EmitGPRestorePass - Returns a pass that emits instructions that
+  /// restores $gp clobbered by jalr instructions.
+  FunctionPass *llvm::createCpu0EmitGPRestorePass(Cpu0TargetMachine &tm) {
+    return new Inserter(tm);
+  }
+  
+  //===-- Cpu0MachineFunctionInfo.h - Private data used for Cpu0 ----*- C++ -*-=//
+  …
+  class Cpu0FunctionInfo : public MachineFunctionInfo {
+    ...
+    bool EmitNOAT;
+  
+  public:
+    Cpu0FunctionInfo(MachineFunction& MF)
+    : ...
+    MaxCallFrameSize(0), EmitNOAT(false)
+    ...
+    bool getEmitNOAT() const { return EmitNOAT; }
+    void setEmitNOAT() { EmitNOAT = true; }
+  
+  };
+  
+  } // end of namespace llvm
+  
+  #endif // CPU0_MACHINE_FUNCTION_INFO_H
+  
+  //  Cpu0AsmPrinter.cpp
+  ...
+  void Cpu0AsmPrinter::EmitInstrWithMacroNoAT(const MachineInstr *MI) {
+    MCInst TmpInst;
+  
+    MCInstLowering.Lower(MI, TmpInst);
+    OutStreamer.EmitRawText(StringRef("\t.set\tmacro"));
+    if (Cpu0FI->getEmitNOAT())
+    OutStreamer.EmitRawText(StringRef("\t.set\tat"));
+    OutStreamer.EmitInstruction(TmpInst);
+    if (Cpu0FI->getEmitNOAT())
+    OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
+    OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
+  }
+  
+  void Cpu0AsmPrinter::EmitInstruction(const MachineInstr *MI) {
+    ...
+    unsigned Opc = MI->getOpcode();
+    MCInst TmpInst0;
+    SmallVector<MCInst, 4> MCInsts;
+  
+    switch (Opc) {
+    case Cpu0::CPRESTORE: {
+    const MachineOperand &MO = MI->getOperand(0);
+    assert(MO.isImm() && "CPRESTORE's operand must be an immediate.");
+    int64_t Offset = MO.getImm();
+  
+    if (OutStreamer.hasRawTextSupport()) {
+      if (!isInt<16>(Offset)) {
+      EmitInstrWithMacroNoAT(MI);
+      return;
       }
-    
-      return Changed;
-    }
-    
-    /// createCpu0EmitGPRestorePass - Returns a pass that emits instructions that
-    /// restores $gp clobbered by jalr instructions.
-    FunctionPass *llvm::createCpu0EmitGPRestorePass(Cpu0TargetMachine &tm) {
-      return new Inserter(tm);
-    }
-    
-    // Cpu0MCInstLower.cpp
-    …
-    static void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
-         const MCOperand& Opnd1,
-         const MCOperand& Opnd2 = MCOperand()) {
-      Inst.setOpcode(Opc);
-      Inst.addOperand(Opnd0);
-      Inst.addOperand(Opnd1);
-      if (Opnd2.isValid())
-        Inst.addOperand(Opnd2);
+    } else {
+      MCInstLowering.LowerCPRESTORE(Offset, MCInsts);
+  
+      for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
+         I != MCInsts.end(); ++I)
+      OutStreamer.EmitInstruction(*I);
+  
+      return;
     }
   
-    // Lower ".cpload $reg" to
-    //  "addiu   $gp, zero, %hi(_gp_disp)"
-    //  “shl   $gp, $gp, 16
-    //  "addiu $gp, $gp, %lo(_gp_disp)"
-    //  "addu  $gp, $gp, $t9"
-    void Cpu0MCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
-      MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
-      MCOperand T9Reg = MCOperand::CreateReg(Cpu0::T9);
-      MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
-      StringRef SymName("_gp_disp");
-      const MCSymbol *Sym = Ctx->GetOrCreateSymbol(SymName);
-      const MCSymbolRefExpr *MCSym;
-  
-      MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_HI, *Ctx);
-      MCOperand SymHi = MCOperand::CreateExpr(MCSym);
-      MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_LO, *Ctx);
-      MCOperand SymLo = MCOperand::CreateExpr(MCSym);
-  
-      MCInsts.resize(4);
-  
-      CreateMCInst(MCInsts[0], Cpu0::ADDiu, GPReg, ZEROReg, SymHi);
-      CreateMCInst(MCInsts[1], Cpu0::SHL, GPReg, GPReg, MCOperand::CreateImm(16));
-      CreateMCInst(MCInsts[2], Cpu0::ADDiu, GPReg, GPReg, SymLo);
-      CreateMCInst(MCInsts[3], Cpu0::ADD, GPReg, GPReg, T9Reg);
+    break;
+    }
+    default:
+    break;
     }
   
-    // Lower ".cprestore offset" to "st $gp, offset($sp)".
-    void Cpu0MCInstLower::LowerCPRESTORE(int64_t Offset,
-               SmallVector<MCInst, 4>& MCInsts) {
-      assert(isInt<32>(Offset) && (Offset >= 0) &&
+    MCInstLowering.Lower(MI, TmpInst0);
+    OutStreamer.EmitInstruction(TmpInst0);
+  }
+  
+  void Cpu0AsmPrinter::EmitFunctionBodyStart() {
+    ...
+    if (OutStreamer.hasRawTextSupport()) {
+    ...
+    if (Cpu0FI->getEmitNOAT())
+      OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
+    } else if (EmitCPLoad) {
+    SmallVector<MCInst, 4> MCInsts;
+    MCInstLowering.LowerCPLOAD(MCInsts);
+    for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
+       I != MCInsts.end(); ++I)
+      OutStreamer.EmitInstruction(*I);
+    }
+  }
+  
+  // Cpu0MCInstLower.cpp
+  …
+  sstatic void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
+               const MCOperand& Opnd1,
+               const MCOperand& Opnd2 = MCOperand()) {
+    Inst.setOpcode(Opc);
+    Inst.addOperand(Opnd0);
+    Inst.addOperand(Opnd1);
+    if (Opnd2.isValid())
+    Inst.addOperand(Opnd2);
+  }
+  
+  // Lower ".cpload $reg" to
+  //  "addiu $gp, $zero, %hi(_gp_disp)"
+  //  "shl   $gp, $gp, 16"
+  //  "addiu $gp, $gp, %lo(_gp_disp)"
+  //  "addu  $gp, $gp, $t9"
+  void Cpu0MCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
+    MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
+    MCOperand T9Reg = MCOperand::CreateReg(Cpu0::T9);
+    MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
+    StringRef SymName("_gp_disp");
+    const MCSymbol *Sym = Ctx->GetOrCreateSymbol(SymName);
+    const MCSymbolRefExpr *MCSym;
+  
+    MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_HI, *Ctx);
+    MCOperand SymHi = MCOperand::CreateExpr(MCSym);
+    MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_LO, *Ctx);
+    MCOperand SymLo = MCOperand::CreateExpr(MCSym);
+  
+    MCInsts.resize(4);
+  
+    CreateMCInst(MCInsts[0], Cpu0::ADDiu, GPReg, ZEROReg, SymHi);
+    CreateMCInst(MCInsts[1], Cpu0::SHL, GPReg, GPReg, MCOperand::CreateImm(16));
+    CreateMCInst(MCInsts[2], Cpu0::ADDiu, GPReg, GPReg, SymLo);
+    CreateMCInst(MCInsts[3], Cpu0::ADD, GPReg, GPReg, T9Reg);
+  }
+  
+  // Lower ".cprestore offset" to "st $gp, offset($sp)".
+  void Cpu0MCInstLower::LowerCPRESTORE(int64_t Offset,
+                     SmallVector<MCInst, 4>& MCInsts) {
+    assert(isInt<32>(Offset) && (Offset >= 0) &&
        "Imm operand of .cprestore must be a non-negative 32-bit value.");
   
-      MCOperand SPReg = MCOperand::CreateReg(Cpu0::SP), BaseReg = SPReg;
-      MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
-      MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
+    MCOperand SPReg = MCOperand::CreateReg(Cpu0::SP), BaseReg = SPReg;
+    MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
+    MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
   
-      if (!isInt<16>(Offset)) {
-        unsigned Hi = ((Offset + 0x8000) >> 16) & 0xffff;
-        Offset &= 0xffff;
-        MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
-        BaseReg = ATReg;
+    if (!isInt<16>(Offset)) {
+    unsigned Hi = ((Offset + 0x8000) >> 16) & 0xffff;
+    Offset &= 0xffff;
+    MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
+    BaseReg = ATReg;
   
-        // addiu   at,zero,hi
-        // shl     at,at,16
-        // add     at,at,sp
-        MCInsts.resize(3);
-        CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
-        CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
-        CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
-      }
-  
-      MCInst St;
-      CreateMCInst(St, Cpu0::ST, GPReg, BaseReg, MCOperand::CreateImm(Offset));
-      MCInsts.push_back(St);
+    // addiu   at,zero,hi
+    // shl     at,at,16
+    // add     at,at,sp
+    MCInsts.resize(3);
+    CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
+    CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
+    CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
     }
+  
+    MCInst St;
+    CreateMCInst(St, Cpu0::ST, GPReg, BaseReg, MCOperand::CreateImm(Offset));
+    MCInsts.push_back(St);
+  }
+
+
+The above added code of Cpu0AsmPrinter.cpp will call the LowerCPLOAD() and 
+LowerCPRESTORE() when user run with “llc -filetype=obj”. 
+The above added code of Cpu0MCInstLower.cpp take care the .cpload and 
+.cprestore machine instructions. 
+It translate pseudo asm .cpload into four machine instructions, and .cprestore 
+into one machine instruction as follows. 
+As mentioned in `section Global variable`_. 
+When the share library main() function be loaded, the loader will assign the 
+$t9 value to $gp when meet “.cpload $t9”. 
+After that, the $gp value is $9 which point to main(), and the global variable 
+address is the relative address to main(). 
+The _gp_disp is zero as the following reason from Mips ABI.
+
+.. code-block:: c++
+
+  // Lower ".cpload $reg" to
+  //  "addiu $gp, $zero, %hi(_gp_disp)"
+  //  "shl   $gp, $gp, 16"
+  //  "addiu $gp, $gp, %lo(_gp_disp)"
+  //  "addu  $gp, $gp, $t9"
+  
+  // Lower ".cprestore offset" to "st $gp, offset($sp)".
+
+.. note::
+
+  // **Mips ABI: _gp_disp**
+  After calculating the gp, a function allocates the local stack space and saves 
+  the gp on the stack, so it can be restored after subsequent function calls. 
+  In other words, the gp is a caller saved register. 
+  
+  ...
+  
+  _gp_disp represents the offset between the beginning of the function and the 
+  global offset table. 
+  Various optimizations are possible in this code example and the others that 
+  follow. 
+  For example, the calculation of gp need not be done for a position-independent 
+  function that is strictly local to an object module. 
+
+
+By run with “llc -filetype=obj”, the .cpload and .cprestore are translated into 
+machine code as follows,
+
+.. code-block:: bash
+
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
+  obj ch7_2.bc -o ch7_2.cpu0.o
+  118-165-76-131:InputFiles Jonathan$ hexdump  ch7_2.cpu0.o
+  ...
+  // .cpload machine instructions "09 a0 00 00 to 13 aa 60 00"
+  0000030 00 0a 00 07 09 a0 00 00 1e aa 00 10 09 aa 00 00
+  0000040 13 aa 60 00 09 dd ff e0 00 2d 00 20 01 2d 00 1c
+  ...
+
+  // .cpload machine instructions "09 a0 00 00 to 13 aa 60 00"
+  00000b0 09 dd 00 20 2c 00 00 00 09 a0 00 00 1e aa 00 10
+  00000c0 09 aa 00 00 13 aa 60 00 09 dd ff b8 01 ed 00 44
+  // .cprestore machine instruction “ 01 ad 00 18”
+  00000d0 01 ad 00 18 09 20 00 00 01 2d 00 40 09 20 00 06
+  ...
+  
+  118-165-67-25:InputFiles Jonathan$ cat ch7_2.cpu0.s
+  ...
+    .ent  _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
+  _Z5sum_iiiiiii:
+  ...
+    .cpload $t9 // assign $gp = $t9 by loader when loader load re-entry function 
+                // (shared library) of _Z5sum_iiiiiii
+    .set  nomacro
+  # BB#0:
+  ...
+    .ent  main                    # @main
+  ...
+    .cpload $t9
+    .set  nomacro
+  ...
+    .cprestore  24  // save $gp to 24($sp)
+  …
+
+Run “llc -static” will call jsub instruction instead of jalr as follows,
+
+.. code-block:: bash
+
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=
+  asm ch7_2.bc -o ch7_2.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch7_2.cpu0.s
+  …
+    jsub  _Z5sum_iiiiiii
+  ...
+
+The ch7_1_2.cpp, ch7_1_3.cpp and ch7_1_4.cpp are example code more for test.
+
+
+Variable number of arguments
+-----------------------------
+
+Until now, we support fixed number of arguments is formal function definition. 
+This section support variable number of arguments since C language support 
+this feature.
+ 
 
 
 .. _section Global variable:
