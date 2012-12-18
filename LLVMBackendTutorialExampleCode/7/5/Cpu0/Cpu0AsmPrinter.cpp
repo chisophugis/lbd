@@ -204,8 +204,6 @@ void Cpu0AsmPrinter::EmitFunctionBodyStart() {
     if (EmitCPLoad)
 	//- .cpload	$t9
       OutStreamer.EmitRawText(StringRef("\t.cpload\t$t9"));
-	//- .cpload	$10
-    //  OutStreamer.EmitRawText(StringRef("\t.cpload\t$6"));
 
     OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
   }

@@ -69,7 +69,7 @@ Cpu0RegisterInfo::getCallPreservedMask(CallingConv::ID) const
 BitVector Cpu0RegisterInfo::
 getReservedRegs(const MachineFunction &MF) const {
   static const uint16_t ReservedCPURegs[] = {
-    Cpu0::ZERO, Cpu0::AT, Cpu0::GP, Cpu0::FP,
+    Cpu0::ZERO, Cpu0::AT, Cpu0::FP,
     Cpu0::SW, Cpu0::SP, Cpu0::LR, Cpu0::PC
   };
   BitVector Reserved(getNumRegs());

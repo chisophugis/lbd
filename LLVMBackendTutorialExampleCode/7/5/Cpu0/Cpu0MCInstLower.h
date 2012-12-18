@@ -33,8 +33,6 @@ public:
   Cpu0MCInstLower(Cpu0AsmPrinter &asmprinter);
   void Initialize(Mangler *mang, MCContext* C);
   void Lower(const MachineInstr *MI, MCInst &OutMI) const;
-  void LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts);
-  void LowerCPRESTORE(int64_t Offset, SmallVector<MCInst, 4>& MCInsts);
 private:
   MCOperand LowerSymbolOperand(const MachineOperand &MO,
                                MachineOperandType MOTy, unsigned Offset) const;

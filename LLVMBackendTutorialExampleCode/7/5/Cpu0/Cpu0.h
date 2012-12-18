@@ -23,7 +23,6 @@ namespace llvm {
   class FunctionPass;
 
   FunctionPass *createCpu0ISelDag(Cpu0TargetMachine &TM);
-  FunctionPass *createCpu0EmitGPRestorePass(Cpu0TargetMachine &TM);
 
 } // end namespace llvm;
 

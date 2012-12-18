@@ -79,7 +79,8 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
 // It will emit .align 2 later
   setMinFunctionAlignment(2);
 
-// must, computeRegisterProperties - Once all of the register classes are added, this allows us to compute derived properties we expose
+// must, computeRegisterProperties - Once all of the register classes are 
+//  added, this allows us to compute derived properties we expose.
   computeRegisterProperties();
 }
 
@@ -202,8 +203,6 @@ Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
     unsigned StackAlignment = TFL->getStackAlignment();
     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
                       StackAlignment * StackAlignment;
-    if (Cpu0FI->needGPSaveRestore())
-      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
 
     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
   }

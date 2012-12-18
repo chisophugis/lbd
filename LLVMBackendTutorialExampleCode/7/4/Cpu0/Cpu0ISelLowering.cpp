@@ -79,7 +79,8 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
 // It will emit .align 2 later
   setMinFunctionAlignment(2);
 
-// must, computeRegisterProperties - Once all of the register classes are added, this allows us to compute derived properties we expose
+// must, computeRegisterProperties - Once all of the register classes are 
+//  added, this allows us to compute derived properties we expose.
   computeRegisterProperties();
 }
 

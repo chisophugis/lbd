@@ -2,8 +2,6 @@
 // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_2.bc -o ch7_2.cpu0.s
 // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch7_2.bc -o ch7_2.mips.s
 
-using namespace std;
-
 int gI = 100;
 
 int sum_i(int x1, int x2, int x3, int x4, int x5, int x6)

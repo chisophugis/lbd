@@ -21,7 +21,7 @@
 using namespace llvm;
 
 Cpu0InstrInfo::Cpu0InstrInfo(Cpu0TargetMachine &tm)
-  : Cpu0GenInstrInfo(Cpu0::ADJCALLSTACKDOWN, Cpu0::ADJCALLSTACKUP),
+  :
     TM(tm),
     RI(*TM.getSubtargetImpl(), *this) {}
 

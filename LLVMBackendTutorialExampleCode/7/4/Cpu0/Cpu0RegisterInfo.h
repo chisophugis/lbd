@@ -41,10 +41,6 @@ struct Cpu0RegisterInfo : public Cpu0GenRegisterInfo {
 
 // pure virtual method
   BitVector getReservedRegs(const MachineFunction &MF) const;
-  
-  void eliminateCallFramePseudoInstr(MachineFunction &MF,
-                                     MachineBasicBlock &MBB,
-                                     MachineBasicBlock::iterator I) const;
 
 // pure virtual method
   /// Stack Frame Processing Methods

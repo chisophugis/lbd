@@ -16,25 +16,6 @@ int madd(int x, int y, int z)
 	return add(z, multiply(x, y));
 }
 
-/*int multiply(int x, int y)
-{
-	int result = x*y;
-	return result;
-}
-
-int add(int x, int y)
-{
-	int sum = x+y;
-	return sum;
-}
-
-int madd(int x, int y, int z)
-{
-	int result = add(z, multiply(x, y));
-	
-	return result;
-}*/
-
 int main()
 {
 	int cc = 5;
