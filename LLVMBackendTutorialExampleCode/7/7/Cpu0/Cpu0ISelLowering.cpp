@@ -76,7 +76,8 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
   // Operations not directly supported by Cpu0.
   setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
   
-  // Support va_arg(): variable numbers (not fixed numbers) of arguments (parameters) for function all
+  // Support va_arg(): variable numbers (not fixed numbers) of arguments 
+  //  (parameters) for function all
   setOperationAction(ISD::VAARG,             MVT::Other, Expand);
   setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
   setOperationAction(ISD::VAEND,             MVT::Other, Expand);

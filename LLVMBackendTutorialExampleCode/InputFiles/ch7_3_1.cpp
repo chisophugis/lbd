@@ -1,8 +1,8 @@
-// clang -c ch7_3.cpp -emit-llvm -o ch7_3.bc
+// clang -c ch7_3_1.cpp -emit-llvm -o ch7_3_1.bc
 // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_3.bc -o ch7_3.cpu0.s
 // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch7_3.bc -o ch7_3.mips.s
 
-//#include <stdio.h>
+#include <stdio.h>
 #include <stdarg.h>
 
 int sum_i(int amount, ...)
@@ -26,7 +26,7 @@ int sum_i(int amount, ...)
 int main()
 {
   int a = sum_i(6, 1, 2, 3, 4, 5, 6);
-//  printf("a = %d\n", a);
+  printf("a = %d\n", a);
 	
   return a;
 }

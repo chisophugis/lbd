@@ -9,7 +9,7 @@ This chapter introduce the Mips stack frame structure first since we borrow
 many part of ABI from it. 
 Although each CPU has it's own ABI, most of RISC CPUs ABI are similar. 
 In addition to support fixed number of arguments function call, cpu0 also 
-upport variable arguments since C/C++ support this feature. 
+upport variable number of arguments since C/C++ support this feature. 
 Supply Mips ABI and assemble language manual on internet link in this chapter 
 for your reference. 
 The section “4.5 DAG Lowering” of tricore_llvm.pdf contains some knowledge 
@@ -1818,7 +1818,316 @@ Variable number of arguments
 Until now, we support fixed number of arguments is formal function definition. 
 This section support variable number of arguments since C language support 
 this feature.
- 
+Run 7/7/Cpu0 with ch7_3.cpp to get the following,
+
+.. code-block:: c++
+
+  // ch7_3.cpp
+  //#include <stdio.h>
+  #include <stdarg.h>
+  
+  int sum_i(int amount, ...)
+  {
+    int i = 0;
+    int val = 0;
+    int sum = 0;
+    
+    va_list vl;
+    va_start(vl, amount);
+    for (i = 0; i < amount; i++)
+    {
+    val = va_arg(vl, int);
+    sum += val;
+    }
+    va_end(vl);
+    
+    return sum; 
+  }
+  
+  int main()
+  {
+    int a = sum_i(6, 1, 2, 3, 4, 5, 6);
+  //  printf("a = %d\n", a);
+    
+    return a;
+  }
+
+.. code-block:: bash
+
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
+  asm ch7_3.bc -o ch7_3.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch7_3.cpu0.s
+    .section .mdebug.abi32
+    .previous
+    .file "ch7_3.bc"
+    .text
+    .globl  _Z5sum_iiz
+    .align  2
+    .type _Z5sum_iiz,@function
+    .ent  _Z5sum_iiz              # @_Z5sum_iiz
+  _Z5sum_iiz:
+    .cfi_startproc
+    .frame  $sp,56,$lr
+    .mask   0x00004000,-4
+    .set  noreorder
+    .cpload $t9
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -56
+  $tmp2:
+    .cfi_def_cfa_offset 56
+    st  $lr, 52($sp)            # 4-byte Folded Spill
+  $tmp3:
+    .cfi_offset 14, -4
+    .cprestore  0
+    ld  $2, %got(__stack_chk_guard)($gp)
+    ld  $2, 0($2)
+    st  $2, 48($sp) // 48($sp) = 0
+    ld  $2, 56($sp) // amount
+    st  $2, 44($sp) // amount
+    addiu $2, $zero, 0
+    st  $2, 40($sp) // i  = 0
+    st  $2, 36($sp) // val = 0
+    st  $2, 32($sp) // sum = 0
+    addiu $3, $sp, 48 // $3 = 48($sp)
+    st  $3, 8($sp)  // 8($sp) = boundary = 
+            // (the address of (argument -1)) = ptr_arg
+    st  $2, 40($sp) // i = 0
+    addiu $2, $zero, 40 // $2 = 40
+  $BB0_1:                                 # =>This Inner Loop Header: Depth=1
+    ld  $3, 44($sp) // $3 = amount
+    ld  $4, 40($sp) // $4 = i
+    cmp $4, $3
+    jge $BB0_7    // i >= amount
+    jmp $BB0_2
+  $BB0_2:                                 #   in Loop: Header=BB0_1 Depth=1
+            // i < amount
+    ld  $3, 8($sp)  // $3 = boundary
+    cmp $3, $2
+    jgt $BB0_4    // boundary > 40
+    jmp $BB0_3
+  $BB0_3:                                 #   in Loop: Header=BB0_1 Depth=1 
+          // boundary <= 40
+    addiu $4, $3, 8
+    ld  $5, 20($sp) // *(20($sp)) = constant 8
+    st  $4, 8($sp)  // boundary += 8
+    add $3, $5, $3
+    jmp $BB0_5
+  $BB0_4:                                 #   in Loop: Header=BB0_1 Depth=1 
+            // boundary > 40
+    ld  $3, 16($sp) // 16($sp) = ptr_arg
+    addiu $4, $3, 8
+    st  $4, 16($sp) // ptr_arg += 8
+  $BB0_5:                                 #   in Loop: Header=BB0_1 Depth=1
+    ld  $3, 0($3)   // $3 = val = *ptr_arg
+    st  $3, 36($sp)
+    ld  $4, 32($sp) // $4 = sum
+    add $3, $4, $3
+    st  $3, 32($sp) // sum += val
+  # BB#6:                                 #   in Loop: Header=BB0_1 Depth=1
+    ld  $3, 40($sp) // $3 = i
+    addiu $3, $3, 1
+    st  $3, 40($sp) // i = i + 1
+    jmp $BB0_1
+  $BB0_7:
+    ld  $2, %got(__stack_chk_guard)($gp)
+    ld  $2, 0($2)
+    ld  $3, 48($sp)
+    cmp $2, $3
+    jne $BB0_9
+    jmp $BB0_8
+  $BB0_8:                                 # %SP_return
+    ld  $lr, 52($sp)            # 4-byte Folded Reload
+    addiu $sp, $sp, 56
+    ret $lr
+  $BB0_9:                                 # %CallStackCheckFailBlk
+    ld  $6, %call24(__stack_chk_fail)($gp)
+    jalr  $6
+    ld  $gp, 0($sp)
+    .set  macro
+    .set  reorder
+    .end  _Z5sum_iiz
+  $tmp4:
+    .size _Z5sum_iiz, ($tmp4)-_Z5sum_iiz
+    .cfi_endproc
+  
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,88,$lr
+    .mask   0x00004000,-4
+    .set  noreorder
+    .cpload $t9
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -88
+  $tmp7:
+    .cfi_def_cfa_offset 88
+    st  $lr, 84($sp)            # 4-byte Folded Spill
+  $tmp8:
+    .cfi_offset 14, -4
+    .cprestore  32
+    addiu $2, $zero, 0
+    st  $2, 80($sp)
+    addiu $2, $zero, 5
+    st  $2, 20($sp)
+    addiu $2, $zero, 4
+    st  $2, 16($sp)
+    addiu $2, $zero, 3
+    st  $2, 12($sp)
+    addiu $2, $zero, 2
+    st  $2, 8($sp)
+    addiu $2, $zero, 1
+    st  $2, 4($sp)
+    addiu $2, $zero, 6
+    st  $2, 24($sp)
+    st  $2, 0($sp)
+    ld  $6, %call24(_Z5sum_iiz)($gp)
+    jalr  $6
+    ld  $gp, 32($sp)
+    st  $2, 76($sp)
+    ld  $lr, 84($sp)            # 4-byte Folded Reload
+    addiu $sp, $sp, 88
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp9:
+    .size main, ($tmp9)-main
+    .cfi_endproc
+
+
+We have problem in analysis of the output ch7_1.cpu0.s. 
+We guess and try to analysis as follows. 
+As above code, we get the first argument “amount” from “ld $2, 56($sp)” since 
+the stack size of the callee function “_Z5sum_iiz()” is 56. 
+Next, check i < amount in block $BB0_1. 
+If  i < amount, than enter into $BB0_2. 
+We assume boundary > 40 and the content of address 16($sp) is the ptr_arg 
+which stored the address 64($sp). 
+When it exits $BB0_2 and enter into $BB0_4, the register $3 is the point to 
+the second argument and it do the sum += val in $BB0_5. 
+It do i += 1 in $BB0_6 and jumb to $BB0_1 enter into second round. 
+The second round do as above again, it will get the third argument and add 
+to sum in $BB0_5 since the ptr_arg (16($sp)) is added 8 in the previous run. 
+We assume the boundary > 40 but actually according the analysis the boundary 
+is < 40, so the above analysis in not satisfied. 
+The boundary > 40 is exist in llvm IR, and mips has the same translated. 
+So, we don't know what's wrong. The llvm IR as following,
+
+.. code-block:: bash
+
+  118-165-78-221:InputFiles Jonathan$ llvm-dis ch7_3.bc -o ch7_3.ll
+  118-165-78-221:InputFiles Jonathan$ cat ch7_3.ll 
+  ; ModuleID = 'ch7_3.bc'
+  target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-
+  f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:
+  32:64-S128"
+  target triple = "x86_64-apple-macosx10.8.0"
+  
+  %struct.__va_list_tag = type { i32, i32, i8*, i8* }
+  
+  define i32 @_Z5sum_iiz(i32 %amount, ...) nounwind uwtable ssp {
+  ...
+  ; <label>:8                                       ; preds = %4
+  ...
+    %12 = icmp ule i32 %11, 40
+    br i1 %12, label %13, label %19
+
+We have verified the ch7_1.bc is correct by add printf and run with “lli” 
+llvm interpreter to get the correct result as follows,
+
+.. code-block:: c++
+
+  #include <stdio.h>
+  #include <stdarg.h>
+  
+  int sum_i(int amount, ...)
+  {
+    int i = 0;
+    int val = 0;
+    int sum = 0;
+    
+    va_list vl;
+    va_start(vl, amount);
+    for (i = 0; i < amount; i++)
+    {
+    val = va_arg(vl, int);
+    sum += val;
+    }
+    va_end(vl);
+    
+    return sum; 
+  }
+  
+  int main()
+  {
+    int a = sum_i(6, 1, 2, 3, 4, 5, 6);
+    printf("a = %d\n", a);
+    
+    return a;
+  }
+
+.. code-block:: bash
+
+  118-165-78-221:InputFiles Jonathan$ lli ch7_3_1.bc 
+  a = 21
+
+To support variable number of arguments, the following code needed only to 
+add in 7/7/Cpu0.
+
+.. code-block:: c++
+
+  // Cpu0TargetLowering.cpp
+  ...
+  Cpu0TargetLowering::
+  Cpu0TargetLowering(Cpu0TargetMachine &TM)
+    : TargetLowering(TM, new Cpu0TargetObjectFile()),
+    Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+    ...
+    setOperationAction(ISD::VASTART,            MVT::Other, Custom);
+    ...
+    // Support va_arg(): variable numbers (not fixed numbers) of arguments 
+    //  (parameters) for function all
+    setOperationAction(ISD::VAARG,             MVT::Other, Expand);
+    setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
+    setOperationAction(ISD::VAEND,             MVT::Other, Expand);
+    …
+  }
+  …
+  
+  SDValue Cpu0TargetLowering::
+  LowerOperation(SDValue Op, SelectionDAG &DAG) const
+  {
+    switch (Op.getOpcode())
+    {
+    ...
+    case ISD::VASTART:            return LowerVASTART(Op, DAG);
+    }
+    return SDValue();
+  }
+  
+  ...
+  SDValue Cpu0TargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
+    MachineFunction &MF = DAG.getMachineFunction();
+    Cpu0FunctionInfo *FuncInfo = MF.getInfo<Cpu0FunctionInfo>();
+  
+    DebugLoc dl = Op.getDebugLoc();
+    SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
+                   getPointerTy());
+  
+    // vastart just stores the address of the VarArgsFrameIndex slot into the
+    // memory location argument.
+    const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
+    return DAG.getStore(Op.getOperand(0), dl, FI, Op.getOperand(1),
+              MachinePointerInfo(SV), false, false, 0);
+  }
+  
+
 
 
 .. _section Global variable:
