@@ -16,6 +16,15 @@ The section “4.5 DAG Lowering” of tricore_llvm.pdf contains some knowledge
 about Lowering process. Section “4.5.1 Calling Conventions” of tricore_llvm.pdf 
 is the related materials you can reference.
 
+This chapter is more complicate than any of the previous chapter. 
+It include stack frame and the related ABI support. 
+If you have problem in reading the stack frame illustrated in the first three 
+sections of this chapter, you can read the appendix B of “Procedure Call 
+Convention” of book “Computer Organization and Design” which listed in 
+section “RISC CPU knowledge” of chapter “Control flow statement”, 
+“Run Time Memory” of compiler book, or “Function Call Sequence”  and 
+“Stack Frame” of Mips ABI.
+
 Mips stack frame
 -----------------
 
@@ -2128,6 +2137,16 @@ add in 7/7/Cpu0.
   }
   
 
+Summary of this chapter
+------------------------
+
+Until now, we have 5,500 lines of source code around in 7/7/Cpu0. 
+The cpu0 backend code now can take care the integer function call and control 
+statement just like the llvm front end tutorial example code. 
+Look back the chapter of “Back end structure”, there are 3,000 lines of source 
+code with taking three instructions only. 
+With this 80% more of code, it can translate tens of instructions, global 
+variable, control flow statement and function call.
 
 
 .. _section Global variable:
