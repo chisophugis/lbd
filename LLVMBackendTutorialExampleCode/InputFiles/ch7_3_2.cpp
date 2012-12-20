@@ -16,7 +16,7 @@ T sum(T amount, ...)
   va_start(vl, amount);
   for (i = 0; i < amount; i++)
   {
-    val = va_arg(vl, int);
+    val = va_arg(vl, T);
     sum += val;
   }
   va_end(vl);
