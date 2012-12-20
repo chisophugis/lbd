@@ -2087,7 +2087,9 @@ llvm interpreter to get the correct result as follows,
   a = 21
 
 To support variable number of arguments, the following code needed only to 
-add in 7/7/Cpu0.
+add in 7/7/Cpu0. 
+The ch7_3_2.cpp is C++ template example code, it can be translated into cpu0 
+backend code too.
 
 .. code-block:: c++
 
@@ -2136,6 +2138,41 @@ add in 7/7/Cpu0.
               MachinePointerInfo(SV), false, false, 0);
   }
   
+
+.. code-block:: c++
+
+  // ch7_3_2.cpp
+  ...
+  //#include <stdio.h>
+  #include <stdarg.h>
+  
+  template<class T>
+  T sum(T amount, ...)
+  {
+    T i = 0;
+    T val = 0;
+    T sum = 0;
+    
+    va_list vl;
+    va_start(vl, amount);
+    for (i = 0; i < amount; i++)
+    {
+    val = va_arg(vl, int);
+    sum += val;
+    }
+    va_end(vl);
+    
+    return sum; 
+  }
+  
+  int main()
+  {
+    int a = sum<int>(6, 1, 2, 3, 4, 5, 6);
+  //  printf("a = %d\n", a);
+    
+    return a;
+  }
+
 
 Summary of this chapter
 ------------------------
