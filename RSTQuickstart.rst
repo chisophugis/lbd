@@ -31,7 +31,7 @@ Currently skills/setting use in this document
 
 4. Code fragment and terminal io
 
-for example:
+  for example:
 
   .. code-block:: c++
   
