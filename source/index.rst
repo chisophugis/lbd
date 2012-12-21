@@ -24,6 +24,7 @@ Table of Contents
    globalvar
    ctrlflow
    funccall
+   appendix
    todo
    
 
