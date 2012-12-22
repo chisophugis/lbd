@@ -18,13 +18,13 @@ Currently skills/setting use in this document
 
   for example:
   
-  Shown as as :ref:`_install_f12`.
+  Shown as as :ref:`_install_f18`.
   
-  .. _install_f12: 
-  .. figure:: ../Fig/install/12.png
-    :height: 158 px
-    :width: 1104 px
-    :scale: 90 %
+  .. _install_f18: 
+  .. figure:: Fig/install/18.png
+    :height: 175 px
+    :width: 1020 px
+    :scale: 50 %
     :align: center
   
     Edit .profile and save .profile to /Users/Jonathan/
