@@ -8,6 +8,11 @@
 // ...
 // print $rsp		; print %rsp, choose $ instead of % in assembly code
 
+// mips-linux-gnu-g++ -g ch7_3_3.cpp -o ch7_3_3 -static
+// qemu-mips ch7_3_3
+// mips-linux-gnu-g++ -S ch7_3_3.cpp
+// cat ch7_3_3.s
+
 #include <stdio.h>
 #include <stdarg.h>
 

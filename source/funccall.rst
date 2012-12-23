@@ -2256,7 +2256,7 @@ Following are the ch7_3_3.cpp, and lli, Intel native code run result.
 
 .. code-block:: bash
 
-  118-165-78-221:InputFiles Jonathan$ lli ch7_3_1.bc 
+  118-165-78-221:InputFiles Jonathan$ lli ch7_3_3.bc 
   a = 21
   
   118-165-67-185:InputFiles Jonathan$ clang -c ch7_3_3.cpp -emit-llvm -I
