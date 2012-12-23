@@ -1900,7 +1900,7 @@ Run 7/7/Cpu0 with ch7_3.cpp to get the following,
     st  $2, 36($sp) // val = 0
     st  $2, 32($sp) // sum = 0
     addiu $3, $sp, 48 // $3 = 48($sp)
-    st  $3, 8($sp)  // 8($sp) = arg_ptr 
+    st  $3, 8($sp)  // 8($sp) = 48($sp) = arg_ptr 
     st  $2, 40($sp) // i = 0
     addiu $2, $zero, 40 // $2 = 40
   $BB0_1:                                 # =>This Inner Loop Header: Depth=1
@@ -2024,6 +2024,12 @@ We assume the arg_prt < 40 but actually according the analysis the arg_prt is
 The compare arg_prt with 40 is exist in llvm IR, and mips has the same 
 translated output. 
 So, we don't know what's wrong. 
+We believe the arg < 40 is satisfied because the native Intel CPU has the 
+arg_ptr < 40 in it's assembly code and the Intel CPU native execution file can 
+print correct result. 
+You will see it soon in the bellow code. 
+If the arg_ptr < 40 is satisfied and *(20($sp)) = arg_offset = 12, then the 
+assembly output is correct. 
 The llvm IR and mips assembly output as follows,
 
 .. code-block:: bash
@@ -2195,14 +2201,15 @@ The llvm IR and mips assembly output as follows,
     .cfi_endproc
 
 
-We have verified the ch7_3.cpp translation is correct by add printf in 
+We have verified the translation of ch7_3.cpp is correct by add printf in 
 ch7_3.cpp to get ch7_3_3.cpp and run with “lli” llvm interpreter. 
-We also translate it native Intel CPU code and get the correct print result. 
+We also translate it into native Intel CPU code and get the correct print 
+result. 
 Following are the ch7_3_3.cpp, and lli, Intel native code run result.
 
 .. code-block:: c++
 
-  / ch7_3_3.cpp
+  // ch7_3_3.cpp
   // clang -c ch7_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch7_3_3.bc
   // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc ch7_3_3.bc -o ch7_3_3.s
   // clang++ ch7_3_3.s -o ch7_3_3.native
@@ -2213,6 +2220,11 @@ Following are the ch7_3_3.cpp, and lli, Intel native code run result.
   // ...
   // print $rsp   ; print %rsp, choose $ instead of % in assembly code
   
+  // mips-linux-gnu-g++ -g ch7_3_3.cpp -o ch7_3_3 -static
+  // qemu-mips ch7_3_3
+  // mips-linux-gnu-g++ -S ch7_3_3.cpp
+  // cat ch7_3_3.s
+
   #include <stdio.h>
   #include <stdarg.h>
   
@@ -2266,6 +2278,198 @@ Following are the ch7_3_3.cpp, and lli, Intel native code run result.
     movl  176(%rsp), %eax // i < amount
     cmpl  $40, %eax // arg_ptr < 40
     ja  LBB0_6
+    
+We have run mips qemu on Linux by gcc. 
+It get the correct print result, and the mips code has no analysis problem 
+since it hasn't the arg_ptr < 40 in assembly output. 
+The qemu mips gcc result as follows,
+
+.. code-block:: bash
+
+  [Gamma@localhost InputFiles]$ qemu-mips ch7_3_3
+  a = 21
+  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -g ch7_3_3.cpp -o ch7_3_3 -static
+  [Gamma@localhost InputFiles]$ qemu-mips ch7_3_3
+  a = 21
+  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -S ch7_3_3.cpp
+  [Gamma@localhost InputFiles]$ cat ch7_3_3.s
+    .file 1 "ch7_3_3.cpp"
+    .section .mdebug.abi32
+    .previous
+    .gnu_attribute 4, 1
+    .abicalls
+    .option pic0
+    .text
+    .align  2
+    .globl  _Z5sum_iiz
+  $LFB0 = .
+    .set  nomips16
+    .ent  _Z5sum_iiz
+    .type _Z5sum_iiz, @function
+  _Z5sum_iiz:
+    .frame  $fp,32,$31    # vars= 16, regs= 1/0, args= 0, gp= 8
+    .mask 0x40000000,-4
+    .fmask  0x00000000,0
+    .set  noreorder
+    .set  nomacro
+    
+    addiu $sp,$sp,-32
+  $LCFI0:
+    sw  $fp,28($sp)
+  $LCFI1:
+    move  $fp,$sp
+  $LCFI2:
+    sw  $5,36($fp)  // arg[1]
+    sw  $6,40($fp)
+    sw  $7,44($fp)
+    sw  $4,32($fp)  // amount = arg[0]
+    sw  $0,16($fp)  // i = 0
+    sw  $0,12($fp)  // val = 0
+    sw  $0,8($fp)   // sum = 0
+    addiu $2,$fp,36
+    sw  $2,20($fp)  // arg_ptr = &arg[1]
+    sw  $0,16($fp)
+    j $L2
+    nop
+  
+  $L3:              // i < amount
+    lw  $2,20($fp)  // arg_ptr
+    addiu $3,$2,4
+    sw  $3,20($fp)  // arg_ptr += 4
+    lw  $2,0($2)    // $2 = *arg_ptr
+    sw  $2,12($fp)  // val = *arg_ptr
+    lw  $3,8($fp)
+    lw  $2,12($fp)
+    addu  $2,$3,$2
+    sw  $2,8($fp)   // sum += val
+    lw  $2,16($fp)
+    addiu $2,$2,1
+    sw  $2,16($fp)  // i += 1
+  $L2:
+    lw  $3,16($fp)
+    lw  $2,32($fp)
+    slt $2,$3,$2  // set if i < amount
+    andi  $2,$2,0x00ff
+    bne $2,$0,$L3
+    nop
+  
+    lw  $2,8($fp)  // i >= amount
+    move  $sp,$fp
+    lw  $fp,28($sp)
+    addiu $sp,$sp,32
+    j $31
+    nop
+  
+    .set  macro
+    .set  reorder
+    .end  _Z5sum_iiz
+  $LFE0:
+    .size _Z5sum_iiz, .-_Z5sum_iiz
+    .rdata
+    .align  2
+  $LC0:
+    .ascii  "a = %d\012\000"
+    .text
+    .align  2
+    .globl  main
+  $LFB1 = .
+    .set  nomips16
+    .ent  main
+    .type main, @function
+  main:
+    .frame  $fp,56,$31    # vars= 8, regs= 2/0, args= 32, gp= 8
+    .mask 0xc0000000,-4
+    .fmask  0x00000000,0
+    .set  noreorder
+    .set  nomacro
+    
+    addiu $sp,$sp,-56
+  $LCFI3:
+    sw  $31,52($sp)
+  $LCFI4:
+    sw  $fp,48($sp)
+  $LCFI5:
+    move  $fp,$sp
+  $LCFI6:
+    li  $2,4      # 0x4
+    sw  $2,16($sp)
+    li  $2,5      # 0x5
+    sw  $2,20($sp)
+    li  $2,6      # 0x6
+    sw  $2,24($sp)
+    li  $4,6      # 0x6
+    li  $5,1      # 0x1
+    li  $6,2      # 0x2
+    li  $7,3      # 0x3
+    jal _Z5sum_iiz
+    nop
+  
+    sw  $2,40($fp)
+    lui $2,%hi($LC0)
+    addiu $4,$2,%lo($LC0)
+    lw  $5,40($fp)
+    jal printf
+    nop
+  
+    lw  $2,40($fp)
+    move  $sp,$fp
+    lw  $31,52($sp)
+    lw  $fp,48($sp)
+    addiu $sp,$sp,56
+    j $31
+    nop
+  
+    .set  macro
+    .set  reorder
+    .end  main
+  $LFE1:
+    .size main, .-main
+    .section  .eh_frame,"a",@progbits
+  $Lframe1:
+    .4byte  $LECIE1-$LSCIE1
+  $LSCIE1:
+    .4byte  0x0
+    .byte 0x1
+    .globl  __gxx_personality_v0
+    .ascii  "zP\000"
+    .uleb128 0x1
+    .sleb128 -4
+    .byte 0x1f
+    .uleb128 0x5
+    .byte 0x0
+    .4byte  __gxx_personality_v0
+    .byte 0xc
+    .uleb128 0x1d
+    .uleb128 0x0
+    .align  2
+  $LECIE1:
+  $LSFDE3:
+    .4byte  $LEFDE3-$LASFDE3
+  $LASFDE3:
+    .4byte  $LASFDE3-$Lframe1
+    .4byte  $LFB1
+    .4byte  $LFE1-$LFB1
+    .uleb128 0x0
+    .byte 0x4
+    .4byte  $LCFI3-$LFB1
+    .byte 0xe
+    .uleb128 0x38
+    .byte 0x4
+    .4byte  $LCFI5-$LCFI3
+    .byte 0x11
+    .uleb128 0x1e
+    .sleb128 2
+    .byte 0x11
+    .uleb128 0x1f
+    .sleb128 1
+    .byte 0x4
+    .4byte  $LCFI6-$LCFI5
+    .byte 0xd
+    .uleb128 0x1e
+    .align  2
+  $LEFDE3:
+    .ident  "GCC: (GNU) 4.4.6"
+  [Gamma@localhost InputFiles]$ 
 
 To support variable number of arguments, the following code needed to 
 add in 7/7/Cpu0. 
