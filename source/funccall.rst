@@ -2558,6 +2558,7 @@ backend code too.
     return a;
   }
 
+Mips qemu reference http://developer.mips.com/clang-llvm/.
 
 Summary of this chapter
 ------------------------
