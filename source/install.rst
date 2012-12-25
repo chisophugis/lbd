@@ -1,21 +1,5 @@
-Getting Started: Installing LLVM and the Cpu0 example code
-==========================================================
-
-Before you start, you should know that you can always examine existing LLVM 
-backend code and attempt to port what you find for your own target architecture
-.  The majority of this code can be found in the /lib/Target directory of your 
-root LLVM directory. As most major RISC instruction set architectures have some 
-similarities, this may be the avenue you might try if you are both an 
-experienced programmer and knowledgable of compiler backends. 
-However, there is a steep learning curve and you may easily get held up 
-debugging your new backend. You can easily spend a lot of time tracing which 
-methods are callbacks of some function, or which are calling some overridden 
-method deep in the LLVM codebase - and with a codebase as large as LLVM, this 
-can easily become a headache. This tutorial will help you work through this 
-process while learning the fundamentals of LLVM backend design. It will show 
-you what is necessary to get your first backend functional and complete, and it 
-should help you understand how to debug your backend when it does not produce 
-desirable output using the output provided by LLVM.
+Appendix A: Getting Started: Installing LLVM and the Cpu0 example code
+======================================================================
 
 In this chapter, we will run through how to set up LLVM using if you are using 
 Mac OS X or Linux.  When discussing Mac OS X, we are using Apple's Xcode IDE 
@@ -179,28 +163,41 @@ Xcode and click menu “Product – Build” as :ref:`install_f10`.
 	Click Build button to build LLVM.xcodeproj by Xcode
 
 After few minutes of build, the clang, llc, llvm-as, ..., can be found in 
-cmake_debug_build/bin/Debug/ as :ref:`install_f11`.
+cmake_debug_build/bin/Debug/ as follows.
 
-.. _install_f11:
-.. figure:: ../Fig/install/11.png
-	:align: center
-	
-	Executable files built by Xcode
+.. code-block:: bash
+
+  118-165-65-128:Debug Jonathan$ pwd
+  /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug
+  118-165-65-128:Debug Jonathan$ ls
+  FileCheck llvm-as   llvm-extract  llvm-ranlib macho-dump
+  FileUpdate  llvm-bcanalyzer llvm-ld   llvm-readobj  not
+  bugpoint  llvm-config llvm-link llvm-rtdyld opt
+  count   llvm-cov  llvm-mc   llvm-size yaml-bench
+  llc   llvm-diff llvm-nm   llvm-stress
+  lli   llvm-dis  llvm-objdump  llvm-stub
+  llvm-ar   llvm-dwarfdump  llvm-prof llvm-tblgen
+  118-165-65-128:Debug Jonathan$ 
 
 To access those execution files, edit .profile (if you .profile not exists, 
 please create file .profile), save .profile to /Users/Jonathan/, and enable 
-$PATH by command ``source .profile`` as :ref:`install_f12`. 
+$PATH by command ``source .profile`` as follows. 
 Please add path /Applications//Xcode.app/Contents/Developer/usr/bin to .profile 
 if you didn't add it after Xcode download.
 
-.. _install_f12:
-.. figure:: ../Fig/install/12.png
-	:height: 158 px
-	:width: 1104 px
-	:scale: 90 %
-	:align: center
+.. code-block:: bash
 
-	Edit .profile and save .profile to /Users/Jonathan/
+  118-165-65-128:~ Jonathan$ pwd
+  /Users/Jonathan
+  118-165-65-128:~ Jonathan$ cat .profile 
+  export PATH=$PATH:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applicatio
+  ns/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/:/Ap
+  plications/Graphviz.app/Contents/MacOS/:/Users/Jonathan/llvm/3.1/cmake_debug_bui
+  ld/bin/Debug
+  export WORKON_HOME=$HOME/.virtualenvs
+  source /usr/local/bin/virtualenvwrapper.sh # where Homebrew places it
+  export VIRTUALENVWRAPPER_VIRTUALENV_ARGS='--no-site-packages' # optional
+  118-165-65-128:~ Jonathan$ 
 
 Create LLVM.xcodeproj of supporting cpu0 by terminal cmake command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,57 +210,198 @@ In `section Create LLVM.xcodeproj by cmake Graphic UI`_, we create
 LLVM.xcodeproj by cmake graphic UI. 
 We can create LLVM.xcodeproj by ``cmake`` command on terminal also. 
 Now, let's repeat above steps to create llvm/3.1.test with cpu0 modified code 
-as :ref:`install_f13`.
+, and check the copy is effected by ``grep -R "Cpu0" .|more`` as follows,
 
-.. _install_f13:
-.. figure:: ../Fig/install/13.png
-	:align: center
+.. code-block:: bash
 
-	Create llvm/3.1.test with cpu0 modified code
+  118-165-65-128:3.1.test Jonathan$ pwd
+  /Users/Jonathan/llvm/3.1.test
+  118-165-65-128:3.1.test Jonathan$ mkdir cpu0
+  118-165-65-128:3.1.test Jonathan$ cd cpu0/
+  118-165-65-128:cpu0 Jonathan$ mkdir 1
+  118-165-65-128:cpu0 Jonathan$ cd 1
+  118-165-65-128:1 Jonathan$ cp -rf /Users/Jonathan/llvm/3.1/src .
+  118-165-65-128:1 Jonathan$ cp -rf /Users/Jonathan/LLVMBackendTutorialExampleCod
+  e/src_files_modify/src .
+  118-165-65-128:1 Jonathan$ cd src
+  118-165-65-128:src Jonathan$ grep -R "Cpu0" .|more
+  ./cmake/config-ix.cmake:  set(LLVM_NATIVE_ARCH Cpu0)
+  ./CMakeLists.txt:  Cpu0
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GPREL,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_CALL,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT16,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_ABS_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_ABS_LO,
+  ./include/llvm/MC/MCExpr.h://    VK_Cpu0_ABS,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TLSGD,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TLSLDM,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_DTPREL_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_DTPREL_LO,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOTTPREL,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TPREL_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TPREL_LO,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GPOFF_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GPOFF_LO,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_DISP,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_PAGE,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_OFST 
+  ./include/llvm/Support/ELF.h:// Cpu0 Specific e_flags
+  ./include/llvm/Support/ELF.h:// ELF Relocation types for Cpu0
+  ./lib/MC/MCDwarf.cpp:  // AT_language, a 4 byte value.  We use DW_LANG_Cpu0_Ass
+  embler as the dwarf2
+  ./lib/MC/MCDwarf.cpp://  MCOS->EmitIntValue(dwarf::DW_LANG_Cpu0_Assembler, 2);
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TLSGD:
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_GOTTPREL:
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TPREL_HI:
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TPREL_LO:
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GPREL: return "GPREL";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_CALL: return "GOT_CALL";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT16: return "GOT16";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT: return "GOT";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_ABS_HI: return "ABS_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_ABS_LO: return "ABS_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TLSGD: return "TLSGD";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TLSLDM: return "TLSLDM";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_DTPREL_HI: return "DTPREL_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_DTPREL_LO: return "DTPREL_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOTTPREL: return "GOTTPREL";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TPREL_HI: return "TPREL_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TPREL_LO: return "TPREL_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GPOFF_HI: return "GPOFF_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GPOFF_LO: return "GPOFF_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_DISP: return "GOT_DISP";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_PAGE: return "GOT_PAGE";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_OFST: return "GOT_OFST";
+  ./lib/Target/LLVMBuild.txt:subdirectories = ARM CellSPU CppBackend Hexagon MBla
+  ze MSP430 Mips Cpu0 PTX PowerPC Sparc X86 XCore
+  118-165-65-128:src Jonathan$ 
 
-/Users/Jonathan/Documents/Gamma_flash/LLVMBackendTutorial/src_files_modify/src/ 
-contains the files I modified for cpu0 architecture. 
-Copy it as :ref:`install_f13` to replace the original 3.1 source code for cpu0 
-backend support. 
-After :ref:`install_f13`, copy cpu0 example code from LLVMBackendTutorial/1/Cpu0 
-to src/lib/Target/ as :ref:`install_f14`.
+Now, copy cpu0 example code from LLVMBackendTutorial/2/Cpu0 to src/lib/Target/, 
+and please remove src/tools/clang since it will waste time to build clang for 
+our working Cpu0 changes, as follows,
 
-.. _install_f14:
-.. figure:: ../Fig/install/14.png
-	:align: center
+.. code-block:: bash
 
-	Copy cpu0 example code from 1/Cpu0 to src/lib/Target/
+  118-165-65-128:src Jonathan$ cd lib/Target/
+  118-165-65-128:Target Jonathan$ pwd
+  /Users/Jonathan/llvm/3.1.test/cpu0/1/src/lib/Target
+  118-165-65-128:Target Jonathan$ 
+  118-165-65-128:Target Jonathan$ cp -rf /Users/Jonathan/LLVMBackendTutorialExampleCode/2/Cpu0 .
+  118-165-65-128:Target Jonathan$ ls
+  ARM       Sparc
+  CMakeLists.txt      Target.cpp
+  CellSPU       TargetData.cpp
+  CppBackend      TargetELFWriterInfo.cpp
+  Cpu0        TargetInstrInfo.cpp
+  Hexagon       TargetIntrinsicInfo.cpp
+  LLVMBuild.txt     TargetJITInfo.cpp
+  MBlaze        TargetLibraryInfo.cpp
+  MSP430        TargetLoweringObjectFile.cpp
+  Makefile      TargetMachine.cpp
+  Mangler.cpp     TargetMachineC.cpp
+  Mips        TargetRegisterInfo.cpp
+  PTX       TargetSubtargetInfo.cpp
+  PowerPC       X86
+  README.txt      XCore
+  118-165-65-128:Target Jonathan$ cd ../..
+  118-165-65-128:src Jonathan$ pwd
+  /Users/Jonathan/llvm/3.1.test/cpu0/4/src
+  118-165-65-128:src Jonathan$ rm -rf tools/clang
 
-Please remove src/tools/clang since it will waste time to build clang for our 
-working Cpu0 changes. 
+
 Now, it's ready for building 1/Cpu0 code by command 
 ``cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE
-=Debug -G "Xcode" ../src/`` as :ref:`install_f15`. 
+=Debug -G "Xcode" ../src/`` as follows. 
 Remind, currently, the ``cmake`` terminal command can work with lldb debug, but 
 the `section Create LLVM.xcodeproj by cmake Graphic UI`_ cannot.
 
-.. _install_f15:
-.. figure:: ../Fig/install/15.png
-	:height: 540 px
-	:width: 1101 px
-	:scale: 90 %
-	:align: center
+.. code-block:: bash
 
-	Build llvm debug cpu0 working project by ``cmake`` terminal command
+  118-165-65-128:1 Jonathan$ pwd
+  /Users/Jonathan/llvm/3.1.test/cpu0/1
+  118-165-65-128:1 Jonathan$ mkdir cmake_debug_build
+  118-165-65-128:1 Jonathan$ cd cmake_debug_build/
+  118-165-65-128:cmake_debug_build Jonathan$ pwd
+  /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build
+  118-165-65-128:cmake_debug_build Jonathan$ cmake -DCMAKE_CXX_COMPILER=clang++ 
+  -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -G "Xcode" ../src/
+  -- The C compiler identification is Clang 4.1.0
+  ...
+  -- Targeting ARM
+  -- Targeting CellSPU
+  -- Targeting CppBackend
+  -- Targeting Hexagon
+  -- Targeting Mips
+  -- Targeting Cpu0
+  -- Targeting MBlaze
+  -- Targeting MSP430
+  -- Targeting PowerPC
+  -- Targeting PTX
+  -- Targeting Sparc
+  -- Targeting X86
+  -- Targeting XCore
+  -- Configuring done
+  -- Generating done
+  -- Build files have been written to: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake
+  _debug_build
+  118-165-65-128:cmake_debug_build Jonathan$ 
 
 Since Xcode use clang compiler and lldb instead of gcc and gdb, we can run lldb 
-debug as :ref:`install_f16`. 
+debug as follows, 
+
+.. code-block:: bash
+
+  118-165-65-128:InputFiles Jonathan$ pwd
+  /Users/Jonathan/LLVMBackendTutorialExampleCode/InputFiles
+  118-165-65-128:InputFiles Jonathan$ clang -c ch3.cpp -emit-llvm -o ch3.bc
+  118-165-65-128:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm 
+  ch3.bc -o ch3.mips.s
+  118-165-65-128:InputFiles Jonathan$ lldb -- /Users/Jonathan/llvm/3.1.test/cpu0/
+  1/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=
+  asm ch3.bc -o ch3.mips.s
+  Current executable set to '/Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_bui
+  ld/bin/Debug/llc' (x86_64).
+  (lldb) b MipsTargetInfo.cpp:19
+  breakpoint set --file 'MipsTargetInfo.cpp' --line 19
+  Breakpoint created: 1: file ='MipsTargetInfo.cpp', line = 19, locations = 1
+  (lldb) run
+  Process 6058 launched: '/Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  bin/Debug/llc' (x86_64)
+  Process 6058 stopped
+  * thread #1: tid = 0x1c03, 0x000000010077f231 llc`LLVMInitializeMipsTargetInfo 
+  + 33 at MipsTargetInfo.cpp:20, stop reason = breakpoint 1.1
+    frame #0: 0x000000010077f231 llc`LLVMInitializeMipsTargetInfo + 33 at 
+    MipsTargetInfo.cpp:20
+     17   
+     18   extern "C" void LLVMInitializeMipsTargetInfo() {
+     19     RegisterTarget<Triple::mips,
+  -> 20           /*HasJIT=*/true> X(TheMipsTarget, "mips", "Mips");
+     21   
+     22     RegisterTarget<Triple::mipsel,
+     23           /*HasJIT=*/true> Y(TheMipselTarget, "mipsel", "Mipsel");
+  (lldb) n
+  Process 6058 stopped
+  * thread #1: tid = 0x1c03, 0x000000010077f24f llc`LLVMInitializeMipsTargetInfo 
+  + 63 at MipsTargetInfo.cpp:23, stop reason = step over
+    frame #0: 0x000000010077f24f llc`LLVMInitializeMipsTargetInfo + 63 at 
+    MipsTargetInfo.cpp:23
+     20           /*HasJIT=*/true> X(TheMipsTarget, "mips", "Mips");
+     21   
+     22     RegisterTarget<Triple::mipsel,
+  -> 23           /*HasJIT=*/true> Y(TheMipselTarget, "mipsel", "Mipsel");
+     24   
+     25     RegisterTarget<Triple::mips64,
+     26           /*HasJIT=*/false> A(TheMips64Target, "mips64", "Mips64 
+     [experimental]");
+  (lldb) print X
+  (llvm::RegisterTarget<llvm::Triple::ArchType, true>) $0 = {}
+  (lldb) quit
+  118-165-65-128:InputFiles Jonathan$ 
+
 About the lldb debug command, please reference 
 http://lldb.llvm.org/lldb-gdb.html or lldb portal http://lldb.llvm.org/.
-
-.. _install_f16:
-.. figure:: ../Fig/install/16.png
-	:height: 453 px
-	:width: 1098 px
-	:scale: 90 %
-	:align: center
-
-	Run lldb debug
 
 
 Install other tools on iMac
@@ -357,29 +495,65 @@ First, install the llvm release build by,
 
 	Create llvm release build
 
-Next, build with cmake command, 
-``cmake -DCMAKE_BUILD_TYPE=Release -DCLANG_BUILD_EXAMPLES=ON -DLLVM_BUILD_EXAMPL
-ES=ON -G "Unix Makefiles" ../src/``, 
-shown in :ref:`install_f23`.
+Next, build with cmake command, ``cmake -DCMAKE_BUILD_TYPE=Release -DCLANG_BUILD
+_EXAMPLES=ON -DLLVM_BUILD_EXAMPLES=ON -G "Unix Makefiles" ../src/``, as follows.
 
-.. _install_f23:
-.. figure:: ../Fig/install/23.png
-	:align: center
+.. code-block:: bash
 
-	Create llvm 3.1 release build
+  [Gamma@localhost cmake_release_build]$ cmake -DCMAKE_BUILD_TYPE=Release 
+  -DCLANG_BUILD_EXAMPLES=ON -DLLVM_BUILD_EXAMPLES=ON -G "Unix Makefiles" ../src/
+  -- The C compiler identification is GNU 4.7.0
+  ...
+  -- Constructing LLVMBuild project information
+  -- Targeting ARM
+  -- Targeting CellSPU
+  -- Targeting CppBackend
+  -- Targeting Hexagon
+  -- Targeting Mips
+  -- Targeting MBlaze
+  -- Targeting MSP430
+  -- Targeting PowerPC
+  -- Targeting PTX
+  -- Targeting Sparc
+  -- Targeting X86
+  -- Targeting XCore
+  -- Clang version: 3.1
+  -- Found Subversion: /usr/bin/svn (found version "1.7.6") 
+  -- Configuring done
+  -- Generating done
+  -- Build files have been written to: /usr/local/llvm/3.1/cmake_release_build
 
 After cmake, run command ``make``, then you can get clang, llc, llvm-as, ..., 
-in 
-cmake_release_build/bin/ after a few tens minutes of build. Next, edit 
+in cmake_release_build/bin/ after a few tens minutes of build. Next, edit 
 /home/Gamma/.bash_profile with adding /usr/local/llvm/3.1/cmake_release_build/
 bin to PATH 
-to enable the clang, llc, ..., command search path, as shown in :ref:`install_f24`.
+to enable the clang, llc, ..., command search path, as follows,
 
-.. _install_f24:
-.. figure:: ../Fig/install/24.png
-	:align: center
+.. code-block:: bash
 
-	Setup llvm command path
+  [Gamma@localhost ~]$ pwd
+  /home/Gamma
+  [Gamma@localhost ~]$ cat .bash_profile
+  # .bash_profile
+  
+  # Get the aliases and functions
+  if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+  fi
+  
+  # User specific environment and startup programs
+  
+  PATH=$PATH:/usr/local/sphinx/bin:/usr/local/llvm/3.1/cmake_release_build/bin:
+  /opt/mips_linux_toolchain_clang/mips_linux_toolchain/bin:$HOME/.local/bin:
+  $HOME/bin
+  
+  export PATH
+  [Gamma@localhost ~]$ source .bash_profile
+  [Gamma@localhost ~]$ $PATH
+  bash: /usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:
+  /usr/sbin:/usr/local/sphinx/bin:/opt/mips_linux_toolchain_clang/mips_linux_tool
+  chain/bin:/home/Gamma/.local/bin:/home/Gamma/bin:/usr/local/sphinx/bin:/usr/
+  local/llvm/3.1/cmake_release_build/bin
 
 
 Install cpu0 debug build on Linux
@@ -387,8 +561,7 @@ Install cpu0 debug build on Linux
 
 Make another copy /usr/local/llvm/3.1.test/cpu0/1/src for cpu0 debug working 
 project 
-according the following list steps, the corresponding commands shown in 
-:ref:`install_f25`:
+according the following list steps, the corresponding commands shown as follows,
 
 1) Enter /usr/local/llvm/3.1.test/cpu0/1 and 
 ``cp -rf /usr/local/llvm/3.1/src .``.
@@ -396,27 +569,90 @@ according the following list steps, the corresponding commands shown in
 2) Update my modified files to support cpu0 by command, 
 ``cp -rf /home/Gamma/Gamma_flash/LLVMBackendTutorial/src_files_modify/src .``.
 
-3) Enter src/lib/Target and copy example code LLVMBackendTutorial/1/Cpu0 to the 
-directory by command ``cd src/lib/Target/`` and 
-``cp -rf /home/Gamma/Gamma_flash/LLVMBackendTutorial/1/Cpu0 .``.
-
-4) Go into directory 3.1.test/cpu0/1/src and Check step 3 is effect by command 
+3) Check step 3 is effect by command 
 ``grep -R "Cpu0" . | more```. I add the Cpu0 backend support, so check with 
 grep.
 
+4) Enter src/lib/Target and copy example code LLVMBackendTutorialExampleCode/2/
+Cpu0 to the directory by command ``cd lib/Target/`` and 
+``cp -rf /home/Gamma/LLVMBackendTutorialExample/2/Cpu0 .``.
+
 5) Remove clang from 3.1.test/cpu0/1/src/tools/clang, and mkdir 
 3.1.test/cpu0/1/cmake_debug_build. Without this you will waste extra time for 
-command 
-``make`` in cpu0 example code build.
+command ``make`` in cpu0 example code build.
 
-.. _install_f25:
-.. figure:: ../Fig/install/25.png
-	:height: 952 px
-	:width: 1050 px
-	:scale: 80 %
-	:align: center
+.. code-block:: bash
 
-	Create llvm 3.1 debug copy
+  [Gamma@localhost 1]$ pwd
+  /usr/local/llvm/3.1.test/cpu0/1
+  [Gamma@localhost 1]$ cp -rf /usr/local/llvm/3.1/src .
+  [Gamma@localhost Target]$ cd ../..
+  [Gamma@localhost src]$ grep -R "Cpu0" .|more
+  ./CMakeLists.txt:  Cpu0
+  ./lib/Target/LLVMBuild.txt:subdirectories = ARM CellSPU CppBackend Hexagon MBlaz
+  e MSP430 Mips Cpu0 PTX PowerPC Sparc X86 XCore
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GPREL: return "GPREL";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_CALL: return "GOT_CALL";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT16: return "GOT16";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT: return "GOT";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_ABS_HI: return "ABS_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_ABS_LO: return "ABS_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TLSGD: return "TLSGD";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TLSLDM: return "TLSLDM";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_DTPREL_HI: return "DTPREL_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_DTPREL_LO: return "DTPREL_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOTTPREL: return "GOTTPREL";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TPREL_HI: return "TPREL_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_TPREL_LO: return "TPREL_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GPOFF_HI: return "GPOFF_HI";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GPOFF_LO: return "GPOFF_LO";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_DISP: return "GOT_DISP";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_PAGE: return "GOT_PAGE";
+  ./lib/MC/MCExpr.cpp:  case VK_Cpu0_GOT_OFST: return "GOT_OFST";
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TLSGD:
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_GOTTPREL:
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TPREL_HI:
+  ./lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TPREL_LO:
+  ./lib/MC/MCDwarf.cpp:  // AT_language, a 4 byte value.  We use DW_LANG_Cpu0_Asse
+  mbler as the dwarf2
+  ./lib/MC/MCDwarf.cpp://  MCOS->EmitIntValue(dwarf::DW_LANG_Cpu0_Assembler, 2);
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GPREL,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_CALL,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT16,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_ABS_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_ABS_LO,
+  ./include/llvm/MC/MCExpr.h://    VK_Cpu0_ABS,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TLSGD,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TLSLDM,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_DTPREL_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_DTPREL_LO,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOTTPREL,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TPREL_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TPREL_LO,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GPOFF_HI,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GPOFF_LO,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_DISP,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_PAGE,
+  ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT_OFST 
+  ./include/llvm/Support/ELF.h:// Cpu0 Specific e_flags
+  ./include/llvm/Support/ELF.h:// ELF Relocation types for Cpu0
+  ./cmake/config-ix.cmake:  set(LLVM_NATIVE_ARCH Cpu0)
+  [Gamma@localhost src]$ cd lib/Target/
+  [Gamma@localhost Target]$ cp -rf /home/Gamma/Gamma_flash/LLVMBackendTutorial/LLVMBackendTutorialExampleCode/2/Cpu0 .
+  [Gamma@localhost Target]$ ls
+  ARM             Mips                     TargetIntrinsicInfo.cpp
+  CellSPU         MSP430                   TargetJITInfo.cpp
+  CMakeLists.txt  PowerPC                  TargetLibraryInfo.cpp
+  CppBackend      PTX                      TargetLoweringObjectFile.cpp
+  Cpu0            README.txt               TargetMachineC.cpp
+  Hexagon         Sparc                    TargetMachine.cpp
+  LLVMBuild.txt   Target.cpp               TargetRegisterInfo.cpp
+  Makefile        TargetData.cpp           TargetSubtargetInfo.cpp
+  Mangler.cpp     TargetELFWriterInfo.cpp  X86
+  MBlaze          TargetInstrInfo.cpp      XCore
+  [Gamma@localhost Target]$ cd ../..
+  [Gamma@localhost src]$ rm -rf tools/clang
 
 Now, go into directory 3.1.test/cpu0/1, create directory cmake_debug_build and 
 do cmake 
@@ -424,23 +660,118 @@ like build the 3.1 release, but we do Debug build and use clang as our compiler
 instead, 
 as follows,
 
-.. literalinclude:: ../terminal_io/install/1.txt
+.. code-block:: bash
+
+  [Gamma@localhost src]$ cd ..
+  [Gamma@localhost 1]$ pwd
+  /usr/local/llvm/3.1.test/cpu0/1
+  [Gamma@localhost 1]$ mkdir cmake_debug_build
+  [Gamma@localhost 1]$ cd cmake_debug_build/
+  [Gamma@localhost cmake_debug_build]$ cmake 
+  -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+  -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ../src/
+  -- The C compiler identification is Clang 3.1.0
+  -- The CXX compiler identification is Clang 3.1.0
+  -- Check for working C compiler: /usr/local/llvm/3.1/cmake_release_build/bin/cla
+  ng
+  -- Check for working C compiler: /usr/local/llvm/3.1/cmake_release_build/bin/cla
+  ng
+   -- works
+  -- Detecting C compiler ABI info
+  -- Detecting C compiler ABI info - done
+  -- Check for working CXX compiler: /usr/local/llvm/3.1/cmake_release_build/bin/c
+  lang++
+  -- Check for working CXX compiler: /usr/local/llvm/3.1/cmake_release_build/bin/c
+  lang++
+   -- works
+  -- Detecting CXX compiler ABI info
+  -- Detecting CXX compiler ABI info – done ...
+  -- Targeting Mips
+  -- Targeting Cpu0
+  -- Targeting MBlaze
+  -- Targeting MSP430
+  -- Targeting PowerPC
+  -- Targeting PTX
+  -- Targeting Sparc
+  -- Targeting X86
+  -- Targeting XCore
+  -- Configuring done
+  -- Generating done
+  -- Build files have been written to: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug
+  _build
+  [Gamma@localhost cmake_debug_build]$
 
 Then do make as follows,
 
-.. literalinclude:: ../terminal_io/install/2.txt
+.. code-block:: bash
 
-Now, we are ready for the cpu0 backend development. We can run gdb debug as 
-follows. 
-If your setting has anything about gdb errors, please follow the errors indication 
-(maybe need to download gdb again). 
-Finally, try gdb as :ref:`install_f26`.
+  [Gamma@localhost cmake_debug_build]$ make
+  Scanning dependencies of target LLVMSupport
+  [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/APFloat.cpp.o
+  [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/APInt.cpp.o
+  [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/APSInt.cpp.o
+  [ 0%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/Allocator.cpp.o
+  [ 1%] Building CXX object lib/Support/CMakeFiles/LLVMSupport.dir/BlockFrequency.
+  cpp.o ...
+  Linking CXX static library ../../lib/libgtest.a
+  [100%] Built target gtest
+  Scanning dependencies of target gtest_main
+  [100%] Building CXX object utils/unittest/CMakeFiles/gtest_main.dir/UnitTestMain
+  /
+  TestMain.cpp.o Linking CXX static library ../../lib/libgtest_main.a
+  [100%] Built target gtest_main
+  [Gamma@localhost cmake_debug_build]$
+  
+  Now, we are ready for the cpu0 backend development. We can run gdb debug as 
+  follows. 
+  If your setting has anything about gdb errors, please follow the errors indication 
+  (maybe need to download gdb again). 
+  Finally, try gdb as follows.
 
-.. _install_f26:
-.. figure:: ../Fig/install/26.png
-	:align: center
+.. code-block:: bash
 
-	Debug llvm cpu0 backend by gdb
+  [Gamma@localhost InputFiles]$ pwd
+  /home/Gamma/LLVMBackendTutorialExampleCode/InputFiles
+  [Gamma@localhost InputFiles]$ clang -c ch3.cpp -emit-llvm -o ch3.bc
+  [Gamma@localhost InputFiles]$ gdb -args /usr/local/llvm/3.1.test/cpu0/1/
+  cmake_debug_build/bin/llc -march=cpu0 -relocation-model=pic -filetype=obj 
+  ch3.bc -o ch3.cpu0.o
+  GNU gdb (GDB) Fedora (7.4.50.20120120-50.fc17)
+  Copyright (C) 2012 Free Software Foundation, Inc.
+  License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+  This is free software: you are free to change and redistribute it.
+  There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+  and "show warranty" for details.
+  This GDB was configured as "x86_64-redhat-linux-gnu".
+  For bug reporting instructions, please see:
+  <http://www.gnu.org/software/gdb/bugs/>...
+  Reading symbols from /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc.
+  ..done.
+  (gdb) break MipsTargetInfo.cpp:19
+  Breakpoint 1 at 0xd54441: file /usr/local/llvm/3.1.test/cpu0/1/src/lib/Target/
+  Mips/TargetInfo/MipsTargetInfo.cpp, line 19.
+  (gdb) run
+  Starting program: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc 
+  -march=cpu0 -relocation-model=pic -filetype=obj ch3.bc -o ch3.cpu0.o
+  [Thread debugging using libthread_db enabled]
+  Using host libthread_db library "/lib64/libthread_db.so.1".
+  
+  Breakpoint 1, LLVMInitializeMipsTargetInfo ()
+    at /usr/local/llvm/3.1.test/cpu0/1/src/lib/Target/Mips/TargetInfo/MipsTar
+    getInfo.cpp:20
+  20          /*HasJIT=*/true> X(TheMipsTarget, "mips", "Mips");
+  (gdb) next
+  23          /*HasJIT=*/true> Y(TheMipselTarget, "mipsel", "Mipsel");
+  (gdb) print X
+  $1 = {<No data fields>}
+  (gdb) quit
+  A debugging session is active.
+  
+    Inferior 1 [process 10165] will be killed.
+  
+  Quit anyway? (y or n) y
+  [Gamma@localhost InputFiles]$ 
+
 
 
 .. _LLVM Download Page:

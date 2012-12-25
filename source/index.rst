@@ -17,14 +17,13 @@ Table of Contents
    :maxdepth: 3
 
    about
-   install
    llvmstructure
    backendstructure
    otherinst
    globalvar
    ctrlflow
    funccall
-   appendix
+   install
    todo
    
 

@@ -1,6 +1,22 @@
 Cpu0 Instruction and LLVM Target Description
 ============================================
 
+Before you start, you should know that you can always examine existing LLVM 
+backend code and attempt to port what you find for your own target architecture
+.  The majority of this code can be found in the /lib/Target directory of your 
+root LLVM directory. As most major RISC instruction set architectures have some 
+similarities, this may be the avenue you might try if you are both an 
+experienced programmer and knowledgable of compiler backends. 
+However, there is a steep learning curve and you may easily get held up 
+debugging your new backend. You can easily spend a lot of time tracing which 
+methods are callbacks of some function, or which are calling some overridden 
+method deep in the LLVM codebase - and with a codebase as large as LLVM, this 
+can easily become a headache. This tutorial will help you work through this 
+process while learning the fundamentals of LLVM backend design. It will show 
+you what is necessary to get your first backend functional and complete, and it 
+should help you understand how to debug your backend when it does not produce 
+desirable output using the output provided by LLVM.
+
 This chapter shows you the cpu0 instruction format first. 
 Next, the llvm structure is introduced to you by copy and paste the related 
 article from llvm web site. The llvm structure introduced here is extracted 
