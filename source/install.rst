@@ -168,15 +168,26 @@ cmake_debug_build/bin/Debug/ as follows.
 .. code-block:: bash
 
   118-165-65-128:Debug Jonathan$ pwd
-  /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug
+  /Users/Jonathan/llvm/3.1/cpu0/1/cmake_debug_build/bin/Debug
   118-165-65-128:Debug Jonathan$ ls
-  FileCheck llvm-as   llvm-extract  llvm-ranlib macho-dump
-  FileUpdate  llvm-bcanalyzer llvm-ld   llvm-readobj  not
-  bugpoint  llvm-config llvm-link llvm-rtdyld opt
-  count   llvm-cov  llvm-mc   llvm-size yaml-bench
-  llc   llvm-diff llvm-nm   llvm-stress
-  lli   llvm-dis  llvm-objdump  llvm-stub
-  llvm-ar   llvm-dwarfdump  llvm-prof llvm-tblgen
+  BrainF            clang             llvm-ld
+  ExceptionDemo     clang++           llvm-link
+  Fibonacci         clang-check       llvm-mc
+  FileCheck         clang-interpreter llvm-nm
+  FileUpdate        clang-tblgen      llvm-objdump
+  HowToUseJIT       count             llvm-prof
+  Kaleidoscope-Ch2  diagtool          llvm-ranlib
+  Kaleidoscope-Ch3  llc               llvm-readobj
+  Kaleidoscope-Ch4  lli               llvm-rtdyld
+  Kaleidoscope-Ch5  llvm-ar           llvm-size
+  Kaleidoscope-Ch6  llvm-as           llvm-stress
+  Kaleidoscope-Ch7  llvm-bcanalyzer   llvm-stub
+  ModuleMaker       llvm-config       llvm-tblgen
+  ParallelJIT       llvm-cov          macho-dump
+  arcmt-test        llvm-diff         not
+  bugpoint          llvm-dis          opt
+  c-arcmt-test      llvm-dwarfdump    yaml-bench
+  c-index-test      llvm-extract
   118-165-65-128:Debug Jonathan$ 
 
 To access those execution files, edit .profile (if you .profile not exists, 
@@ -411,26 +422,26 @@ These tools mentioned in this section is for coding and debug.
 You can work even without these tools. 
 Files compare tools Kdiff3 http://kdiff3.sourceforge.net. 
 FileMerge is a part of Xcode, you can type FileMerge in Finder – Applications 
-as :ref:`install_f17` and drag it into the Dock as :ref:`install_f18`.
+as :ref:`install_f11` and drag it into the Dock as :ref:`install_f12`.
 
-.. _install_f17:
-.. figure:: ../Fig/install/17.png
+.. _install_f11:
+.. figure:: ../Fig/install/11.png
 	:align: center
 
 	Type FileMerge in Finder – Applications
 
-.. _install_f18:
-.. figure:: ../Fig/install/18.png
+.. _install_f12:
+.. figure:: ../Fig/install/12.png
 	:align: center
 
 	Drag FileMege into the Dock
 
 Download tool Graphviz for display llvm IR nodes in debugging, 
 http://www.graphviz.org/Download_macos.php. 
-We choose mountainlion as :ref:`install_f19` since our iMac is Mountain Lion.
+We choose mountainlion as :ref:`install_f13` since our iMac is Mountain Lion.
 
-.. _install_f19:
-.. figure:: ../Fig/install/19.png
+.. _install_f13:
+.. figure:: ../Fig/install/13.png
 	:height: 738 px
 	:width: 1181 px
 	:scale: 80 %
@@ -460,17 +471,17 @@ like the obj file, \*.o, that will be generated in chapter of Other
 instructions. 
 You can download from App Store. 
 To dump binary file, first, open the binary file, next, select menu 
-“File – Hex Front Document” as :ref:`install_f20`. 
-Then select “Front document's file” as :ref:`install_f21`.
+“File – Hex Front Document” as :ref:`install_f14`. 
+Then select “Front document's file” as :ref:`install_f15`.
 
-.. _install_f20:
-.. figure:: ../Fig/install/20.png
+.. _install_f14:
+.. figure:: ../Fig/install/14.png
 	:align: center
 
 	Select Hex Dump menu
 
-.. _install_f21:
-.. figure:: ../Fig/install/21.png
+.. _install_f15:
+.. figure:: ../Fig/install/15.png
 	:align: center
 
 	Select Front document's file in TextWrangler
@@ -487,10 +498,10 @@ First, install the llvm release build by,
 	
 	2) Untar clang and move it src/tools/clang.
 	
-	3) Untar compiler-rt and move it to src/project/compiler-rt as :ref:`install_f22`.
+	3) Untar compiler-rt and move it to src/project/compiler-rt as :ref:`install_f16`.
 
-.. _install_f22:
-.. figure:: ../Fig/install/22.png
+.. _install_f16:
+.. figure:: ../Fig/install/16.png
 	:align: center
 
 	Create llvm release build
