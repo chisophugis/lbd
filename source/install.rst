@@ -123,7 +123,7 @@ E_TOOL by click the right side button **“...”** of that row to get
 
 	Select Cmake 2.8-9.app
 
-Click Configure button in :ref:`install_f6` to get :ref:`install_f7`.
+Click Configure button to get :ref:`install_f7`.
 
 .. _install_f7:
 .. figure:: ../Fig/install/7.png
