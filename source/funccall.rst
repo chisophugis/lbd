@@ -2112,14 +2112,17 @@ The llvm IR and mips assembly output as follows,
     sltu  $4, $2, $3  // set if 40 < arg_ptr
     bne $4, $zero, $BB0_4
     nop
-  # BB#3:                                 #   in Loop: Header=BB0_1 Depth=1 // arg_ptr <= 40
+  # BB#3:                                 #   in Loop: Header=BB0_1 Depth=1 
+                      // arg_ptr <= 40
     addiu $4, $3, 8
-    lw  $5, 36($sp) // 36($sp) = 0, assume even though we didn't find the 36($sp) is 0
+    lw  $5, 36($sp) // 36($sp) = 0, assume even though we didn't find the 
+                    // 36($sp) is 0
     sw  $4, 24($sp) // arg_ptr += 8
     addu  $3, $5, $3  // arg_ptr + 0
     b $BB0_5
     nop
-  $BB0_4:                                 #   in Loop: Header=BB0_1 Depth=1 // 40 < arg_ptr
+  $BB0_4:                                 #   in Loop: Header=BB0_1 Depth=1 
+                     // 40 < arg_ptr
     lw  $3, 32($sp)
     addiu $4, $3, 8
     sw  $4, 32($sp)
@@ -2210,8 +2213,11 @@ Following are the ch7_3_3.cpp, and lli, Intel native code run result.
 .. code-block:: c++
 
   // ch7_3_3.cpp
-  // clang -c ch7_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch7_3_3.bc
-  // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc ch7_3_3.bc -o ch7_3_3.s
+  // clang -c ch7_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/
+  Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/
+  include/ -o ch7_3_3.bc
+  // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc 
+  ch7_3_3.bc -o ch7_3_3.s
   // clang++ ch7_3_3.s -o ch7_3_3.native
   // ./ch7_3_3.native
   // lldb -- ch7_3_3.native
