@@ -91,7 +91,7 @@ Even with that, let's build LLVM project with cmake graphic UI since this LLVM
 directory contains the release version for clang and clang++ execution file. 
 First, create LLVM.xcodeproj as 
 :ref:`install_f3`, then click **configure** button to enter :ref:`install_f4`, 
-and then click **Done** button on :ref:`install_f4` to get :ref:`install_f5`.
+and then click **Done** button to get :ref:`install_f5`.
 
 .. _install_f3:
 .. figure:: ../Fig/install/3.png
@@ -114,8 +114,8 @@ and then click **Done** button on :ref:`install_f4` to get :ref:`install_f5`.
 .. todo:: The html will follow the appear order in \*.rst source context but latexpdf didn't. For example, the :ref:`install_f4` Figure 2.4 and :ref:`install_f5` Figure 2.5 appear after the below text "Click OK from ..." in pdf. If find the **NoReorder** or **newpage** directive, maybe can solve this problem.
 
 Click OK from :ref:`install_f5` and select Cmake 2.8-9.app for CMAKE_INSTALL_NAM
-E_TOOL by click the right side button **“...”** of that row in 
-:ref:`install_f5` to get :ref:`install_f6`.
+E_TOOL by click the right side button **“...”** of that row to get 
+:ref:`install_f6`.
 
 .. _install_f6:
 .. figure:: ../Fig/install/6.png
@@ -213,7 +213,7 @@ if you didn't add it after Xcode download.
 Create LLVM.xcodeproj of supporting cpu0 by terminal cmake command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We have install llvm with clang on directory llvm/3.1/. 
+We have installed llvm with clang on directory llvm/3.1/. 
 Now, we want to install llvm with our cpu0 backend code on directory 
 llvm/3.1.test/cpu0/1 in this section.
 
@@ -420,7 +420,7 @@ Install other tools on iMac
 
 These tools mentioned in this section is for coding and debug. 
 You can work even without these tools. 
-Files compare tools Kdiff3 http://kdiff3.sourceforge.net. 
+Files compare tools Kdiff3 came from web site http://kdiff3.sourceforge.net. 
 FileMerge is a part of Xcode, you can type FileMerge in Finder – Applications 
 as :ref:`install_f11` and drag it into the Dock as :ref:`install_f12`.
 
