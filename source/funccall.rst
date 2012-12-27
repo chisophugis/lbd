@@ -1376,7 +1376,7 @@ comment in it for explanation.
         .size   gI, 4
 
 As above code comment, “.cprestore 24” is a pseudo instruction for saving $gp 
-to 24($sp); “ld $gp, 24($sp)” will restore the $gp. 
+to 24($sp); Instruction “ld $gp, 24($sp)” will restore the $gp. 
 In other word, $gp is caller saved register, so main() need to save/restore $gp 
 before/after call the shared library _Z5sum_iiiiiii() function. 
 In _Z5sum_iiiiiii() function, we translate global variable gI address by 
