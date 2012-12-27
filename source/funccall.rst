@@ -5,8 +5,8 @@ The subroutine/function call of backend code translation is supported in this
 chapter. 
 A lots of code needed in function call. We break it down according llvm 
 supplied interface for easy to explanation. 
-This chapter introduce the Mips stack frame structure first since we borrow 
-many part of ABI from it. 
+This chapter start from introducing the Mips stack frame structure since we 
+borrow many part of ABI from it. 
 Although each CPU has it's own ABI, most of RISC CPUs ABI are similar. 
 In addition to support fixed number of arguments function call, cpu0 also 
 upport variable number of arguments since C/C++ support this feature. 
@@ -28,14 +28,14 @@ section “RISC CPU knowledge” of chapter “Control flow statement”,
 Mips stack frame
 -----------------
 
-The first thing for design the cpu0 function call is to decide how to pass 
+The first thing for design the cpu0 function call is deciding how to pass 
 arguments in function call. There are two options. 
 The first is pass arguments all in stack. 
 Second is pass arguments in the registers which are reserved for function 
 arguments, and put the other arguments in stack if it over the number of 
 registers reserved for function call. For example, Mips pass the first 4 
-arguments in register $a0, $a1, $a2, $a3, and the other arguments if it over 4 
-arguments in stack. :ref:`funccall_f1` is the Mips stack frame.
+arguments in register $a0, $a1, $a2, $a3, and the other arguments in stack 
+if it over 4 arguments. :ref:`funccall_f1` is the Mips stack frame.
 
 .. _funccall_f1:
 .. figure:: ../Fig/funccall/1.png
@@ -174,7 +174,7 @@ argument 5.
 
 
 The 007-2418-003.pdf in 
-https://www.dropbox.com/home/LLVMBackendTutorial/doc/MIPSproAssemblyLanguageProgrammerGuide 
+https://www.dropbox.com/sh/2pkh1fewlq2zag9/OHnrYn2nOs/doc/MIPSproAssemblyLanguageProgrammerGuide 
 is the Mips assembly language manual. 
 psABI-mips.pdf in https://www.dropbox.com/sh/2pkh1fewlq2zag9/buvX_zeN09/doc is 
 Mips Application Binary Interface which include the :ref:`funccall_f1`.
@@ -182,7 +182,7 @@ Mips Application Binary Interface which include the :ref:`funccall_f1`.
 Load incoming arguments from stack frame
 -----------------------------------------
 
-From last section, to support function call, we need implement the arguments 
+From last section, to support function call, we need implementing the arguments 
 pass mechanism with stack frame. Before do that, let's run the old version of 
 code 6/1/Cpu0 with ch7_1.cpp and see what happen.
 
@@ -349,7 +349,7 @@ ArgLocs[i].isMemLoc() is true.
 In “for loop”, it create each frame index object by LastFI = 
 MFI->CreateFixedObject(ValVT.getSizeInBits()/8,VA.getLocMemOffset(), true) and 
 FIN = DAG.getFrameIndex(LastFI, getPointerTy()). 
-nd then create IR DAG load node and put the load node into vector InVals by 
+And then create IR DAG load node and put the load node into vector InVals by 
 InVals.push_back(DAG.getLoad(ValVT, dl, Chain, FIN, 
 MachinePointerInfo::getFixedStack(LastFI), false, false, false, 0)). 
 Cpu0FI->setVarArgsFrameIndex(0) and Cpu0FI->setLastInArgFI(LastFI) are called 
@@ -361,6 +361,8 @@ argument passing into main().
 In addition to LowerFormalArguments() which create the load DAG, we need to 
 define the loadRegFromStackSlot() to issue the machine instruction 
 “ld $r, offset($sp)” to load incoming arguments from stack frame offset.
+GetMemOperand(..., FI, ...) return the Memory location of the frame index 
+variable, which is the offset.
 
 .. code-block:: c++
     
@@ -394,8 +396,8 @@ define the loadRegFromStackSlot() to issue the machine instruction
         .addMemOperand(MMO);
     }
 
-Beyond Calling Convention and LowerFormalArguments(), 7/2/Cpu0 add following 
-code for cpu0 instructions swi (Software Interrupt) and jsub, jalr 
+In addition to Calling Convention and LowerFormalArguments(), 7/2/Cpu0 add the 
+following code for cpu0 instructions swi (Software Interrupt), jsub and jalr 
 (function call) definition and printing.
 
 .. code-block:: c++
@@ -418,12 +420,6 @@ code for cpu0 instructions swi (Software Interrupt) and jsub, jalr
                              [SDNPHasChain, SDNPOutGlue, SDNPOptInGlue,
                               SDNPVariadic]>;
     ...
-    // These are target-independent nodes, but have target-specific formats.
-    def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_Cpu0CallSeqStart,
-                               [SDNPHasChain, SDNPOutGlue]>;
-    def callseq_end   : SDNode<"ISD::CALLSEQ_END", SDT_Cpu0CallSeqEnd,
-                               [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
-    …
     def jmptarget   : Operand<OtherVT> {
       let EncoderMethod = "getJumpTargetOpValue";
     }
@@ -546,8 +542,8 @@ code for cpu0 instructions swi (Software Interrupt) and jsub, jalr
       void setMaxCallFrameSize(unsigned S) { MaxCallFrameSize = S; }
     };
 
-After above changes, you can run 7/2/Cpu0 with ch7_1.cpp and see what happen 
-as follows,
+After above changes, you can run 7/2/Cpu0 with ch7_1.cpp and see what happens 
+in the following,
 
 .. code-block:: bash
 
@@ -574,9 +570,9 @@ Store outgoing arguments to stack frame
 :ref:`funccall_f2` depicted two steps to take care arguments passing. 
 One is store outgoing arguments in caller function, and the other is load 
 incoming arguments in callee function. 
-We define LowerFormalArguments() to do “load incoming arguments” in callee 
-function of the last section. 
-Now, we have to finish “store outgoing arguments” in caller function. 
+We defined LowerFormalArguments() for “load incoming arguments” in callee 
+function last section. 
+Now, we will finish “store outgoing arguments” in caller function. 
 LowerCall() is responsible to do this. The implementation as follows,
 
 .. code-block:: c++
@@ -818,14 +814,19 @@ CCInfo(CallConv,..., ArgLocs, …) to get outgoing arguments information before
 enter “for loop” and set stack alignment with 8 bytes. 
 They're almost same in “for loop” with LowerFormalArguments(), except 
 LowerCall() create store DAG vector instead of load DAG vector. 
-DAG.getCALLSEQ_START() and DAG.getCALLSEQ_END() are set before and after the 
-“for loop”, they insert CALLSEQ_START, CALLSEQ_END, and translate into pseudo 
-machine instructions !ADJCALLSTACKDOWN, !ADJCALLSTACKUP later according 
-Cpu0InstrInfo.td definition as follows.
+After the “for loop”, it create “ld $6, %call24(_Z5sum_iiiiiii)($gp)” 
+and jalr $6 for calling subroutine (the $6 is $t9) in PIC mode.
+DAG.getCALLSEQ_START() and DAG.getCALLSEQ_END() are set before the “for loop” 
+and after call subroutine, they insert CALLSEQ_START, CALLSEQ_END, and 
+translate into pseudo machine instructions !ADJCALLSTACKDOWN, !ADJCALLSTACKUP 
+later according Cpu0InstrInfo.td definition as follows.
 
 .. code-block:: c++
 
     // Cpu0InstrInfo.td
+    ...
+    def SDT_Cpu0CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>]>;
+    def SDT_Cpu0CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
     ...
     // These are target-independent nodes, but have target-specific formats.
     def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_Cpu0CallSeqStart,
@@ -1031,7 +1032,9 @@ arguments into spOffset($sp) (7/3/Cpu0 set them to pOffset+stackSize($sp).
         return FI <= OutArgFIRange.first && FI >= OutArgFIRange.second;
       }
 
-Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
+Run 7/4/Cpu0 with ch7_1.cpp will get the following result. 
+It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to 
+(0)$sp, (8)$sp, ..., where the stack size is 40 in main().
 
 .. code-block:: bash
 
@@ -1136,13 +1139,15 @@ Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
     .size main, ($tmp7)-main
     .cfi_endproc
 
+The incoming arguments is the formal arguments defined in compiler and program 
+language books. The outgoing arguments is the actual arguments.
 Summary callee incoming arguments and caller outgoing arguments as 
 :ref:`funccall_t1`.
 
 .. _funccall_t1:
 .. figure:: ../Table/funccall/1.png
-    :height: 153 px
-    :width: 694 px
+    :height: 156 px
+    :width: 697 px
     :scale: 100 %
     :align: center
 
@@ -1286,20 +1291,20 @@ Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
 Handle $gp register in PIC addressing mode
 -------------------------------------------
 
-In `section Global variable`_, we mentioned there are two addressing 
-mode, one is static address mode, the other is PIC (position-independent code). 
+In `section Global variable`_, we mentioned two addressing 
+mode, the static address mode and PIC (position-independent code) mode. 
 We also mentioned, one example of PIC mode is used in share library. 
-Share library usually can be loaded in different memory address decided on run 
+Share library usually can be loaded in different memory address decided at run 
 time. 
 The static mode (absolute address mode) is usually designed to load in specific 
-memory address decided on compile time. 
+memory address decided at compile time. 
 Since share library can be loaded in different memory address, the global 
-variable address cannot be decided in compile time. 
-Even though, we can decide the distance between global variable address and 
+variable address cannot be decided at compile time. 
+But, we can caculate the distance between the global variable address and 
 shared library function if they will be loaded to the contiguous memory space 
 together.
 
-Let's run 7/5/Cpu0 with ch7_2.cpp to get the following result and we put the 
+Let's run 7/5/Cpu0 with ch7_2.cpp to get the following result of we putting the 
 comment in it for explanation.
 
 .. code-block:: bash
@@ -1370,8 +1375,8 @@ comment in it for explanation.
         .4byte  100                     # 0x64
         .size   gI, 4
 
-As above code comment, “.cprestore 24” is a pseudo instruction for save $gp to 
-24($sp); “ld $gp, 24($sp)” will restore the $gp. 
+As above code comment, “.cprestore 24” is a pseudo instruction for saving $gp 
+to 24($sp); “ld $gp, 24($sp)” will restore the $gp. 
 In other word, $gp is caller saved register, so main() need to save/restore $gp 
 before/after call the shared library _Z5sum_iiiiiii() function. 
 In _Z5sum_iiiiiii() function, we translate global variable gI address by 
@@ -1384,7 +1389,7 @@ bits address range access.
 We add “jalr” to cpu0 and expand it to 32 bit address. We did this change for 
 two reason. One is cpu0 can be expand to 32 bit address space by only add this 
 instruction. 
-The other is cpu0 is designed for teaching purpose, this book is the same 
+The other is cpu0 is designed for teaching purpose, this book has the same 
 purpose for llvm backend design. We reserve “jalr” as PIC mode for shared 
 library or dynamic loading code to demonstrate the caller how to handle the 
 caller saved register $gp in calling the shared library and the shared library 
@@ -1431,9 +1436,9 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     ….
     // Restore GP from the saved stack location
     if (Cpu0FI->needGPSaveRestore()) {
-    unsigned Offset = MFI->getObjectOffset(Cpu0FI->getGPFI());
-    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::CPRESTORE)).addImm(Offset)
-      .addReg(Cpu0::GP);
+      unsigned Offset = MFI->getObjectOffset(Cpu0FI->getGPFI());
+      BuildMI(MBB, MBBI, dl, TII.get(Cpu0::CPRESTORE)).addImm(Offset)
+        .addReg(Cpu0::GP);
     }
   }
   
@@ -1465,8 +1470,8 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     if (IsPIC && Cpu0FI->globalBaseRegFixed() && !Cpu0FI->getGPFI())
     ...
     if (MaxCallFrameSize < NextStackOffset) {
-    if (Cpu0FI->needGPSaveRestore())
-      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
+      if (Cpu0FI->needGPSaveRestore())
+        MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
     …
   }
   
@@ -1527,38 +1532,38 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     int FI = Cpu0FI->getGPFI();
   
     for (MachineFunction::iterator MFI = F.begin(), MFE = F.end();
-       MFI != MFE; ++MFI) {
-    MachineBasicBlock& MBB = *MFI;
-    MachineBasicBlock::iterator I = MFI->begin();
+        MFI != MFE; ++MFI) {
+      MachineBasicBlock& MBB = *MFI;
+      MachineBasicBlock::iterator I = MFI->begin();
     
-     /// IsLandingPad - Indicate that this basic block is entered via an
-    /// exception handler.
-    // If MBB is a landing pad, insert instruction that restores $gp after
-    // EH_LABEL.
-    if (MBB.isLandingPad()) {
-      // Find EH_LABEL first.
-      for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
+       /// IsLandingPad - Indicate that this basic block is entered via an
+      /// exception handler.
+      // If MBB is a landing pad, insert instruction that restores $gp after
+      // EH_LABEL.
+      if (MBB.isLandingPad()) {
+        // Find EH_LABEL first.
+        for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
   
-      // Insert ld.
-      ++I;
-      DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
-      BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
+        // Insert ld.
+        ++I;
+        DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+        BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
                                .addImm(0);
-      Changed = true;
-    }
-  
-    while (I != MFI->end()) {
-      if (I->getOpcode() != Cpu0::JALR) {
-      ++I;
-      continue;
+        Changed = true;
       }
   
-      DebugLoc dl = I->getDebugLoc();
-      // emit ld $gp, ($gp save slot on stack) after jalr
-      BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
-                               .addImm(0);
-      Changed = true;
-    }
+      while (I != MFI->end()) {
+        if (I->getOpcode() != Cpu0::JALR) {
+          ++I;
+          continue;
+        }
+  
+        DebugLoc dl = I->getDebugLoc();
+        // emit ld $gp, ($gp save slot on stack) after jalr
+        BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
+                                 .addImm(0);
+        Changed = true;
+      }
     }
   
     return Changed;
@@ -1598,10 +1603,10 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     MCInstLowering.Lower(MI, TmpInst);
     OutStreamer.EmitRawText(StringRef("\t.set\tmacro"));
     if (Cpu0FI->getEmitNOAT())
-    OutStreamer.EmitRawText(StringRef("\t.set\tat"));
+      OutStreamer.EmitRawText(StringRef("\t.set\tat"));
     OutStreamer.EmitInstruction(TmpInst);
     if (Cpu0FI->getEmitNOAT())
-    OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
+      OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
     OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
   }
   
@@ -1613,29 +1618,29 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   
     switch (Opc) {
     case Cpu0::CPRESTORE: {
-    const MachineOperand &MO = MI->getOperand(0);
-    assert(MO.isImm() && "CPRESTORE's operand must be an immediate.");
-    int64_t Offset = MO.getImm();
+      const MachineOperand &MO = MI->getOperand(0);
+      assert(MO.isImm() && "CPRESTORE's operand must be an immediate.");
+      int64_t Offset = MO.getImm();
   
-    if (OutStreamer.hasRawTextSupport()) {
-      if (!isInt<16>(Offset)) {
-      EmitInstrWithMacroNoAT(MI);
-      return;
+      if (OutStreamer.hasRawTextSupport()) {
+        if (!isInt<16>(Offset)) {
+          EmitInstrWithMacroNoAT(MI);
+          return;
+        }
+      } else {
+        MCInstLowering.LowerCPRESTORE(Offset, MCInsts);
+  
+        for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
+           I != MCInsts.end(); ++I)
+        OutStreamer.EmitInstruction(*I);
+  
+        return;
       }
-    } else {
-      MCInstLowering.LowerCPRESTORE(Offset, MCInsts);
   
-      for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
-         I != MCInsts.end(); ++I)
-      OutStreamer.EmitInstruction(*I);
-  
-      return;
-    }
-  
-    break;
+      break;
     }
     default:
-    break;
+      break;
     }
   
     MCInstLowering.Lower(MI, TmpInst0);
@@ -1645,15 +1650,15 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   void Cpu0AsmPrinter::EmitFunctionBodyStart() {
     ...
     if (OutStreamer.hasRawTextSupport()) {
-    ...
-    if (Cpu0FI->getEmitNOAT())
-      OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
+      ...
+      if (Cpu0FI->getEmitNOAT())
+        OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
     } else if (EmitCPLoad) {
-    SmallVector<MCInst, 4> MCInsts;
-    MCInstLowering.LowerCPLOAD(MCInsts);
-    for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
-       I != MCInsts.end(); ++I)
-      OutStreamer.EmitInstruction(*I);
+      SmallVector<MCInst, 4> MCInsts;
+      MCInstLowering.LowerCPLOAD(MCInsts);
+      for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
+         I != MCInsts.end(); ++I)
+        OutStreamer.EmitInstruction(*I);
     }
   }
   
@@ -1706,18 +1711,18 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
   
     if (!isInt<16>(Offset)) {
-    unsigned Hi = ((Offset + 0x8000) >> 16) & 0xffff;
-    Offset &= 0xffff;
-    MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
-    BaseReg = ATReg;
-  
-    // addiu   at,zero,hi
-    // shl     at,at,16
-    // add     at,at,sp
-    MCInsts.resize(3);
-    CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
-    CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
-    CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
+      unsigned Hi = ((Offset + 0x8000) >> 16) & 0xffff;
+      Offset &= 0xffff;
+      MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
+      BaseReg = ATReg;
+    
+      // addiu   at,zero,hi
+      // shl     at,at,16
+      // add     at,at,sp
+      MCInsts.resize(3);
+      CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
+      CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
+      CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
     }
   
     MCInst St;
@@ -1731,11 +1736,11 @@ LowerCPRESTORE() when user run with “llc -filetype=obj”.
 The above added code of Cpu0MCInstLower.cpp take care the .cpload and 
 .cprestore machine instructions. 
 It translate pseudo asm .cpload into four machine instructions, and .cprestore 
-into one machine instruction as follows. 
+into one machine instruction as below. 
 As mentioned in `section Global variable`_. 
-When the share library main() function be loaded, the loader will assign the 
+When the share library main() function be loaded, the loader will set the 
 $t9 value to $gp when meet “.cpload $t9”. 
-After that, the $gp value is $9 which point to main(), and the global variable 
+After that, the $gp value is $t9 which point to main(), and the global variable 
 address is the relative address to main(). 
 The _gp_disp is zero as the following reason from Mips ABI.
 
@@ -1818,13 +1823,23 @@ Run “llc -static” will call jsub instruction instead of jalr as follows,
     jsub  _Z5sum_iiiiiii
   ...
 
-The ch7_1_2.cpp, ch7_1_3.cpp and ch7_1_4.cpp are example code more for test.
+Run with llc -obj, you can find the Cx of “jsub Cx” is 0 since the Cx is 
+calculated by linker as below. 
+Mips has the same 0 in it's jal instruction. 
+The ch7_1_2.cpp, ch7_1_3.cpp and ch7_1_4.cpp are example code more for test. 
+
+.. code-block:: bash
+
+  // jsub _Z5sum_iiiiiii translate into 2B 00 00 00
+  00F0: 2B 00 00 00 01 2D 00 34 00 ED 00 3C 09 DD 00 40 
+
 
 
 Variable number of arguments
 -----------------------------
 
-Until now, we support fixed number of arguments is formal function definition. 
+Until now, we support fixed number of arguments in formal function definition 
+(Incoming Arguments). 
 This section support variable number of arguments since C language support 
 this feature.
 Run 7/7/Cpu0 with ch7_3.cpp to get the following,
