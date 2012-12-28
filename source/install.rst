@@ -485,6 +485,31 @@ Then select “Front document's file” as :ref:`install_f15`.
 	:align: center
 
 	Select Front document's file in TextWrangler
+	
+Install binutils by command “brew install binutils” as follows,
+
+.. code-block:: bash
+
+  118-165-77-214:~ Jonathan$ brew install binutils
+  ==> Downloading http://ftpmirror.gnu.org/binutils/binutils-2.22.tar.gz
+  ######################################################################## 100.0%
+  ==> ./configure --program-prefix=g --prefix=/usr/local/Cellar/binutils/2.22 
+  --infodir=/usr/loca
+  ==> make
+  ==> make install
+  /usr/local/Cellar/binutils/2.22: 90 files, 19M, built in 4.7 minutes
+  118-165-77-214:~ Jonathan$ objdump --help
+  -bash: objdump: command not found
+  118-165-77-214:~ Jonathan$ man objdump
+  No manual entry for objdump
+  118-165-77-214:~ Jonathan$ ls /usr/local/Cellar/binutils/2.22
+  COPYING     README      lib
+  ChangeLog     bin       share
+  INSTALL_RECEIPT.json    include       x86_64-apple-darwin12.2.0
+  118-165-77-214:binutils-2.23 Jonathan$ ls /usr/local/Cellar/binutils/2.22/bin
+  gaddr2line  gc++filt  gnm   gobjdump  greadelf  gstrings
+  gar   gelfedit  gobjcopy  granlib gsize   gstrip
+
 
 Setting Up Your Linux Machine
 -----------------------------
