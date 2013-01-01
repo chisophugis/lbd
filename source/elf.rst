@@ -481,4 +481,4 @@ automatically.
 
 
 .. _sub-section Install other tools on iMac:
-    http://jonathan2251.github.com/lbd/elf.html#install-other-tools-on-imac
+    http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
