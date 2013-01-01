@@ -20,7 +20,7 @@ Anoushe Jamshidi
 Revision history
 ----------------
 
-Version 3.2.0, Released November 1, 2013
+Version 3.2.0, Released January 1, 2013
 	Add chapter Function.
 	Move Chapter "Installing LLVM and the Cpu0 example code" from beginning to 
 	Appendix A.
