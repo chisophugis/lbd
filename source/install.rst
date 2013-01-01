@@ -810,6 +810,12 @@ Then do make as follows,
 
 
 
+Install other tools on Linux
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Download Graphviz from http://www.graphviz.org/Download..php according your 
+Linux distribution.
+
+
 .. _LLVM Download Page:
 	http://llvm.org/releases/download.html#3.1
 

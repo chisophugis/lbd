@@ -20,6 +20,18 @@ Anoushe Jamshidi
 Revision history
 ----------------
 
+Version 3.2.0, Released November 1, 2013
+	Add chapter Function.
+	Move Chapter "Installing LLVM and the Cpu0 example code" from beginning to 
+	Appendix A.
+	Add subsection "Install other tools on Linux".
+	Add chapter ELF.
+Version 3.1.2, Released December 15, 2012
+	Fix section 6.1 error by add “def : Pat<(brcond RC:$cond, bb:$dst), 
+	(JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;” in last pattern.
+	Modify section 5.5
+	Fix bug Cpu0InstrInfo.cpp SW to ST.
+	Correct LW to LD; LB to LDB; SB to STB.
 Version 3.1.1, Released November 28, 2012
 	Add Revision history.
 	Correct ldi instruction error (replace ldi instruction with addiu from the 
@@ -28,12 +40,6 @@ Version 3.1.1, Released November 28, 2012
 	support type of local variable pointer" to Section ”CPU0 
 	processor architecture”.
 	Correct some English & typing errors.
-Version 3.1.2, Released February 28, 2012
-	Fix section 6.1 error by add “def : Pat<(brcond RC:$cond, bb:$dst), 
-	(JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;” in last pattern.
-	Modify section 5.5
-	Fix bug Cpu0InstrInfo.cpp SW to ST.
-	Correct LW to LD; LB to LDB; SB to STB.
 
 Licensing
 ---------

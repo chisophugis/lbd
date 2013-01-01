@@ -23,6 +23,7 @@ Table of Contents
    globalvar
    ctrlflow
    funccall
+   elf
    install
    todo
    
