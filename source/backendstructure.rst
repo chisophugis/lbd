@@ -90,7 +90,7 @@ will be extracted by Cpu0InstrInfo.h.
 
 .. literalinclude:: ../code_fragment/backendstructure/2.txt
 
-http://llvm.org/docs/WritingAnLLVMBackend.html#TargetMachine
+Reference Write An LLVM Backend web site [#]_.
 
 Now, the code in 3/1/Cpu0 add class Cpu0TargetMachine(Cpu0TargetMachine.h and 
 cpp), Cpu0Subtarget (Cpu0Subtarget.h and .cpp), Cpu0InstrInfo (Cpu0InstrInfo.h 
@@ -136,7 +136,7 @@ Let's add it in next section.
 Add AsmPrinter
 --------------
 
-3/3/cpu0 contains the Cpu0AsmPrinter definition. First, I add definitions in 
+3/3/cpu0 contains the Cpu0AsmPrinter definition. First, we add definitions in 
 Cpu0.td to support AssemblyWriter. 
 Cpu0.td is added with the following fragment,
 
@@ -167,7 +167,7 @@ follows,
 .. literalinclude:: ../code_fragment/backendstructure/7.txt
 
 Now, it's time to work with AsmPrinter. According section 
-`section Target Registration`_, we can register our AsmPrinter when we need it 
+"section Target Registration" [#]_, we can register our AsmPrinter when we need it 
 as follows,
 
 .. literalinclude:: ../code_fragment/backendstructure/8.txt
@@ -185,7 +185,7 @@ Now, run 3/3/Cpu0 for AsmPrinter support, will get error message as follows,
 .. literalinclude:: ../terminal_io/backendstructure/3.txt
 
 The llc fails to compile IR code into machine code since we didn't implement 
-class Cpu0DAGToDAGISel. Before the implementation, I will introduce the LLVM 
+class Cpu0DAGToDAGISel. Before the implementation, we will introduce the LLVM 
 Code Generation Sequence, DAG, and LLVM instruction selection in next 3 
 sections.
 
@@ -212,9 +212,9 @@ Following is the llvm SSA instructions.
 
 We explain the code generation process as below. 
 If you don't feel comfortable, please check tricore_llvm.pdf section 4.2 first. 
-You can  read “The LLVM Target-Independent Code Generator” 
-(http://llvm.org/docs/CodeGenerator.html) and “LLVM Language Reference Manual” 
-(http://llvm.org/docs/LangRef.html) before go ahead, but we think read section 
+You can  read “The LLVM Target-Independent Code Generator” from [#]_ 
+and “LLVM Language Reference Manual” from [#]_ 
+before go ahead, but we think read section 
 4.2 of tricore_llvm.pdf is enough. 
 We suggest you read the web site documents as above only when you are still not 
 quite understand, even though you have read this section and next 2 sections 
@@ -474,5 +474,11 @@ In next chapter, we will show you that add a new instruction support is as easy
 as 123.
 
 
-.. _section Target Registration:
-    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+
+.. [#] http://llvm.org/docs/WritingAnLLVMBackend.html#TargetMachine
+
+.. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+
+.. [#] http://llvm.org/docs/CodeGenerator.html
+
+.. [#] http://llvm.org/docs/LangRef.html

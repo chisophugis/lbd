@@ -52,7 +52,15 @@ Currently skills/setting use in this document
     cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=pic 
     -filetype=asm ch5_3.bc -o ch5_3.cpu0.s
     ...
-  
+
+5. Add footnote for web reference (It's easy to check the web reference by 
+  group them in the end of each chapter).
+
+  for example:
+  [#]_ are the Chinese documents
+
+  .. [#] http://ccckmit.wikidot.com/lk:aout
+
 6. Use hyper link in reference our book section. But use "section name" of 
    `web link`_ to reference outside web section. Because I find the hyper link 
    for reference section of LLVM is changed from version to version.

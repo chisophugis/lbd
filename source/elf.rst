@@ -9,15 +9,15 @@ and later in the Tool Interface Standard, it was quickly accepted among
 different vendors of Unixsystems. 
 In 1999 it was chosen as the standard binary file format for Unix and 
 Unix-like systems on x86 by the x86open project. 
-Please reference http://en.wikipedia.org/wiki/Executable_and_Linkable_Format.
+Please reference [#]_.
 
 The binary encode of cpu0 instruction set in obj has been checked in the 
 previous chapters. 
 But we didn't dig into the ELF file format like elf header and relocation 
 record at that time. 
 This chapter will use the binutils which has been installed in 
-`sub-section Install other tools on iMac`_ of Appendix A: “Installing LLVM” to 
-analysis cpu0 ELF file. 
+"sub-section Install other tools on iMac" of Appendix A: “Installing LLVM” 
+[#]_ to analysis cpu0 ELF file. 
 You will learn the objdump, readelf, …, tools and understand the ELF file 
 format itself through using these tools to analyze the cpu0 generated obj in 
 this chapter. 
@@ -53,13 +53,8 @@ But it covers the concept only.
 You can reference it to understand how the “Relocation Record” works if you 
 need to refresh or learning this knowledge for this chapter.
 
-Following is the Chinese documents available from the cpu0 author on web site.
+[#]_, [#]_, [#]_ are the Chinese documents available from the cpu0 author on web site.
 
-http://ccckmit.wikidot.com/lk:aout
-
-http://ccckmit.wikidot.com/lk:objfile
-
-http://ccckmit.wikidot.com/lk:elf
 
 ELF format
 -----------
@@ -469,6 +464,7 @@ generated.
   00000034  00000302 R_MIPS_32         00000000   .text
   [Gamma@localhost InputFiles]$ 
 
+
 Cpu0 ELF related files
 -----------------------
 
@@ -480,5 +476,12 @@ With these td description, LLVM translate the instruction into obj format
 automatically.
 
 
-.. _sub-section Install other tools on iMac:
-    http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
+.. [#] http://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+
+.. [#] http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
+
+.. [#] http://ccckmit.wikidot.com/lk:aout
+
+.. [#] http://ccckmit.wikidot.com/lk:objfile
+
+.. [#] http://ccckmit.wikidot.com/lk:elf

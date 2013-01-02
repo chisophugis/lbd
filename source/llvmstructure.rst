@@ -28,10 +28,7 @@ CPU0 processor architecture
 ---------------------------
 
 We copy and redraw figures in english in this section. This 
-`web site <http://ccckmit.wikidot.com/ocs:cpu0>`_ is chinese version and here 
-is `english version 
-<http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=
-2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0>`_.
+web site [#]_ is chinese version and here [#]_ is english version.
 
 Brief introduction
 ++++++++++++++++++
@@ -161,7 +158,7 @@ The cpu0 is my brother's work, I will find time to talk with him.
 LLVM structure
 --------------
 
-Following came from `AOSA <http://www.aosabook.org/en/llvm.html>`_.
+Following came from AOSA [#]_.
 
 The most popular design for a traditional static compiler (like most C 
 compilers) is the three phase design whose major components are the front end, 
@@ -323,7 +320,7 @@ instruction format.
 After finish the .td files, llvm can generate C++ files (\*.inc) by llvm-tblgen 
 tools. 
 The \*.inc file is a text file (C++ file) with table driven in concept. 
-http://llvm.org/docs/TableGenFundamentals.html is the web site.
+[#]_ is the web site.
 
 Every back end has a target td which define it's own target information. 
 File td is like C++ in syntax. For example the Cpu0.td as follows,
@@ -410,8 +407,8 @@ After building, you will find three libraries: ``libLLVMCpu0CodeGen.a``,
 ``libLLVMCpu0Desc.a`` and ``libLLVMCpu0Info.a`` in lib/ of your build 
 directory. 
 For more details please see 
-`Building LLVM with CMake <http://llvm.org/docs/CMake.html>`_ and 
-`LLVMBuild Guide <http://llvm.org/docs/LLVMBuild.html>`_.
+"Building LLVM with CMake" [#]_ and 
+"LLVMBuild Guide" [#]_.
 
 Target Registration
 -------------------
@@ -435,15 +432,14 @@ the empty initialize function since we register nothing in them for this moment.
 
 .. literalinclude:: ../code_fragment/llvmstructure/13.txt
 
-Please see `Target Registration <http://llvm.org/docs/WritingAnLLVMBackend.html#target-registration>`_
-for reference.
+Please see "Target Registration" [#]_ for reference.
 
 Build libraries and td
 ----------------------
 
 The llvm3.1 source code is put in /usr/local/llvm/3.1/src and have llvm3.1 
 release-build in /usr/local/llvm/3.1/configure_release_build. 
-About how to build llvm, please refer http://clang.llvm.org/get_started.html. 
+About how to build llvm, please refer [#]_. 
 We made a copy from /usr/local/llvm/3.1/src to 
 /usr/local/llvm/3.1.test/cpu0/1/src for working with my Cpu0 target back end. 
 Sub-directories src is for source code and cmake_debug_build is for debug 
@@ -472,7 +468,7 @@ After build, you can type command llc –version to find the cpu0 backend,
 
 The “llc -version” can display “cpu0” and “cpu0el” message, because the 
 following code from file TargetInfo/Cpu0TargetInfo.cpp what in 
-`section Target Registration`_ we made. 
+"section Target Registration" [#]_ we made. 
 List them as follows again,
 
 .. literalinclude:: ../code_fragment/llvmstructure/14.txt
@@ -499,5 +495,21 @@ those td related files.
 The error message say we didn't define our target machine.
 
 
-.. _section Target Registration:
-    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+
+.. [#] http://ccckmit.wikidot.com/ocs:cpu0
+
+.. [#] http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0
+
+.. [#] http://www.aosabook.org/en/llvm.html
+
+.. [#] http://llvm.org/docs/TableGenFundamentals.html
+
+.. [#] http://llvm.org/docs/CMake.html
+
+.. [#] http://llvm.org/docs/LLVMBuild.html
+
+.. [#] http://llvm.org/docs/WritingAnLLVMBackend.html#target-registration
+
+.. [#] http://clang.llvm.org/get_started.html
+
+.. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration

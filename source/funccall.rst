@@ -21,7 +21,7 @@ It include stack frame and the related ABI support.
 If you have problem in reading the stack frame illustrated in the first three 
 sections of this chapter, you can read the appendix B of “Procedure Call 
 Convention” of book “Computer Organization and Design” which listed in 
-section “RISC CPU knowledge” of chapter “Control flow statement”, 
+section “RISC CPU knowledge” of chapter “Control flow statement” [#]_, 
 “Run Time Memory” of compiler book, or “Function Call Sequence”  and 
 “Stack Frame” of Mips ABI.
 
@@ -173,11 +173,8 @@ argument 5.
     Mips arguments location in stack frame
 
 
-The 007-2418-003.pdf in 
-https://www.dropbox.com/sh/2pkh1fewlq2zag9/OHnrYn2nOs/doc/MIPSproAssemblyLanguageProgrammerGuide 
-is the Mips assembly language manual. 
-psABI-mips.pdf in https://www.dropbox.com/sh/2pkh1fewlq2zag9/buvX_zeN09/doc is 
-Mips Application Binary Interface which include the :ref:`funccall_f1`.
+The 007-2418-003.pdf in [#]_ is the Mips assembly language manual. 
+[#]_ is Mips Application Binary Interface which include the :ref:`funccall_f1`.
 
 Load incoming arguments from stack frame
 -----------------------------------------
@@ -254,7 +251,7 @@ As above, CC_Cpu0 is the cpu0 Calling Convention which delegate to CC_Cpu0EABI
 and define the CC_Cpu0EABI. 
 The reason we don't define the Calling Convention directly in CC_Cpu0 is that 
 a real general CPU like Mips can have several Calling Convention. 
-Combine with the mechanism of `section Target Registration`_ which llvm 
+Combine with the mechanism of "section Target Registration" [#]_ which llvm 
 supplied, we can use different Calling Convention in  different target. 
 Although cpu0 only have a Calling Convention right now, define with a dedicate 
 Call Convention name (CC_Cpu0EABI in this example) is a better solution for 
@@ -333,7 +330,7 @@ We define it as follows,
       return Chain;
     }
 
-Refresh `section Global variable`_, we have take care global 
+Refresh "section Global variable" [#]_, we handled global 
 variable translation by create the IR DAG in LowerGlobalAddress() first, and 
 then do the Instruction Selection by their corresponding machine instruction 
 DAG in Cpu0InstrInfo.td. 
@@ -1291,7 +1288,7 @@ Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
 Handle $gp register in PIC addressing mode
 -------------------------------------------
 
-In `section Global variable`_, we mentioned two addressing 
+In "section Global variable" [#]_, we mentioned two addressing 
 mode, the static address mode and PIC (position-independent code) mode. 
 We also mentioned, one example of PIC mode is used in share library. 
 Share library usually can be loaded in different memory address decided at run 
@@ -1737,7 +1734,7 @@ The above added code of Cpu0MCInstLower.cpp take care the .cpload and
 .cprestore machine instructions. 
 It translate pseudo asm .cpload into four machine instructions, and .cprestore 
 into one machine instruction as below. 
-As mentioned in `section Global variable`_. 
+As mentioned in "section Global variable" [#]_. 
 When the share library main() function be loaded, the loader will set the 
 $t9 value to $gp when meet “.cpload $t9”. 
 After that, the $gp value is $t9 which point to main(), and the global variable 
@@ -2579,7 +2576,7 @@ backend code too.
     return a;
   }
 
-Mips qemu reference http://developer.mips.com/clang-llvm/.
+Mips qemu reference .
 
 Summary of this chapter
 ------------------------
@@ -2593,9 +2590,18 @@ With this 80% more of code, it can translate tens of instructions, global
 variable, control flow statement and function call.
 
 
-.. _section Global variable:
-    http://jonathan2251.github.com/lbd/globalvar.html#global-variable
+.. [#] http://jonathan2251.github.com/lbd/ctrlflow.html#risc-cpu-knowledge
 
-.. _section Target Registration:
-    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+.. [#] https://www.dropbox.com/sh/2pkh1fewlq2zag9/OHnrYn2nOs/doc/MIPSproAssemblyLanguageProgrammerGuide 
 
+.. [#] http://www.linux-mips.org/pub/linux/mips/doc/ABI/mipsabi.pdf
+
+.. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+
+.. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
+
+.. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
+
+.. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
+
+.. [#] http://developer.mips.com/clang-llvm/

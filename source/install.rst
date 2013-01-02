@@ -11,17 +11,15 @@ build documentation that covers this.  For Linux machines, we are building and
 debugging (using gdb) our LLVM installations on a Fedora 17 system.  We will 
 not be using an IDE for Linux, but once again, if you have experience building/
 debugging LLVM using Eclipse or other major IDEs, please contact the authors. 
-For information on using ``cmake`` to build LLVM, please refer to the `Building 
-LLVM with CMake`_ documentation for further information.  We are using cmake 
-version 2.8.9.
+For information on using ``cmake`` to build LLVM, please refer to the "Building 
+LLVM with CMake" [#]_ documentation for further information. 
+We are using cmake version 2.8.9.
 
 We will install two llvm directories in this chapter. One is the directory 
 llvm/3.1/ which contains the clang, clang++ compiler we will use to translate 
 the C/C++ input file into llvm IR. 
 The other is the directory llvm/3.1.test/cpu0/1 which contains our cpu0 backend 
 program and without clang and clang++.
-
-.. _Building LLVM with CMake: http://llvm.org/docs/CMake.html?highlight=cmake
 
 .. todo:: Find information on debugging LLVM within Xcode for Macs.
 .. todo:: Find information on building/debugging LLVM within Eclipse for Linux.
@@ -36,7 +34,7 @@ Installing LLVM, Xcode and cmake
 .. todo:: Fix centering for figure captions.
 
 Please download LLVM version 3.1 (llvm, clang, compiler-rf) from the 
-`LLVM Download Page`_. Then extract them using 
+"LLVM Download Page" [#]_. Then extract them using 
 ``tar -zxvf {llvm-3.1.src.tar, clang-3.1.src.tar, compiler-rt-3.1.src.tar}``,
 and change the llvm source code root directory into src. 
 After that, move the clang source code to src/tools/clang, and move the 
@@ -55,7 +53,7 @@ terminal command ``cp -rf /Users/Jonathan/Documents/llvmSrc/src /Users/Jonathan/
 llvm/3.1/.``.
 
 Install Xcode from the Mac App Store. Then install cmake, which can be found 
-here: http://www.cmake.org/cmake/resources/software.html. 
+here: [#]_. 
 Before installing cmake, make sure you can install applications you download 
 from the Internet. Open "System Preferences"->"Security & Privacy." Click the 
 lock to make changes, and under "Allow applications downloaded from:" select 
@@ -85,8 +83,8 @@ in last section.
 Now, will generate the LLVM.xcodeproj in this chapter.
 
 Currently, we cannot do debug by lldb with cmake graphic UI operations depicted 
-in this section, but we can do debug by lldb with `section Create LLVM.xcodeproj 
-of supporting cpu0 by terminal cmake command`_. 
+in this section, but we can do debug by lldb with "section Create LLVM.xcodeproj 
+of supporting cpu0 by terminal cmake command" [#]_. 
 Even with that, let's build LLVM project with cmake graphic UI since this LLVM 
 directory contains the release version for clang and clang++ execution file. 
 First, create LLVM.xcodeproj as 
@@ -217,7 +215,7 @@ We have installed llvm with clang on directory llvm/3.1/.
 Now, we want to install llvm with our cpu0 backend code on directory 
 llvm/3.1.test/cpu0/1 in this section.
 
-In `section Create LLVM.xcodeproj by cmake Graphic UI`_, we create 
+In "section Create LLVM.xcodeproj by cmake Graphic UI" [#]_, we create 
 LLVM.xcodeproj by cmake graphic UI. 
 We can create LLVM.xcodeproj by ``cmake`` command on terminal also. 
 Now, let's repeat above steps to create llvm/3.1.test with cpu0 modified code 
@@ -325,7 +323,7 @@ Now, it's ready for building 1/Cpu0 code by command
 ``cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE
 =Debug -G "Xcode" ../src/`` as follows. 
 Remind, currently, the ``cmake`` terminal command can work with lldb debug, but 
-the `section Create LLVM.xcodeproj by cmake Graphic UI`_ cannot.
+the "section Create LLVM.xcodeproj by cmake Graphic UI" [#]_ cannot.
 
 .. code-block:: bash
 
@@ -411,8 +409,8 @@ debug as follows,
   (lldb) quit
   118-165-65-128:InputFiles Jonathan$ 
 
-About the lldb debug command, please reference 
-http://lldb.llvm.org/lldb-gdb.html or lldb portal http://lldb.llvm.org/.
+About the lldb debug command, please reference [#]_
+ or lldb portal [#]_.
 
 
 Install other tools on iMac
@@ -420,7 +418,7 @@ Install other tools on iMac
 
 These tools mentioned in this section is for coding and debug. 
 You can work even without these tools. 
-Files compare tools Kdiff3 came from web site http://kdiff3.sourceforge.net. 
+Files compare tools Kdiff3 came from web site [#]_. 
 FileMerge is a part of Xcode, you can type FileMerge in Finder – Applications 
 as :ref:`install_f11` and drag it into the Dock as :ref:`install_f12`.
 
@@ -437,7 +435,7 @@ as :ref:`install_f11` and drag it into the Dock as :ref:`install_f12`.
 	Drag FileMege into the Dock
 
 Download tool Graphviz for display llvm IR nodes in debugging, 
-http://www.graphviz.org/Download_macos.php. 
+[#]_. 
 We choose mountainlion as :ref:`install_f13` since our iMac is Mountain Lion.
 
 .. _install_f13:
@@ -463,9 +461,9 @@ For example, we install the Graphviz in directory
 
 The Graphviz information for llvm is in 
 the section "SelectionDAG Instruction Selection Process" of 
-http://llvm.org/docs/CodeGenerator.html and 
+[#]_ and 
 the section "Viewing graphs while debugging code" of 
-http://llvm.org/docs/ProgrammersManual.html.
+[#]_.
 TextWrangler is for edit file with line number display and dump binary file 
 like the obj file, \*.o, that will be generated in chapter of Other 
 instructions. 
@@ -812,18 +810,33 @@ Then do make as follows,
 
 Install other tools on Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Download Graphviz from http://www.graphviz.org/Download..php according your 
+Download Graphviz from [#]_ according your 
 Linux distribution.
 
 
-.. _LLVM Download Page:
-	http://llvm.org/releases/download.html#3.1
 
+.. [#] http://llvm.org/docs/CMake.html?highlight=cmake
 
-.. _section Create LLVM.xcodeproj of supporting cpu0 by terminal cmake command:
-    http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-of-
-    supporting-cpu0-by-terminal-cmake-command
+.. [#] http://llvm.org/releases/download.html#3.1
 
-.. _section Create LLVM.xcodeproj by cmake Graphic UI:
-    http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-by-
-    cmake-graphic-ui
+.. [#] http://www.cmake.org/cmake/resources/software.html
+
+.. [#] http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-of-supporting-cpu0-by-terminal-cmake-command
+
+.. [#] http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-by-cmake-graphic-ui
+
+.. [#] http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-of-supporting-cpu0-by-terminal-cmake-command
+
+.. [#] http://lldb.llvm.org/lldb-gdb.html
+
+.. [#] http://lldb.llvm.org/
+
+.. [#] http://kdiff3.sourceforge.net
+
+.. [#] http://www.graphviz.org/Download_macos.php
+
+.. [#] http://llvm.org/docs/CodeGenerator.html
+
+.. [#] http://llvm.org/docs/ProgrammersManual.html
+
+.. [#] http://www.graphviz.org/Download..php

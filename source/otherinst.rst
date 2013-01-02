@@ -107,7 +107,7 @@ So, appending the following code to Cpu0InstrInfo.td and Cpu0Schedule.td in
 	//===------------------------------------------------------------------===//
 	// Cpu0 Generic instruction itineraries.
 	//===------------------------------------------------------------------===//
-	// http://llvm.org/docs/doxygen/html/structllvm_1_1InstrStage.html
+	// http://llvm.org/docs/doxygen/html/structllvm_1_1InstrStage.html 
 	def Cpu0GenericItineraries : ProcessorItineraries<[ALU, IMULDIV], [], [
 	...
 	  InstrItinData<IIImul             , [InstrStage<17, [IMULDIV]>]>,
@@ -119,7 +119,7 @@ are designed from two different hardware circuits, and more, their data path is
 separate. We think the cpu0 is the same even though no explanation in it's web 
 site.
 So, these two function units can be executed at same time (instruction level 
-parallelism).
+parallelism). Reference [#]_ for instruction itineraries.
 
 Now, let's build 4/1/Cpu0 and run with input file ch4_2.cpp. 
 This version can process **+, -, \*, /, &, |, ^, <<,** and **>>** operators in C 
@@ -194,13 +194,10 @@ So, implementation by “shift 1bit to left and fill the least bit with 0”
 satisfy the definition x = x*2 for x << 1, no matter operand x is signed or 
 unsigned int.
 
-References as follows,
+Micorsoft implementation references as [#]_.
 
-http://msdn.microsoft.com/en-us/library/336xbhcz%28v=vs.80%29.aspx
-
-The sub-section "‘ashr‘ Instruction" of http://llvm.org/docs/LangRef.html
-
-he sub-section "‘lshr‘ Instruction" of http://llvm.org/docs/LangRef.html
+The sub-section "‘ashr‘ Instruction" and sub-section "‘lshr‘ Instruction" of 
+[#]_.
 
 The 4/1 version just add 40 lines code in td files. 
 With these 40 lines code, it process 9 operators more for C language and their 
@@ -356,7 +353,7 @@ Now, let's examine Cpu0MCTargetDesc.cpp.
 	}
 
 Cpu0MCTargetDesc.cpp do the target registration as mentioned in 
-`section Target Registration`_ of the last chapter. 
+"section Target Registration" [#]_ of the last chapter. 
 Drawing the register function and those class it registered in 
 :ref:`otherinst_f1` to :ref:`otherinst_f9` for explanation.
 
@@ -515,8 +512,10 @@ Like :ref:`otherinst_f1` to :ref:`otherinst_f4`, it has been defined in
 4/1/Cpu0 code for assembly file generated support.
 
 
+.. [#] http://llvm.org/docs/doxygen/html/structllvm_1_1InstrStage.html
 
-.. _section Target Registration:
-    http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+.. [#] http://msdn.microsoft.com/en-us/library/336xbhcz%28v=vs.80%29.aspx
 
+.. [#] http://llvm.org/docs/LangRef.html.
 
+.. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
