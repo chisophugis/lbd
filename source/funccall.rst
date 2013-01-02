@@ -2576,7 +2576,7 @@ backend code too.
     return a;
   }
 
-Mips qemu reference .
+Mips qemu reference [#]_.
 
 Summary of this chapter
 ------------------------
