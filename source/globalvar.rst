@@ -2,21 +2,26 @@ Global variable, struct and array
 ==================================
 
 In the previous two chapters, we only access the local variables. 
-This chapter begin from global variable access translation for cpu0 
-instruction. 
-After that, introducing struct and array type of variable access 
-and their corresponding llvm IR statement, and introducing cpu0 how to 
+This chapter begin from global variable access translation. 
+After that, introducing the types of struct and array as well as  
+their corresponding llvm IR statement, and how the cpu0 
 translate these llvm IR statements in `section Array and struct support`_. 
 The logic operation “not” support and translation in 
 `section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
 will show you the DAG optimization steps and their corresponding llc display 
 options. 
-These result of DAG optimization steps can be viewed by Graphviz graphic tool 
-which display very useful information by graphic view. 
+These DAG optimization steps result can be displayed by the graphic tool of 
+Graphviz which supply very useful information with graphic view. 
 You will appreciate Graphviz support in debug, we think. 
 In `section Adjust cpu0 instruction and support type of local variable pointer`_, 
-we adjust cpu0 instructions to support data type for C language.
-Finally, `section Operator mod, %`_ to take care the C operator %.
+we adjust cpu0 instructions to support dome data type for C language.
+Finally, `section Operator mod, %`_ take care the C operator %.
+
+The global variable DAG translation is different from the previous DAG 
+translation we have now. 
+It create DAG nodes at run time in our backend C++ code according the 
+``llc -relocation-model`` option while the others of DAG just do IR DAG to 
+Machine DAG translation directly according the input file IR DAG.
 
 
 Global variable
@@ -103,11 +108,12 @@ first, and explain the code changes after that.
         .4byte  100                     # 0x64
         .size   gI, 4
 
-As above code, it translate “load i32* @gI, align 4” into “ld  $2, %got(gI)($gp)
-” for  llc -march=cpu0 -relocation-model=pic, position-independent mode. 
-It translate the global integer variable gI address into offset of register gp 
-and load from $gp+(the offset) into register $2. 
-We can translate it with absolute address mode by following command,
+As above code, it translate **“load i32* @gI, align 4”** into 
+**“ld  $2, %got(gI)($gp)”** for ``llc -march=cpu0 -relocation-model=pic``, 
+position-independent mode. 
+More specifically, it translate the global integer variable gI address into 
+offset of register gp and load from $gp+(the offset) into register $2. 
+We can also translate it with absolute address mode by following command,
 
 .. code-block:: bash
 
@@ -122,15 +128,15 @@ We can translate it with absolute address mode by following command,
         add $2, $2, $3 
         ld  $2, 0($2) 
 
-Above code, it load the high address part of gI absolute address (16 bits) to 
+Above code, it loads the high address part of gI absolute address (16 bits) to 
 register $2 and shift 16 bits. 
 Now, the register $2 got it's high part of gI absolute address. 
-Next, it load the low part of gI absolute address into register 3. 
-Finally, add register $2 and $3 into $2, and load the content of address 
+Next, it loads the low part of gI absolute address into register 3. 
+Finally, add register $2 and $3 into $2, and loads the content of address 
 $2+offset 0 into register $2. 
-The “llc -relocation-model=static “ is for static link mode which binding the 
+The ``llc -relocation-model=static`` is for static link mode which binding the 
 address in static, compile/link time, not dynamic/run time. 
-In this mode, you can also translate code with following command,
+In this mode, you can also translate code with the following command,
 
 .. code-block:: bash
 
@@ -147,11 +153,11 @@ In this mode, you can also translate code with following command,
     .section    .sdata,"aw",@progbits 
     .globl  gI 
 
-As above, it translate code with “llc -relocation-model=static 
--cpu0-islinux-format=false”. 
+As above, it translate code with ``llc -relocation-model=static 
+-cpu0-islinux-format=false``. 
 The -cpu0-islinux-format default is true which will allocate global variables 
 in data section. 
-With false, it will allocate global variables in sdata section. 
+With setting false, it will allocate global variables in sdata section. 
 Section data and sdata are areas for global variable with initial value, 
 int gI = 100 in this example. 
 Section bss and sbss are areas for global variables without initial value 
@@ -159,22 +165,21 @@ Section bss and sbss are areas for global variables without initial value
 Allocate variables in sdata or sbss sections is addressable by 16 bits + $gp. 
 The static mode with -cpu0-islinux-format=false is still static mode 
 (variable is binding in compile/link time) even it's use $gp relative address. 
-The $gp content is assigned in compile/link time, change only in program be 
+The $gp content is assigned at compile/link time, changed only at program be 
 loaded, and is fixed during running the program; while the -relocation-model=pic 
 the $gp can be changed during program running. 
 For example, if $gp is assigned to start of .sdata like this example, then 
 %gp_rel(gI) = (the relative address distance between gI and $gp) (is 0 in this 
 case). 
 When sdata is loaded into address x, then the gI variable can be got from 
-address x+0 where x is the address stored in $gp, 0 is $gp_rel(gI).
+address x+0 where x is the address stored in $gp, 0 is the value of $gp_rel(gI).
 
-To support global variable, first add IsLinuxOpt command variable to 
+To support global variable, first add **IsLinuxOpt** command variable to 
 Cpu0Subtarget.cpp. 
-After that, user can run llc with argument “llc -cpu0-islinux-format=false” to 
-specify IsLinuxOpt to false. 
-The IsLinuxOpt is default to true if without specify it. 
-About the cl command, you can refer to http://llvm.org/docs/CommandLine.html 
-further.
+After that, user can run llc with argument ``llc -cpu0-islinux-format=false`` 
+to specify **IsLinuxOpt** to false. 
+The **IsLinuxOpt** is defaulted to true if without specify it. 
+About the **cl** command variable, you can refer to [#]_ further.
 
 .. code-block:: c++
 
@@ -259,8 +264,8 @@ further.
       return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
     }
 
-The setOperationAction(ISD::GlobalAddress, MVT::i32, Custom) tell llc that we 
-implement global address operation in C++ function 
+The setOperationAction(ISD::GlobalAddress, MVT::i32, Custom) tells ``llc`` that 
+we implement global address operation in C++ function 
 Cpu0TargetLowering::LowerOperation() and llvm will call this function only when 
 llvm want to translate IR DAG of loading global variable into machine code. 
 Since may have many Custom type of setOperationAction(ISD::XXX, MVT::XXX, 
@@ -329,10 +334,10 @@ So after Instruction Selection and Register Allocation, it translate ABS_HI to,
 According above code, we know llvm allocate register $2 for the output operand 
 of LDI instruction and $2 for SHL instruction in this example. 
 Since (SHL (LDI), 16), the LDI output result will be the SHL first register. 
-The result is “shl $2, 16”. 
-Above Pat<> also define DAG list (add $hi, (ABS_LO)) will translate into 
-(ADD $hi, (LDI ZERO, ...)) where ADD is machine instruction add and LDI is 
-machine instruction ldi which defined in Cpu0InstrInfo.td too. 
+The result is **“shl $2, 16”**. 
+Above Pat<> also define DAG list (add $hi, (ABS_LO)) will be translated into 
+(ADD $hi, (LDI ZERO, ...)) where ADD is machine instruction **add** and LDI is 
+machine instruction **ldi** which defined in Cpu0InstrInfo.td too. 
 Remember (add $hi, (ABS_LO)) meaning add DAG has two operands, first is $hi and 
 second is the register which the ABS_LO output result register save to. 
 So, the IR DAG pattern and it's corresponding machine instruction node as 
@@ -399,7 +404,7 @@ instructions as follows,
     ldi $2, %gp_rel(gI) 
     add $2, $gp, $2 
 
-Last, when PIC mode, LowerGlobalAddress() will create the DAG list (load 
+At last, when PIC mode, LowerGlobalAddress() will create the DAG list (load 
 DAG.getEntryNode(), (Wrapper GetGlobalReg(), GA)) by the following code and 
 the code in Cpu0ISeleDAGToDAG.cpp as follows,
 
@@ -438,11 +443,11 @@ Then it translate into the following code,
 
     ld  $2, %got(gI)($gp) 
 
-Where DAG.getEntryNode() is the register $2 which decide by Register Allocator, 
-and (Wrapper GetGlobalReg(), GA) translate into Base=$gp and the 16 bits Offset 
-for $gp.
+Where DAG.getEntryNode() is the register $2 which decided by Register Allocator
+; DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA) is 
+translated into Base=$gp as well as the 16 bits Offset for $gp.
 
-Beside above code, add the following code to Cpu0AsmPrinter.cpp and it will 
+Apart from above code, add the following code to Cpu0AsmPrinter.cpp and it will 
 emit .cpload asm sudo instruction,
 
 .. code-block:: c++
@@ -570,8 +575,7 @@ mechanism, pattern match, in the Instruction Selection stage.
 
 There are three type for setXXXAction(), they are Promote, Expand and Custom. 
 Except Custom, the other two usually no need to coding. 
-The section "Instruction Selector" of 
-http://llvm.org/docs/WritingAnLLVMBackend.html is the references.
+The section "Instruction Selector" of [#]_ is the references.
 
 Array and struct support
 -------------------------
@@ -581,7 +585,7 @@ The Linux platform is fine.
 The reason we do the shift is for new platform using experience.
 
 LLVM use getelementptr to represent the array and struct type in C. 
-Please reference section getelementptr of http://llvm.org/docs/LangRef.html. 
+Please reference section getelementptr of [#]_. 
 For ch5_2.cpp, the llvm IR as follows,
 
 .. code-block:: c++
@@ -1097,8 +1101,7 @@ The graphic display is more readable by eye than display text in terminal.
 It's not necessary, but it help a lot especially when you are tired in tracking 
 the DAG translation process. 
 List the llc graphic support options from the sub-section "SelectionDAG 
-Instruction Selection Process" of web 
-http://llvm.org/docs/CodeGenerator.html as follows,
+Instruction Selection Process" of web [#]_ as follows,
 
 .. note:: The llc Graphviz DAG display options
 
@@ -1551,7 +1554,7 @@ corresponding llvm IR, as follows,
 
 
 LLVM srem is the IR corresponding “%”, reference sub-section "srem instruction" 
-of http://llvm.org/docs/LangRef.html. 
+of [#]_. 
 Copy the reference as follows,
 
 .. note:: 'srem' Instruction 
@@ -1886,4 +1889,14 @@ support. You can compile it and check the result.
 .. _section Support arithmetic instructions:
     http://jonathan2251.github.com/lbd/otherinst.html#support-arithmetic-
     instructions
+
+.. [#] http://llvm.org/docs/CommandLine.html
+
+.. [#] http://llvm.org/docs/WritingAnLLVMBackend.html
+
+.. [#] http://llvm.org/docs/LangRef.html
+
+.. [#] http://llvm.org/docs/CodeGenerator.html
+
+.. [#] http://llvm.org/docs/LangRef.html
 

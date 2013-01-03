@@ -112,9 +112,36 @@ Let's run 7/7/Cpu0 with ch5_1.cpp, and dump ELF header information by
     Section header string table index: 7
   [Gamma@localhost InputFiles]$ 
 
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  bin/llc -march=mips -relocation-model=pic -filetype=obj ch5_1.bc -o ch5_1.mips.o
+  
+  [Gamma@localhost InputFiles]$ readelf -h ch5_1.mips.o 
+  ELF Header:
+    Magic:   7f 45 4c 46 01 02 01 08 00 00 00 00 00 00 00 00 
+    Class:                             ELF32
+    Data:                              2's complement, big endian
+    Version:                           1 (current)
+    OS/ABI:                            UNIX - IRIX
+    ABI Version:                       0
+    Type:                              REL (Relocatable file)
+    Machine:                           MIPS R3000
+    Version:                           0x1
+    Entry point address:               0x0
+    Start of program headers:          0 (bytes into file)
+    Start of section headers:          212 (bytes into file)
+    Flags:                             0x70000001
+    Size of this header:               52 (bytes)
+    Size of program headers:           0 (bytes)
+    Number of program headers:         0
+    Size of section headers:           40 (bytes)
+    Number of section headers:         11
+    Section header string table index: 8
+  [Gamma@localhost InputFiles]$ 
+
 
 As above ELF header display, it contains information of magic number, version, 
-ABI, …, . 
+ABI, …, . The Machine field of cpu0 is unknown while mips is MIPSR3000. 
+It is because cpu0 is not a popular CPU recognized by utility readelf. 
 Let's check ELF segments information as follows,
 
 .. code-block:: bash
@@ -126,7 +153,7 @@ Let's check ELF segments information as follows,
 
 
 The result is in expectation because cpu0 obj is for link only, not for 
-execute. 
+execution. 
 So, the segments is empty. 
 Check ELF sections information as follows. 
 It contains offset and size information for every section.
