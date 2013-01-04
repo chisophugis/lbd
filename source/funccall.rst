@@ -46,11 +46,11 @@ if it over 4 arguments. :ref:`funccall_f1` is the Mips stack frame.
 
     Mips stack frame
     
-Run llc with -march=mips for ch7_1.bc, you will get the following result.
+Run llc with -march=mips for ch8_1.bc, you will get the following result.
 
 .. code-block:: c++
 
-    // ch7_1.cpp
+    // ch8_1.cpp
     int sum_i(int x1, int x2, int x3, int x4, int x5, int x6)
     {
         int sum = x1 + x2 + x3 + x4 + x5 + x6;
@@ -67,14 +67,14 @@ Run llc with -march=mips for ch7_1.bc, you will get the following result.
 
 .. code-block:: bash
 
-    118-165-79-31:InputFiles Jonathan$ clang -c ch7_1.cpp -emit-llvm -o ch7_1.bc
+    118-165-79-31:InputFiles Jonathan$ clang -c ch8_1.cpp -emit-llvm -o ch8_1.bc
     118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
     cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm 
-    ch7_1.bc -o ch7_1.mips.s
-    118-165-79-31:InputFiles Jonathan$ cat ch7_1.mips.s
+    ch8_1.bc -o ch8_1.mips.s
+    118-165-79-31:InputFiles Jonathan$ cat ch8_1.mips.s
         .section .mdebug.abi32
         .previous
-        .file   "ch7_1.bc"
+        .file   "ch8_1.bc"
         .text
         .globl  _Z5sum_iiiiiii
         .align  2
@@ -157,7 +157,7 @@ Run llc with -march=mips for ch7_1.bc, you will get the following result.
 
 From the mips assembly code generated as above, we know it save the first 4 
 arguments to $a0..$a3 and last 2 arguments to 16($sp) and 20($sp). 
-:ref:`funccall_f2` is the arguments location for example code ch7_1.cpp. 
+:ref:`funccall_f2` is the arguments location for example code ch8_1.cpp. 
 It load argument 5 from 48($sp) in sum_i() since the argument 5 is saved to 
 16($sp) in main(). 
 The stack size of sum_i() is 32, so 16+32($sp) is the location of incoming 
@@ -181,27 +181,27 @@ Load incoming arguments from stack frame
 
 From last section, to support function call, we need implementing the arguments 
 pass mechanism with stack frame. Before do that, let's run the old version of 
-code 6/1/Cpu0 with ch7_1.cpp and see what happen.
+code 7/1/Cpu0 with ch8_1.cpp and see what happen.
 
 .. code-block:: bash
 
   118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-  ch7_1.bc -o ch7_1.cpu0.s
+  ch8_1.bc -o ch8_1.cpu0.s
   Assertion failed: (InVals.size() == Ins.size() && "LowerFormalArguments didn't 
   emit the correct number of values!"), function LowerArguments, file /Users/
   Jonathan/llvm/3.1.test/cpu0/1/src/lib/CodeGen/SelectionDAG/
   SelectionDAGBuilder.cpp, line 6671.
   Stack dump:
   0.  Program arguments: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
-  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1.bc -o 
-  ch7_1.cpu0.s 
-  1.  Running pass 'Function Pass Manager' on module 'ch7_1.bc'.
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
+  ch8_1.cpu0.s 
+  1.  Running pass 'Function Pass Manager' on module 'ch8_1.bc'.
   2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
   '@_Z5sum_iiiiiii'
   Illegal instruction: 4
 
-Since 6/1/Cpu0 define the LowerFormalArguments() with empty, we get the error 
+Since 7/1/Cpu0 define the LowerFormalArguments() with empty, we get the error 
 message as above. 
 Before define LowerFormalArguments(), we have to choose how to pass arguments 
 in function call. We choose pass arguments all in stack frame. 
@@ -338,7 +338,7 @@ LowerGlobalAddress() is called when llc meet the global variable access.
 LowerFormalArguments() work with the same way. 
 It is called when function is entered. 
 It get incoming arguments information by CCInfo(CallConv,..., ArgLocs, …) 
-before enter “for loop”. In ch7_1.cpp, there are 6 arguments in sum_i(...) 
+before enter “for loop”. In ch8_1.cpp, there are 6 arguments in sum_i(...) 
 function call and we use the stack frame only for arguments passing without 
 any arguments pass in registers. 
 So ArgLocs.size() is 6, each argument information is in ArgLocs[i] and 
@@ -350,7 +350,7 @@ And then create IR DAG load node and put the load node into vector InVals by
 InVals.push_back(DAG.getLoad(ValVT, dl, Chain, FIN, 
 MachinePointerInfo::getFixedStack(LastFI), false, false, false, 0)). 
 Cpu0FI->setVarArgsFrameIndex(0) and Cpu0FI->setLastInArgFI(LastFI) are called 
-when before and after above work. In ch7_1.cpp example, LowerFormalArguments() 
+when before and after above work. In ch8_1.cpp example, LowerFormalArguments() 
 will be called twice. First time is for sum_i() which will create 6 load DAG 
 for 6 incoming arguments passing into this function. 
 Second time is for main() which didn't create any load DAG for no incoming 
@@ -393,7 +393,7 @@ variable, which is the offset.
         .addMemOperand(MMO);
     }
 
-In addition to Calling Convention and LowerFormalArguments(), 7/2/Cpu0 add the 
+In addition to Calling Convention and LowerFormalArguments(), 8/2/Cpu0 add the 
 following code for cpu0 instructions swi (Software Interrupt), jsub and jalr 
 (function call) definition and printing.
 
@@ -539,23 +539,23 @@ following code for cpu0 instructions swi (Software Interrupt), jsub and jalr
       void setMaxCallFrameSize(unsigned S) { MaxCallFrameSize = S; }
     };
 
-After above changes, you can run 7/2/Cpu0 with ch7_1.cpp and see what happens 
+After above changes, you can run 8/2/Cpu0 with ch8_1.cpp and see what happens 
 in the following,
 
 .. code-block:: bash
 
     118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch7_1.bc -o ch7_1.cpu0.s
+    ch8_1.bc -o ch8_1.cpu0.s
     Assertion failed: ((isTailCall || InVals.size() == Ins.size()) && 
     "LowerCall didn't emit the correct number of values!"), function LowerCallTo, 
     file /Users/Jonathan/llvm/3.1.test/cpu0/1/src/lib/CodeGen/SelectionDAG/
     SelectionDAGBuilder.cpp, line 6482.
     Stack dump:
     0.  Program arguments: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
-    bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1.bc -o 
-    ch7_1.cpu0.s 
-    1.  Running pass 'Function Pass Manager' on module 'ch7_1.bc'.
+    bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
+    ch8_1.cpu0.s 
+    1.  Running pass 'Function Pass Manager' on module 'ch8_1.bc'.
     2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
     '@main'
     Illegal instruction: 4
@@ -872,17 +872,17 @@ later according Cpu0InstrInfo.td definition as follows.
         .addFrameIndex(FI).addImm(0).addMemOperand(MMO);
     }
 
-Now, let's run 7/3/Cpu0 with ch7_1.cpp to get result as follows,
+Now, let's run 8/3/Cpu0 with ch8_1.cpp to get result as follows,
 
 .. code-block:: bash
 
     118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch7_1.bc -o ch7_1.cpu0.s
-    118-165-79-83:InputFiles Jonathan$ cat ch7_1.cpu0.s 
+    ch8_1.bc -o ch8_1.cpu0.s
+    118-165-79-83:InputFiles Jonathan$ cat ch8_1.cpu0.s 
         .section .mdebug.abi32
         .previous
-        .file   "ch7_1.bc"
+        .file   "ch8_1.bc"
         .text
         .globl  _Z5sum_iiiiiii
         .align  2
@@ -977,8 +977,8 @@ Fix the wrong offset in storing arguments to stack frame
 
 To fix the wrong offset in storing arguments, we modify the following code 
 in eliminateFrameIndex() as follows. 
-The bold text as below is added in 7/4/Cpu0 to set the caller outgoing 
-arguments into spOffset($sp) (7/3/Cpu0 set them to pOffset+stackSize($sp).
+The bold text as below is added in 8/4/Cpu0 to set the caller outgoing 
+arguments into spOffset($sp) (8/3/Cpu0 set them to pOffset+stackSize($sp).
 
 .. code-block:: c++
 
@@ -1029,7 +1029,7 @@ arguments into spOffset($sp) (7/3/Cpu0 set them to pOffset+stackSize($sp).
         return FI <= OutArgFIRange.first && FI >= OutArgFIRange.second;
       }
 
-Run 7/4/Cpu0 with ch7_1.cpp will get the following result. 
+Run 8/4/Cpu0 with ch8_1.cpp will get the following result. 
 It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to 
 (0)$sp, (8)$sp, ..., where the stack size is 40 in main().
 
@@ -1037,11 +1037,11 @@ It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to
 
   118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
-  asm ch7_1.bc -o ch7_1.cpu0.s
-  118-165-76-131:InputFiles Jonathan$ cat ch7_1.cpu0.s
+  asm ch8_1.bc -o ch8_1.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch8_1.cpu0.s
     .section .mdebug.abi32
     .previous
-    .file "ch7_1.bc"
+    .file "ch8_1.bc"
     .text
     .globl  _Z5sum_iiiiiii
     .align  2
@@ -1181,17 +1181,17 @@ function and define eliminateCallFramePseudoInstr() as follows,
 With above definition, eliminateCallFramePseudoInstr() will be called when 
 llvm meet pseudo instructions ADJCALLSTACKDOWN and ADJCALLSTACKUP. 
 We just discard these 2 pseudo instructions. 
-Run 7/4/Cpu0 with ch7_1.cpp will get the following result.
+Run 8/4/Cpu0 with ch8_1.cpp will get the following result.
 
 .. code-block:: bash
 
   118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype
-  =asm ch7_1.bc -o ch7_1.cpu0.s
-  118-165-76-131:InputFiles Jonathan$ cat ch7_1.cpu0.s
+  =asm ch8_1.bc -o ch8_1.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch8_1.cpu0.s
     .section .mdebug.abi32
     .previous
-    .file "ch7_1.bc"
+    .file "ch8_1.bc"
     .text
     .globl  _Z5sum_iiiiiii
     .align  2
@@ -1301,15 +1301,15 @@ But, we can caculate the distance between the global variable address and
 shared library function if they will be loaded to the contiguous memory space 
 together.
 
-Let's run 7/5/Cpu0 with ch7_2.cpp to get the following result of we putting the 
+Let's run 8/5/Cpu0 with ch8_2.cpp to get the following result of we putting the 
 comment in it for explanation.
 
 .. code-block:: bash
 
-    118-165-67-25:InputFiles Jonathan$ cat ch7_2.cpu0.s
+    118-165-67-25:InputFiles Jonathan$ cat ch8_2.cpu0.s
         .section .mdebug.abi32
         .previous
-        .file   "ch7_2.bc"
+        .file   "ch8_2.bc"
         .text
         .globl  _Z5sum_iiiiiii
         .align  2
@@ -1394,7 +1394,7 @@ how to use $gp to access global variable address. This solution is popular in
 reality and deserve change cpu0 official design as a compiler book. 
 Mips use the same solution in 32 bits Mips32 CPU.
 
-Now, as the following code added in 7/5/Cpu0, we can issue “.cprestore” in 
+Now, as the following code added in 8/5/Cpu0, we can issue “.cprestore” in 
 emitPrologue() and emit ld $gp, ($gp save slot on stack) after jalr by create 
 file Cpu0EmitGPRestore.cpp which run as a function pass.
 
@@ -1775,8 +1775,8 @@ machine code as follows,
 
   118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
-  obj ch7_2.bc -o ch7_2.cpu0.o
-  118-165-76-131:InputFiles Jonathan$ hexdump  ch7_2.cpu0.o
+  obj ch8_2.bc -o ch8_2.cpu0.o
+  118-165-76-131:InputFiles Jonathan$ hexdump  ch8_2.cpu0.o
   ...
   // .cpload machine instructions "09 a0 00 00 to 13 aa 60 00"
   0000030 00 0a 00 07 09 a0 00 00 1e aa 00 10 09 aa 00 00
@@ -1790,7 +1790,7 @@ machine code as follows,
   00000d0 01 ad 00 18 09 20 00 00 01 2d 00 40 09 20 00 06
   ...
   
-  118-165-67-25:InputFiles Jonathan$ cat ch7_2.cpu0.s
+  118-165-67-25:InputFiles Jonathan$ cat ch8_2.cpu0.s
   ...
     .ent  _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
   _Z5sum_iiiiiii:
@@ -1814,8 +1814,8 @@ Run “llc -static” will call jsub instruction instead of jalr as follows,
 
   118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=
-  asm ch7_2.bc -o ch7_2.cpu0.s
-  118-165-76-131:InputFiles Jonathan$ cat ch7_2.cpu0.s
+  asm ch8_2.bc -o ch8_2.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch8_2.cpu0.s
   …
     jsub  _Z5sum_iiiiiii
   ...
@@ -1823,7 +1823,7 @@ Run “llc -static” will call jsub instruction instead of jalr as follows,
 Run with llc -obj, you can find the Cx of “jsub Cx” is 0 since the Cx is 
 calculated by linker as below. 
 Mips has the same 0 in it's jal instruction. 
-The ch7_1_2.cpp, ch7_1_3.cpp and ch7_1_4.cpp are example code more for test. 
+The ch8_1_2.cpp, ch8_1_3.cpp and ch8_1_4.cpp are example code more for test. 
 
 .. code-block:: bash
 
@@ -1839,11 +1839,11 @@ Until now, we support fixed number of arguments in formal function definition
 (Incoming Arguments). 
 This section support variable number of arguments since C language support 
 this feature.
-Run 7/7/Cpu0 with ch7_3.cpp to get the following,
+Run 8/7/Cpu0 with ch8_3.cpp to get the following,
 
 .. code-block:: c++
 
-  // ch7_3.cpp
+  // ch8_3.cpp
   //#include <stdio.h>
   #include <stdarg.h>
   
@@ -1877,11 +1877,11 @@ Run 7/7/Cpu0 with ch7_3.cpp to get the following,
 
   118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-  ch7_3.bc -o ch7_3.cpu0.s
-  118-165-76-131:InputFiles Jonathan$ cat ch7_3.cpu0.s
+  ch8_3.bc -o ch8_3.cpu0.s
+  118-165-76-131:InputFiles Jonathan$ cat ch8_3.cpu0.s
     .section .mdebug.abi32
     .previous
-    .file "ch7_3.bc"
+    .file "ch8_3.bc"
     .text
     .globl  _Z5sum_iiz
     .align  2
@@ -2019,7 +2019,7 @@ Run 7/7/Cpu0 with ch7_3.cpp to get the following,
     .size main, ($tmp9)-main
       .cfi_endproc
 
-We have problem in analysis of the output ch7_3.cpu0.s. 
+We have problem in analysis of the output ch8_3.cpu0.s. 
 We guess and try to analysis as follows. 
 As above code, we get the first argument “amount” from “ld $2, 56($sp)” since 
 the stack size of the callee function “_Z5sum_iiz()” is 56. 
@@ -2046,9 +2046,9 @@ The llvm IR and mips assembly output as follows,
 
 .. code-block:: bash
 
-  118-165-78-221:InputFiles Jonathan$ llvm-dis ch7_3.bc -o ch7_3.ll
-  118-165-78-221:InputFiles Jonathan$ cat ch7_3.ll 
-  ; ModuleID = 'ch7_3.bc'
+  118-165-78-221:InputFiles Jonathan$ llvm-dis ch8_3.bc -o ch8_3.ll
+  118-165-78-221:InputFiles Jonathan$ cat ch8_3.ll 
+  ; ModuleID = 'ch8_3.bc'
   target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-
   f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:
   32:64-S128"
@@ -2063,10 +2063,10 @@ The llvm IR and mips assembly output as follows,
     %12 = icmp ule i32 %11, 40
     br i1 %12, label %13, label %19
 
-  118-165-67-185:InputFiles Jonathan$ cat ch7_3.mips.s
+  118-165-67-185:InputFiles Jonathan$ cat ch8_3.mips.s
     .section .mdebug.abi32
     .previous
-    .file "ch7_3.bc"
+    .file "ch8_3.bc"
     .text
     .globl  _Z5sum_iiz
     .align  2
@@ -2216,32 +2216,32 @@ The llvm IR and mips assembly output as follows,
     .cfi_endproc
 
 
-We have verified the translation of ch7_3.cpp is correct by add printf in 
-ch7_3.cpp to get ch7_3_3.cpp and run with “lli” llvm interpreter. 
+We have verified the translation of ch8_3.cpp is correct by add printf in 
+ch8_3.cpp to get ch8_3_3.cpp and run with “lli” llvm interpreter. 
 We also translate it into native Intel CPU code and get the correct print 
 result. 
-Following are the ch7_3_3.cpp, and lli, Intel native code run result.
+Following are the ch8_3_3.cpp, and lli, Intel native code run result.
 
 .. code-block:: c++
 
-  // ch7_3_3.cpp
-  // clang -c ch7_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/
+  // ch8_3_3.cpp
+  // clang -c ch8_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/
   Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/
-  include/ -o ch7_3_3.bc
+  include/ -o ch8_3_3.bc
   // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc 
-  ch7_3_3.bc -o ch7_3_3.s
-  // clang++ ch7_3_3.s -o ch7_3_3.native
-  // ./ch7_3_3.native
-  // lldb -- ch7_3_3.native
+  ch8_3_3.bc -o ch8_3_3.s
+  // clang++ ch8_3_3.s -o ch8_3_3.native
+  // ./ch8_3_3.native
+  // lldb -- ch8_3_3.native
   // b main
   // s
   // ...
   // print $rsp   ; print %rsp, choose $ instead of % in assembly code
   
-  // mips-linux-gnu-g++ -g ch7_3_3.cpp -o ch7_3_3 -static
-  // qemu-mips ch7_3_3
-  // mips-linux-gnu-g++ -S ch7_3_3.cpp
-  // cat ch7_3_3.s
+  // mips-linux-gnu-g++ -g ch8_3_3.cpp -o ch8_3_3 -static
+  // qemu-mips ch8_3_3
+  // mips-linux-gnu-g++ -S ch8_3_3.cpp
+  // cat ch8_3_3.s
 
   #include <stdio.h>
   #include <stdarg.h>
@@ -2274,19 +2274,19 @@ Following are the ch7_3_3.cpp, and lli, Intel native code run result.
 
 .. code-block:: bash
 
-  118-165-78-221:InputFiles Jonathan$ lli ch7_3_3.bc 
+  118-165-78-221:InputFiles Jonathan$ lli ch8_3_3.bc 
   a = 21
   
-  118-165-67-185:InputFiles Jonathan$ clang -c ch7_3_3.cpp -emit-llvm -I
+  118-165-67-185:InputFiles Jonathan$ clang -c ch8_3_3.cpp -emit-llvm -I
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/
-  Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch7_3_3.bc
+  Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch8_3_3.bc
   118-165-67-185:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
-  cmake_debug_build/bin/Debug/llc ch7_3_3.bc -o ch7_3_3.s
-  118-165-67-185:InputFiles Jonathan$ clang++ ch7_3_3.s -o ch7_3_3.native
-  118-165-67-185:InputFiles Jonathan$ ./ch7_3_3.native
+  cmake_debug_build/bin/Debug/llc ch8_3_3.bc -o ch8_3_3.s
+  118-165-67-185:InputFiles Jonathan$ clang++ ch8_3_3.s -o ch8_3_3.native
+  118-165-67-185:InputFiles Jonathan$ ./ch8_3_3.native
   a = 21
   
-  118-165-67-185:InputFiles Jonathan$ cat ch7_3_3.s
+  118-165-67-185:InputFiles Jonathan$ cat ch8_3_3.s
   ...
   LBB0_3:                                 ## =>This Inner Loop Header: Depth=1
     movl  216(%rsp), %eax
@@ -2304,14 +2304,14 @@ The qemu mips gcc result as follows,
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ qemu-mips ch7_3_3
+  [Gamma@localhost InputFiles]$ qemu-mips ch8_3_3
   a = 21
-  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -g ch7_3_3.cpp -o ch7_3_3 -static
-  [Gamma@localhost InputFiles]$ qemu-mips ch7_3_3
+  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -g ch8_3_3.cpp -o ch8_3_3 -static
+  [Gamma@localhost InputFiles]$ qemu-mips ch8_3_3
   a = 21
-  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -S ch7_3_3.cpp
-  [Gamma@localhost InputFiles]$ cat ch7_3_3.s
-    .file 1 "ch7_3_3.cpp"
+  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -S ch8_3_3.cpp
+  [Gamma@localhost InputFiles]$ cat ch8_3_3.s
+    .file 1 "ch8_3_3.cpp"
     .section .mdebug.abi32
     .previous
     .gnu_attribute 4, 1
@@ -2490,8 +2490,8 @@ The qemu mips gcc result as follows,
   [Gamma@localhost InputFiles]$ 
 
 To support variable number of arguments, the following code needed to 
-add in 7/7/Cpu0. 
-The ch7_3_2.cpp is C++ template example code, it can be translated into cpu0 
+add in 8/7/Cpu0. 
+The ch8_3_2.cpp is C++ template example code, it can be translated into cpu0 
 backend code too.
 
 .. code-block:: c++
@@ -2544,7 +2544,7 @@ backend code too.
 
 .. code-block:: c++
 
-  // ch7_3_2.cpp
+  // ch8_3_2.cpp
   ...
   //#include <stdio.h>
   #include <stdarg.h>
@@ -2581,7 +2581,7 @@ Mips qemu reference [#]_.
 Summary of this chapter
 ------------------------
 
-Until now, we have 5,500 lines of source code around in 7/7/Cpu0. 
+Until now, we have 5,500 lines of source code around in 8/7/Cpu0. 
 The cpu0 backend code now can take care the integer function call and control 
 statement just like the llvm front end tutorial example code. 
 Look back the chapter of “Back end structure”, there are 3,000 lines of source 

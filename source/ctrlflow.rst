@@ -8,11 +8,11 @@ control flow statements of llvm IR into cpu0 instructions.
 Control flow statement
 -----------------------
 
-Run ch6_1.cpp with clang will get result as follows,
+Run ch7_1.cpp with clang will get result as follows,
 
 .. code-block:: c++
 
-    // ch6_1.cpp
+    // ch7_1.cpp
     int main()
     {
         unsigned int a = 0;
@@ -61,7 +61,7 @@ Run ch6_1.cpp with clang will get result as follows,
 
 .. code-block:: bash
 
-    ; ModuleID = 'ch6_1_1.bc'
+    ; ModuleID = 'ch7_1_1.bc'
     target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
     f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
     target triple = "i386-apple-macosx10.8.0"
@@ -207,7 +207,7 @@ Run ch6_1.cpp with clang will get result as follows,
 
 The “icmp ne” stand for integer compare NotEqual, “slt” stand for Set Less 
 Than, “sle” stand for Set Less Equal. 
-Run version 5/6_2/Cpu0 with llc  -view-isel-dags or -debug option, you can see 
+Run version 6/2/Cpu0 with llc  -view-isel-dags or -debug option, you can see 
 it has translated if statement into 
 (br (brcond (%1, setcc(%2, Constant<c>, setne)), BasicBlock_02), BasicBlock_01).
 Ignore %1, we get the form (br (brcond (setcc(%2, Constant<c>, setne)), 
@@ -359,7 +359,7 @@ hexdump as follows,
 
 .. code-block:: c++
 
-    118-165-79-206:InputFiles Jonathan$ cat ch6_1_1.cpu0.s 
+    118-165-79-206:InputFiles Jonathan$ cat ch7_1_1.cpu0.s 
     …
         ld  $3, 32($sp)
         cmp $3, $2
@@ -377,9 +377,9 @@ hexdump as follows,
     
     118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=obj 
-    ch6_1_1.bc -o ch6_1_1.cpu0.o
+    ch7_1_1.bc -o ch7_1_1.cpu0.o
 
-    118-165-79-206:InputFiles Jonathan$ hexdump ch6_1_1.cpu0.o 
+    118-165-79-206:InputFiles Jonathan$ hexdump ch7_1_1.cpu0.o 
         // jmp offset is 0x10=16 bytes which is correct
     0000080 …......................... 10 20 20 02 21 00 00 10
     
@@ -582,11 +582,11 @@ Finally we list the code added for full support of control flow statement,
     
     defm : BrcondPats<CPURegs, JEQ, JNE, JLT, JGT, JLE, JGE, CMP, ZERO>;
 
-The ch6_1_2.cpp is for “nest if” test. The ch6_1_3.cpp is the “for loop” as 
+The ch7_1_2.cpp is for “nest if” test. The ch7_1_3.cpp is the “for loop” as 
 well as “while loop”, “continue”, “break”, “goto”  test. 
 You can run with them if you like to test more.
 
-Finally, 6/1/Cpu0 support the local array definition by add the LowerCall() 
+Finally, 7/1/Cpu0 support the local array definition by add the LowerCall() 
 empty function in Cpu0ISelLowering.cpp as follows,
 
 .. code-block:: c++
@@ -604,12 +604,12 @@ empty function in Cpu0ISelLowering.cpp as follows,
       return InChain;
     }
 
-With this LowerCall(), it can translate ch6_1_4.cpp, ch6_1_4.bc to 
-ch6_1_4.cpu0.s as follows,
+With this LowerCall(), it can translate ch7_1_4.cpp, ch7_1_4.bc to 
+ch7_1_4.cpu0.s as follows,
 
 .. code-block:: c++
 
-    // ch6_1_4.cpp
+    // ch7_1_4.cpp
     int main()
     {
         int a[3]={0, 1, 2};
@@ -619,7 +619,7 @@ ch6_1_4.cpu0.s as follows,
 
 .. code-block:: bash
 
-    ; ModuleID = 'ch6_1_4 .bc'
+    ; ModuleID = 'ch7_1_4 .bc'
     target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
     f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
     target triple = "i386-apple-macosx10.8.0"
@@ -638,10 +638,10 @@ ch6_1_4.cpu0.s as follows,
       ret i32 0
     }
     
-    118-165-79-206:InputFiles Jonathan$ cat ch6_1_4.cpu0.s 
+    118-165-79-206:InputFiles Jonathan$ cat ch7_1_4.cpu0.s 
         .section .mdebug.abi32
         .previous
-        .file   "ch6_1_4.bc"
+        .file   "ch7_1_4.bc"
         .text
         .globl  main
         .align  2

@@ -42,7 +42,6 @@ MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
 
   switch(MO.getTargetFlags()) {
   default:                   llvm_unreachable("Invalid target flag!");
-  case Cpu0II::MO_NO_FLAG:   Kind = MCSymbolRefExpr::VK_None; break;
 // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static -cpu0-islinux-format=false (global var in .sdata)
   case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break;
 
@@ -54,10 +53,6 @@ MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
   }
 
   switch (MOTy) {
-  case MachineOperand::MO_MachineBasicBlock:
-    Symbol = MO.getMBB()->getSymbol();
-    break;
-
   case MachineOperand::MO_GlobalAddress:
     Symbol = Mang->getSymbol(MO.getGlobal());
     break;
@@ -91,9 +86,7 @@ MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
     return MCOperand::CreateReg(MO.getReg());
   case MachineOperand::MO_Immediate:
     return MCOperand::CreateImm(MO.getImm() + offset);
-  case MachineOperand::MO_MachineBasicBlock:
   case MachineOperand::MO_GlobalAddress:
-  case MachineOperand::MO_BlockAddress:
     return LowerSymbolOperand(MO, MOTy, offset);
   case MachineOperand::MO_RegisterMask:
     break;

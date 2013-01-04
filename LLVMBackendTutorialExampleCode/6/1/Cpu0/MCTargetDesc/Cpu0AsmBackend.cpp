@@ -134,7 +134,7 @@ public:
       { "fixup_Cpu0_GOT_Global",   0,     16,   0 },
       { "fixup_Cpu0_GOT_Local",    0,     16,   0 },
       { "fixup_Cpu0_PC24",         0,     24,  MCFixupKindInfo::FKF_IsPCRel },
-      { "fixup_Cpu0_CALL24",       0,     24,   0 },
+      { "fixup_Cpu0_CALL16",       0,     16,   0 },
       { "fixup_Cpu0_GPREL32",      0,     32,   0 },
       { "fixup_Cpu0_SHIFT5",       6,      5,   0 },
       { "fixup_Cpu0_SHIFT6",       6,      5,   0 },

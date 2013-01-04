@@ -110,17 +110,6 @@ class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern,
   let Inst{15-0}  = imm16;
 }
 
-class BranchBase<bits<8> op, dag outs, dag ins, string asmstr,
-                  list<dag> pattern, InstrItinClass itin>:
-  Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
-{
-  bits<24> imm24;
-
-  let Opcode = op;
-
-  let Inst{23-0}  = imm24;
-}
-
 //===----------------------------------------------------------------------===//
 // Format J instruction class in Cpu0 : <|opcode|address|>
 //===----------------------------------------------------------------------===//

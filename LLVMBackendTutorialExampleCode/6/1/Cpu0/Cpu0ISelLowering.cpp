@@ -44,10 +44,9 @@ static SDValue GetGlobalReg(SelectionDAG &DAG, EVT Ty) {
 
 const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch (Opcode) {
-  case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
+  case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
   case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
   case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
-  case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
   case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
   case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
   default:                         return NULL;
@@ -62,18 +61,8 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
   // Set up the register classes
   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
 
-  // Used by legalize types to correctly generate the setcc result.
-  // Without this, every float setcc comes with a AND/OR with the result,
-  // we don't want this, since the fpcmp result goes to a flag register,
-  // which is used implicitly by brcond and select operations.
-  AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
-
   // Cpu0 Custom Operations
   setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
-  setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
-  
-  // Operations not directly supported by Cpu0.
-  setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
 
 //- Set .align 2
 // It will emit .align 2 later
@@ -88,7 +77,6 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const
 {
   switch (Op.getOpcode())
   {
-    case ISD::BRCOND:             return LowerBRCOND(Op, DAG);
     case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
   }
   return SDValue();
@@ -101,11 +89,6 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const
 //===----------------------------------------------------------------------===//
 //  Misc Lower Operation implementation
 //===----------------------------------------------------------------------===//
-SDValue Cpu0TargetLowering::
-LowerBRCOND(SDValue Op, SelectionDAG &DAG) const
-{
-  return Op;
-}
 
 SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
                                                SelectionDAG &DAG) const {
@@ -156,18 +139,6 @@ SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
 
 #include "Cpu0GenCallingConv.inc"
 
-SDValue
-Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-                              CallingConv::ID CallConv, bool isVarArg,
-                              bool doesNotRet, bool &isTailCall,
-                              const SmallVectorImpl<ISD::OutputArg> &Outs,
-                              const SmallVectorImpl<SDValue> &OutVals,
-                              const SmallVectorImpl<ISD::InputArg> &Ins,
-                              DebugLoc dl, SelectionDAG &DAG,
-                              SmallVectorImpl<SDValue> &InVals) const {
-  return InChain;
-}
-
 /// LowerFormalArguments - transform physical registers into virtual registers
 /// and generate load operations for arguments places on the stack.
 SDValue
@@ -195,10 +166,3 @@ Cpu0TargetLowering::LowerReturn(SDValue Chain,
     return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
                        Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
 }
-
-bool
-Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
-  // The Mips target isn't yet aware of offsets.
-  return false;
-}
-

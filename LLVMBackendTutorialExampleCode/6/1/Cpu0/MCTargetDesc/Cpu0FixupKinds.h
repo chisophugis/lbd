@@ -32,7 +32,7 @@ namespace Cpu0 {
     // Full 32 bit data relative data fixup resulting in - R_CPU0_REL32.
     fixup_Cpu0_REL32,
 
-    // Jump 24 bit fixup resulting in - R_CPU0_24.
+    // Jump 26 bit fixup resulting in - R_CPU0_26.
     fixup_Cpu0_24,
 
     // Pure upper 16 bit fixup resulting in - R_CPU0_HI16.

@@ -27,12 +27,10 @@ def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>;
 def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain,
                      SDNPOptInGlue]>;
 
-def RelocPIC    :     Predicate<"TM.getRelocationModel() == Reloc::PIC_">,
-                      AssemblerPredicate<"FeatureCpu032">;
-
 //===----------------------------------------------------------------------===//
 // Cpu0 Operand, Complex Patterns and Transformations Definitions.
 //===----------------------------------------------------------------------===//
+
 // Signed Operand
 def simm16      : Operand<i32> {
   let DecoderMethod= "DecodeSimm16";
@@ -147,7 +145,6 @@ class LoadUpper<bits<8> op, string instr_asm, RegisterClass RC, Operand Imm>:
   let isReMaterializable = 1;
 }
 
-
 class FMem<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern,
           InstrItinClass itin>: FL<op, outs, ins, asmstr, pattern, itin> {
   bits<20> addr;
@@ -200,7 +197,7 @@ defm LD     : LoadM32<0x00,  "ld",  load_a>;
 defm ST     : StoreM32<0x01, "st",  store_a>;
 
 /// Arithmetic Instructions (ALU Immediate)
-//def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
 // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
 def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
 
@@ -226,10 +223,6 @@ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
   def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
 
-/// No operation
-let addr=0 in
-  def NOP   : FJ<0, (outs), (ins), "nop", [], IIAlu>;
-
 //===----------------------------------------------------------------------===//
 //  Arbitrary patterns that map to one or more instructions
 //===----------------------------------------------------------------------===//
@@ -241,4 +234,13 @@ def : Pat<(i32 immSExt16:$in),
 
 def : Pat<(not CPURegs:$in),
           (XOR CPURegs:$in, ZERO)>;
+
+// setcc patterns
+multiclass SeteqPats<RegisterClass RC, Instruction XOROp,
+                     Register ZEROReg> {
+  def : Pat<(seteq RC:$lhs, RC:$rhs),
+            (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
+}
+
+defm : SeteqPats<CPURegs, XOR, ZERO>;
 
