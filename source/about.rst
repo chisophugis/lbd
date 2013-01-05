@@ -22,7 +22,7 @@ Revision history
 
 Version 3.2.1, Released Not yet
 	Add Footnote for references.
-	Reorganize chapters
+	Reorganize chapters.
 Version 3.2.0, Released January 1, 2013
 	Add chapter Function.
 	Move Chapter "Installing LLVM and the Cpu0 example code" from beginning to 

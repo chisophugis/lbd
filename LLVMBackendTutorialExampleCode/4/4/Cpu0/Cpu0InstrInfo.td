@@ -234,7 +234,7 @@ def : Pat<(i32 immSExt16:$in),
           (ADDiu ZERO, imm:$in)>;
 
 def : Pat<(not CPURegs:$in),
-          (XOR CPURegs:$in, ZERO)>;
+          (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
 
 // setcc patterns
 multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {

@@ -45,12 +45,6 @@ def mem : Operand<i32> {
   let EncoderMethod = "getMemEncoding";
 }
 
-def mem_ea : Operand<i32> {
-  let PrintMethod = "printMemOperandEA";
-  let MIOperandInfo = (ops CPURegs, simm16);
-  let EncoderMethod = "getMemEncoding";
-}
-
 // Node immediate fits as 16-bit sign extended on target immediate.
 // e.g. addi, andi
 def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
@@ -189,10 +183,6 @@ multiclass StoreM32<bits<8> op, string instr_asm, PatFrag OpNode,
   def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>;
 }
 
-class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
-  FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
-     instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
-
 //===----------------------------------------------------------------------===//
 // Instruction definition
 //===----------------------------------------------------------------------===//
@@ -234,14 +224,6 @@ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
   def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
 
-// FrameIndexes are legalized when they are operands from load/store
-// instructions. The same not happens for stack address copies, so an
-// add op with mem ComplexPattern is used and the stack address copy
-// can be matched. It's similar to Sparc LEA_ADDRi
-def LEA_ADDiu : EffectiveAddress<"addiu\t$ra, $addr", CPURegs, mem_ea> {
-  let isCodeGenOnly = 1;
-}
-
 //===----------------------------------------------------------------------===//
 //  Arbitrary patterns that map to one or more instructions
 //===----------------------------------------------------------------------===//
@@ -254,4 +236,11 @@ def : Pat<(i32 immSExt16:$in),
 def : Pat<(not CPURegs:$in),
           (XOR CPURegs:$in, (LDI ZERO, 1))>;
 
+// setcc patterns
+multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
+  def : Pat<(seteq RC:$lhs, RC:$rhs),
+            (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
+}
+
+defm : SeteqPats<CPURegs, XOR>;
 

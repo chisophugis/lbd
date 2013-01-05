@@ -232,6 +232,3 @@ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
 def : Pat<(i32 immSExt16:$in),
           (ADDiu ZERO, imm:$in)>;
 
-def : Pat<(not CPURegs:$in),
-          (XOR CPURegs:$in, ZERO)>;
-

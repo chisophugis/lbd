@@ -460,8 +460,10 @@ instructions”.
 The point is we have created a frame work for cpu0 target machine (please 
 look back the llvm back end structure class inherit tree early in this 
 chapter). 
-Until now, we have 3000 lines of source code with comments which include files 
+Until now, we have 3027 lines of source code with comments which include files 
 \*.cpp, \*.h, \*.td, CMakeLists.txt and LLVMBuild.txt. 
+It can be counted by command ``wc `find dir -name *.cpp``` for files \*.cpp, 
+\*.h, \*.td, \*.txt. 
 LLVM front end tutorial have 700 lines of source code without comments totally. 
 Don't feel down with this result. 
 In reality, write a back end is warm up slowly but run fast. 

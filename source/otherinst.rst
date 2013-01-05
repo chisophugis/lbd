@@ -356,15 +356,20 @@ follows,
 
 .. code-block:: c++
 
-    //  Cpu0InstrInfo.td
-    // setcc patterns
-    multiclass SeteqPats<RegisterClass RC, Instruction XOROp,
-                         Register ZEROReg> {
-      def : Pat<(seteq RC:$lhs, RC:$rhs),
-                (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
-    }
+  //  Cpu0InstrInfo.td
+  ...
     
-    defm : SeteqPats<CPURegs, XOR, ZERO>;
+  def : Pat<(not CPURegs:$in),
+        (XOR CPURegs:$in, (LDI ZERO, 1))>;
+
+  // setcc patterns
+  multiclass SeteqPats<RegisterClass RC, Instruction XOROp,
+                       Register ZEROReg> {
+    def : Pat<(seteq RC:$lhs, RC:$rhs),
+              (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
+  }
+    
+  defm : SeteqPats<CPURegs, XOR, ZERO>;
 
 After xor, the (and %4, 1) is translated into (and $2, (ldi $3, 1)) which is 
 defined before already. 
@@ -377,6 +382,8 @@ the final result.
     ...
     # BB#0:                                 # %entry
         addiu   $sp, $sp, -16
+	$tmp1:
+		.cfi_def_cfa_offset 16
         addiu   $2, $zero, 0
         st  $2, 12($sp)
         addiu   $3, $zero, 5
@@ -552,6 +559,156 @@ instead of ldi, will get the result as follows,
         ...
 
 
+Use cpu0 official LDI instead of ADDiu
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+According cpu0 web site instruction definition. 
+There is no addiu instruction definition. 
+We add **addiu** instruction because we find this instruction is more powerful 
+and reasonable than **ldi** instruction. 
+We highlight this change in `section CPU0 processor architecture`_. 
+Even with that, we show you how to replace our **addiu** with **ldi** according 
+the cpu0 original design. 
+4/5_2/Cpu0 is the code changes for use **ldi** instruction. 
+This changes replace **addiu** with **ldi** in Cpu0InstrInfo.td and modify 
+Cpu0FrameLowering.cpp as follows,
+
+.. code-block:: c++
+
+    // Cpu0InstrInfo.td
+    …
+    
+    /// Arithmetic Instructions (ALU Immediate)
+    def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+    // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+    //def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+    …
+    
+    // Small immediates
+    
+    def : Pat<(i32 immSExt16:$in),
+              (LDI ZERO, imm:$in)>;
+    
+    // hi/lo relocs
+    def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (LDI ZERO, tglobaladdr:$in), 16)>;
+    // Expect cpu0 add LUi support, like Mips
+    //def : Pat<(Cpu0Hi tglobaladdr:$in), (LUi tglobaladdr:$in)>;
+    def : Pat<(Cpu0Lo tglobaladdr:$in), (LDI ZERO, tglobaladdr:$in)>;
+    
+    def : Pat<(add CPURegs:$hi, (Cpu0Lo tglobaladdr:$lo)),
+              (ADD CPURegs:$hi, (LDI ZERO, tglobaladdr:$lo))>;
+    
+    // gp_rel relocs
+    def : Pat<(add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)),
+              (ADD CPURegs:$gp, (LDI ZERO, tglobaladdr:$in))>;
+    
+    def : Pat<(not CPURegs:$in),
+               (XOR CPURegs:$in, (LDI ZERO, 1))>;
+    
+    // Cpu0FrameLowering.cpp
+    ...
+    void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
+      ...
+      // Adjust stack.
+      if (isInt<16>(-StackSize)) {
+        // ldi fp, (-stacksize)
+        // add sp, sp, fp
+        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
+                                                            .addImm(-StackSize);
+        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
+      }
+      …
+    }
+    
+    void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,
+                                     MachineBasicBlock &MBB) const {
+      …
+      // Adjust stack.
+      if (isInt<16>(-StackSize)) {
+        // ldi fp, (-stacksize)
+        // add sp, sp, fp
+        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
+                                                            .addImm(-StackSize);
+        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
+      }
+      …
+    }
+
+As above code, we use **add** IR binary instruction (1 register operand and 1 
+immediate operand, and the register operand is fixed with ZERO) in our solution 
+since we didn't find the **move** IR unary instruction. 
+This code is correct since all the immediate value is translated into 
+**“ldi Zero, imm/address”**. 
+And **(add CPURegs:$gp, $imm16)** is translated into 
+**(ADD CPURegs:$gp, (LDI ZERO, $imm16))**. 
+Let's run 4/4_2/Cpu0 with ch4_4.cpp to get the correct result 
+below. 
+As you will see, “addiu $sp, $sp, -24” will be replaced with the pair 
+instructions of “ldi $fp, -24” and “add $sp, $sp, $fp”. 
+Since the $sp pointer adjustment is so frequently occurs (it occurs in every 
+function entry and exit point), 
+we reserve the $fp to the pair of stack adjustment instructions “ldi” and 
+“add”. 
+If we didn't reserve the dedicate registers $fp and $sp, it need to save 
+and restore them in the stack adjustment. 
+It meaning more instructions running cost in this. 
+Anyway, the pair of “ldi” and “add” to adjust stack pointer is double in cost 
+compete to “addiu”, that's the benefit we mentioned in section 
+“2.1 CPU0 processor architecture”.
+
+.. code-block:: bash
+
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch4_4.bc -o ch4_4.cpu0.s
+  118-165-66-82:InputFiles Jonathan$ cat ch4_4.cpu0.s 
+    .section .mdebug.abi32
+    .previous
+    .file "ch4_4.bc"
+    .text
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,24,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    ldi $fp, -24
+    add $sp, $sp, $fp
+  $tmp1:
+    .cfi_def_cfa_offset 24
+    ldi $2, 0
+    st  $2, 20($sp)
+    ldi $3, 1
+    st  $3, 16($sp)
+    ldi $3, 2
+    st  $3, 12($sp)
+    st  $2, 8($sp)
+    ldi $3, -5
+    st  $3, 4($sp)
+    st  $2, 0($sp)
+    ld  $2, 12($sp)
+    ld  $3, 4($sp)
+    udiv  $2, $3, $2
+    st  $2, 0($sp)
+    ld  $2, 16($sp)
+    sra $2, $2, 2
+    st  $2, 8($sp)
+    ldi $fp, 24
+    add $sp, $sp, $fp
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp2:
+    .size main, ($tmp2)-main
+    .cfi_endproc
+
+
 Local variable pointer
 -----------------------
 
@@ -647,152 +804,6 @@ will get result as follows,
     .size main, ($tmp2)-main
     .cfi_endproc
 
-According cpu0 web site instruction definition. 
-There is no addiu instruction definition. 
-We add addiu instruction because we find this instruction is more powerful and 
-reasonable than ldi instruction. 
-We highlight this change in `section CPU0 processor architecture`_. 
-Even with that, we show you how to replace our addiu with ldi according the cpu0 
-original design. 
-4/5_2 is the code changes for use ldi instruction. 
-The changes is replace addiu with ldi in Cpu0InstrInfo.td and modify 
-Cpu0FrameLowering.cpp as follows,
-
-.. code-block:: c++
-
-    // Cpu0InstrInfo.td
-    …
-    
-    /// Arithmetic Instructions (ALU Immediate)
-    def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
-    // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
-    //def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
-    …
-    
-    // Small immediates
-    
-    def : Pat<(i32 immSExt16:$in),
-              (LDI ZERO, imm:$in)>;
-    
-    // hi/lo relocs
-    def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (LDI ZERO, tglobaladdr:$in), 16)>;
-    // Expect cpu0 add LUi support, like Mips
-    //def : Pat<(Cpu0Hi tglobaladdr:$in), (LUi tglobaladdr:$in)>;
-    def : Pat<(Cpu0Lo tglobaladdr:$in), (LDI ZERO, tglobaladdr:$in)>;
-    
-    def : Pat<(add CPURegs:$hi, (Cpu0Lo tglobaladdr:$lo)),
-              (ADD CPURegs:$hi, (LDI ZERO, tglobaladdr:$lo))>;
-    
-    // gp_rel relocs
-    def : Pat<(add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)),
-              (ADD CPURegs:$gp, (LDI ZERO, tglobaladdr:$in))>;
-    
-    def : Pat<(not CPURegs:$in),
-               (XOR CPURegs:$in, (LDI ZERO, 1))>;
-    
-    // Cpu0FrameLowering.cpp
-    ...
-    void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
-      ...
-      // Adjust stack.
-      if (isInt<16>(-StackSize)) {
-        // ldi fp, (-stacksize)
-        // add sp, sp, fp
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
-                                                            .addImm(-StackSize);
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
-      }
-      …
-    }
-    
-    void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,
-                                     MachineBasicBlock &MBB) const {
-      …
-      // Adjust stack.
-      if (isInt<16>(-StackSize)) {
-        // ldi fp, (-stacksize)
-        // add sp, sp, fp
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
-                                                            .addImm(-StackSize);
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
-      }
-      …
-    }
-
-As above code, we use **add** IR binary instruction (1 register operand and 1 
-immediate operand, and the register operand is fixed with ZERO) in our solution 
-since we didn't find the **move** IR unary instruction. 
-This code is correct since all the immediate value is translated into 
-“ldi Zero, imm/address”, and the IR **add** node with address, like 
-(add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)), …, is translated into 
-(ADD CPURegs:$gp, (LDI ZERO, tglobaladdr:$in)). 
-Let's run 4/5_2/Cpu0 with ch4_4.cpp to get the correct result 
-below. 
-As you will see, “addiu $sp, $sp, -24” will be replaced with the pair 
-instructions of “ldi $fp, -24” and “add $sp, $sp, $fp”. 
-Since the $sp pointer adjustment is so frequently occurs (it occurs in every 
-function entry and exit point), 
-we reserve the $fp to the pair of stack adjustment instructions “ldi” and 
-“add”. 
-If we didn't reserve the dedicate registers $fp and $sp, it need to save 
-and restore them in the stack adjustment. 
-It meaning more instructions running cost in this. 
-Anyway, the pair of “ldi” and “add” to adjust stack pointer is double in cost 
-compete to “addiu”, that's the benefit we mentioned in section 
-“2.1 CPU0 processor architecture”.
-
-.. code-block:: bash
-
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
-  debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-  ch4_4.bc -o ch4_4.cpu0.s
-  118-165-66-82:InputFiles Jonathan$ cat ch4_4.cpu0.s 
-    .section .mdebug.abi32
-    .previous
-    .file "ch4_4.bc"
-    .text
-    .globl  main
-    .align  2
-    .type main,@function
-    .ent  main                    # @main
-  main:
-    .cfi_startproc
-    .frame  $sp,24,$lr
-    .mask   0x00000000,0
-    .set  noreorder
-    .set  nomacro
-  # BB#0:
-    ldi $fp, -24
-    add $sp, $sp, $fp
-  $tmp1:
-    .cfi_def_cfa_offset 24
-    ldi $2, 0
-    st  $2, 20($sp)
-    ldi $3, 1
-    st  $3, 16($sp)
-    ldi $3, 2
-    st  $3, 12($sp)
-    st  $2, 8($sp)
-    ldi $3, -5
-    st  $3, 4($sp)
-    st  $2, 0($sp)
-    ld  $2, 12($sp)
-    ld  $3, 4($sp)
-    udiv  $2, $3, $2
-    st  $2, 0($sp)
-    ld  $2, 16($sp)
-    sra $2, $2, 2
-    st  $2, 8($sp)
-    ldi $fp, 24
-    add $sp, $sp, $fp
-    ret $lr
-    .set  macro
-    .set  reorder
-    .end  main
-  $tmp2:
-    .size main, ($tmp2)-main
-    .cfi_endproc
-
 
 Operator mod, %
 -----------------
@@ -800,7 +811,7 @@ Operator mod, %
 The DAG of %
 ~~~~~~~~~~~~~
 
-Example input code ch4_6.cpp which contains the C operator “%” and it's 
+Example input code ch4_6.cpp which contains the C operator **“%”** and it's 
 corresponding llvm IR, as follows,
 
 .. code-block:: c++
@@ -838,22 +849,22 @@ corresponding llvm IR, as follows,
   }
 
 
-LLVM srem is the IR corresponding “%”, reference sub-section "srem instruction" 
+LLVM **srem** is the IR corresponding **“%”**, reference sub-section "srem instruction" 
 of [#]_. 
 Copy the reference as follows,
 
-.. note:: 'srem' Instruction 
+.. note:: **'srem'** Instruction 
 
     Syntax:
-      <result> = srem <ty> <op1>, <op2>   ; yields {ty}:result
+      **<result> = srem <ty> <op1>, <op2>   ; yields {ty}:result**
       
     Overview:
-    The 'srem' instruction returns the remainder from the signed division of its 
+    The **'srem'** instruction returns the remainder from the signed division of its 
     two operands. This instruction can also take vector versions of the values in 
     which case the elements must be integers.
     
     Arguments:
-    The two arguments to the 'srem' instruction must be integer or vector of 
+    The two arguments to the **'srem'** instruction must be integer or vector of 
     integer values. Both arguments must have identical types.
     
     Semantics:
@@ -865,7 +876,7 @@ Copy the reference as follows,
     modulo operation.
     
     Note that signed integer remainder and unsigned integer remainder are distinct 
-    operations; for unsigned integer remainder, use 'urem'.
+    operations; for unsigned integer remainder, use **'urem'**.
     
     Taking the remainder of a division by zero leads to undefined behavior. 
     Overflow also leads to undefined behavior; this is a rare case, but can occur, 
@@ -875,7 +886,7 @@ Copy the reference as follows,
     the remainder.)
     
     Example:
-      <result> = srem i32 4, %var          ; yields {i32}:result = 4 % %var
+      <result> = **srem i32 4, %var**          ; yields {i32}:result = 4 % %var
 
 
 Run 4/5/Cpu0 with input file ch4_6.bc and llc option –view-isel-dags as follows,
@@ -917,8 +928,8 @@ The final result (sub 12, 12) is 0 which match the statement (11+1)%12.
 Arm solution
 ~~~~~~~~~~~~~
 
-Let's run 4/6_1/Cpu0 with llc option  -view-sched-dags to get 
-:ref:`otherinst_f3`. 
+Let's run 4/6_1/Cpu0 with ch4_6.cpp as well as llc option  -view-sched-dags to 
+get :ref:`otherinst_f3`. 
 Similarly, SMMUL get the high word of multiply result.
 
 .. _otherinst_f3:
@@ -984,7 +995,7 @@ You can check it by unmark the “unsigned int b = 11;” in ch4_6.cpp.
 Use SMMUL instruction to get the high word of multiplication result is adopted 
 in ARM. 
 The 4/6_1/Cpu0 use the ARM solution. 
-With this solution, the following code is needed to add.
+With this solution, the following code is needed.
 
 .. code-block:: c++
 
@@ -1028,88 +1039,98 @@ from TargetSelectionDAG.td.
 
 .. code-block:: c++
 
-    // Cpu0RegisterInfo.td
+  // Cpu0RegisterInfo.td
     ...
-      // Hi/Lo registers
-      def HI  : Register<"hi">, DwarfRegNum<[18]>;
+    // Hi/Lo registers
+    def HI  : Register<"hi">, DwarfRegNum<[18]>;
       def LO  : Register<"lo">, DwarfRegNum<[19]>;
     
-    // Cpu0InstrInfo.td
-    …
-    // Mul, Div
-    class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
-               RegisterClass RC, list<Register> DefRegs>:
-      FL<op, (outs), (ins RC:$ra, RC:$rb),
-         !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
-      let imm16 = 0;
-      let isCommutable = 1;
-      let Defs = DefRegs;
-      let neverHasSideEffects = 1;
-    }
-    
-    class Mult32<bits<8> op, string instr_asm, InstrItinClass itin>:
-      Mult<op, instr_asm, itin, CPURegs, [HI, LO]>;
-    
-    // Move from Hi/Lo
-    class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
-                       list<Register> UseRegs>:
-      FL<op, (outs RC:$ra), (ins),
-         !strconcat(instr_asm, "\t$ra"), [], IIHiLo> {
-      let rb = 0;
-      let imm16 = 0;
-      let Uses = UseRegs;
-      let neverHasSideEffects = 1;
-    }
+  // Cpu0Schedule.td
+  ...
+  def IIHiLo             : InstrItinClass;
+  ...
+  def Cpu0GenericItineraries : ProcessorItineraries<[ALU, IMULDIV], [], [
     ...
-    def MULT    : Mult32<0x50, "mult", IIImul>;
-    def MULTu   : Mult32<0x51, "multu", IIImul>;
-    
-    def MFHI : MoveFromLOHI<0x40, "mfhi", CPURegs, [HI]>;
-    def MFLO : MoveFromLOHI<0x41, "mflo", CPURegs, [LO]>;
-    
-    // Cpu0ISelDAGToDAG.cpp
+    InstrItinData<IIHiLo             , [InstrStage<1,  [IMULDIV]>]>,
     …
-    /// Select multiply instructions.
-    std::pair<SDNode*, SDNode*>
-    Cpu0DAGToDAGISel::SelectMULT(SDNode *N, unsigned Opc, DebugLoc dl, EVT Ty,
-                                  bool HasLo, bool HasHi) {
-      SDNode *Lo = 0, *Hi = 0;
-      SDNode *Mul = CurDAG->getMachineNode(Opc, dl, MVT::Glue, N->getOperand(0),
-                                           N->getOperand(1));
-      SDValue InFlag = SDValue(Mul, 0);
+  ]>;
+
+  // Cpu0InstrInfo.td
+  ...
+  // Mul, Div
+  class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
+             RegisterClass RC, list<Register> DefRegs>:
+    FL<op, (outs), (ins RC:$ra, RC:$rb),
+        !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
+    let imm16 = 0;
+    let isCommutable = 1;
+    let Defs = DefRegs;
+    let neverHasSideEffects = 1;
+  }
     
-      if (HasLo) {
-        Lo = CurDAG->getMachineNode(Cpu0::MFLO, dl,
-                                    Ty, MVT::Glue, InFlag);
-        InFlag = SDValue(Lo, 1);
-      }
-      if (HasHi)
-        Hi = CurDAG->getMachineNode(Cpu0::MFHI, dl,
+  class Mult32<bits<8> op, string instr_asm, InstrItinClass itin>:
+    Mult<op, instr_asm, itin, CPURegs, [HI, LO]>;
+    
+  // Move from Hi/Lo
+  class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
+                   list<Register> UseRegs>:
+    FL<op, (outs RC:$ra), (ins),
+       !strconcat(instr_asm, "\t$ra"), [], IIHiLo> {
+    let rb = 0;
+    let imm16 = 0;
+    let Uses = UseRegs;
+    let neverHasSideEffects = 1;
+  }
+  ...
+  def MULT    : Mult32<0x50, "mult", IIImul>;
+  def MULTu   : Mult32<0x51, "multu", IIImul>;
+    
+  def MFHI : MoveFromLOHI<0x40, "mfhi", CPURegs, [HI]>;
+  def MFLO : MoveFromLOHI<0x41, "mflo", CPURegs, [LO]>;
+    
+  // Cpu0ISelDAGToDAG.cpp
+  ...
+  /// Select multiply instructions.
+  std::pair<SDNode*, SDNode*>
+  Cpu0DAGToDAGISel::SelectMULT(SDNode *N, unsigned Opc, DebugLoc dl, EVT Ty,
+                                bool HasLo, bool HasHi) {
+    SDNode *Lo = 0, *Hi = 0;
+    SDNode *Mul = CurDAG->getMachineNode(Opc, dl, MVT::Glue, N->getOperand(0),
+                                          N->getOperand(1));
+    SDValue InFlag = SDValue(Mul, 0);
+    
+    if (HasLo) {
+      Lo = CurDAG->getMachineNode(Cpu0::MFLO, dl,
+                                  Ty, MVT::Glue, InFlag);
+      InFlag = SDValue(Lo, 1);
+    }
+    if (HasHi)
+      Hi = CurDAG->getMachineNode(Cpu0::MFHI, dl,
                                     Ty, InFlag);
     
-      return std::make_pair(Lo, Hi);
-    }
+    return std::make_pair(Lo, Hi);
+  }
     
-    /// Select instructions not customized! Used for
-    /// expanded, promoted and normal instructions
-    SDNode* Cpu0DAGToDAGISel::Select(SDNode *Node) {
-      unsigned Opcode = Node->getOpcode();
-      ...
-      switch(Opcode) {
-      default: break;
-    
-      case ISD::MULHS:
-      case ISD::MULHU: {
-        MultOpc = (Opcode == ISD::MULHU ? Cpu0::MULTu : Cpu0::MULT);
-        return SelectMULT(Node, MultOpc, dl, NodeTy, false, true).second;
-      }
-      …
-    }
-    
-    // TargetSelectionDAG.td
+  /// Select instructions not customized! Used for
+  /// expanded, promoted and normal instructions
+  SDNode* Cpu0DAGToDAGISel::Select(SDNode *Node) {
+    unsigned Opcode = Node->getOpcode();
     ...
-    def mulhs      : SDNode<"ISD::MULHS"     , SDTIntBinOp, [SDNPCommutative]>;
-    def mulhu      : SDNode<"ISD::MULHU"     , SDTIntBinOp, [SDNPCommutative]>;
+    switch(Opcode) {
+    default: break;
+    
+    case ISD::MULHS:
+    case ISD::MULHU: {
+      MultOpc = (Opcode == ISD::MULHU ? Cpu0::MULTu : Cpu0::MULT);
+      return SelectMULT(Node, MultOpc, dl, NodeTy, false, true).second;
+    }
+    ...
+  }
+    
+  // TargetSelectionDAG.td
+  ...
+  def mulhs      : SDNode<"ISD::MULHS"     , SDTIntBinOp, [SDNPCommutative]>;
+  def mulhu      : SDNode<"ISD::MULHU"     , SDTIntBinOp, [SDNPCommutative]>;
 
     
 Except the custom type, llvm IR operations of expand and promote type will call 
@@ -1177,6 +1198,13 @@ ch4_6.bc.
     .size main, ($tmp2)-main
     .cfi_endproc
 
+
+Summary
+--------
+We support most of C operators in this chapter. 
+Until now, we have 3226 lines of source code with comments. 
+With these 199 lines of source code added, it support the number of operators 
+from three to over ten.
 
 .. _section Operator “not” !:
     http://jonathan2251.github.com/lbd/otherinst.html#operator-not

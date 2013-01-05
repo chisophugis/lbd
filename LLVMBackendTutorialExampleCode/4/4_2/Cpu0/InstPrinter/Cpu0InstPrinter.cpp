@@ -108,13 +108,3 @@ printMemOperand(const MCInst *MI, int opNum, raw_ostream &O) {
   O << ")";
 }
 
-void Cpu0InstPrinter::
-printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O) {
-  // when using stack locations for not load/store instructions
-  // print the same way as all normal 3 operand instructions.
-  printOperand(MI, opNum, O);
-  O << ", ";
-  printOperand(MI, opNum+1, O);
-  return;
-}
-
