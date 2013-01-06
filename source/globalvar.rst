@@ -580,7 +580,7 @@ Backend deal this translation by create DAG nodes in function
 LowerGlobalAddress() which called by LowerOperation(). 
 Function LowerOperation() take care all Custom type of operation. 
 Backend set global address as Custom operation by 
-”setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);” in 
+**”setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);”** in 
 Cpu0TargetLowering() constructor. 
 Different address mode has it's corresponding DAG list be created. 
 By set the pattern Pat<> in Cpu0InstrInfo.td, the llvm can apply the compiler 
@@ -717,8 +717,8 @@ follows,
     .size a, 12
 
 
-For “day = date.day”, the correct one is “ld $2, 8($2)”, not “ld $2, 0($2)”, 
-since date.day is offset 8(date). 
+For **“day = date.day”**, the correct one is **“ld $2, 8($2)”**, not 
+**“ld $2, 0($2)”**, since date.day is offset 8(date). 
 Type int is 4 bytes in cpu0, and the date.day has fields year and month before 
 it. 
 Let use debug option in llc to see what's wrong,
@@ -828,9 +828,9 @@ for date.day (add GlobalAddress<[3 x i32]* @a> 0, Constant<8>) with 3 nodes is
 replaced by 1 node GlobalAddress<%struct.Date* @date> + 8. 
 The DAG list for a[1] is same. 
 The replacement occurs since TargetLowering.cpp::isOffsetFoldingLegal(...) 
-return true in “llc -static” static addressing mode as below. 
-In Cpu0 the ld instruction format is “ld $r1, offset($r2)” which meaning load 
-$r2 address+offset to $r1. 
+return true in ``llc -static`` static addressing mode as below. 
+In Cpu0 the **ld** instruction format is **“ld $r1, offset($r2)”** which 
+meaning load $r2 address+offset to $r1. 
 So, we just replace the isOffsetFoldingLegal(...) function by override 
 mechanism as below.
 
@@ -921,11 +921,11 @@ Addr.getOperand(1).getOpcode() = ISD::Constant, the Base = SDValue
 (add Cpu0ISD::Hi (Cpu0II::MO_ABS_HI), Cpu0ISD::Lo(Cpu0II::MO_ABS_LO)) and 
 Offset = Constant<8>. 
 After set Base and Offset, the load DAG will translate the global address 
-date.day into machine instruction “ld $r1, 8($r2)” in Instruction Selection 
+date.day into machine instruction **“ld $r1, 8($r2)”** in Instruction Selection 
 stage.
 
 6/2/Cpu0 include these changes as above, you can run it with ch6_2.cpp to get 
-the correct generated instruction “ld $r1, 8($r2)” for date.day access, as 
+the correct generated instruction **“ld $r1, 8($r2)”** for date.day access, as 
 follows.
 
 

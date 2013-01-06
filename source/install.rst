@@ -152,7 +152,7 @@ Build llvm by Xcode
 ~~~~~~~~~~~~~~~~~~~
 
 Now, LLVM.xcodeproj is created. Open the cmake_debug_build/LLVM.xcodeproj by 
-Xcode and click menu “Product – Build” as :ref:`install_f10`.
+Xcode and click menu **“Product – Build”** as :ref:`install_f10`.
 
 .. _install_f10:
 .. figure:: ../Fig/install/10.png
@@ -469,8 +469,8 @@ like the obj file, \*.o, that will be generated in chapter of Other
 instructions. 
 You can download from App Store. 
 To dump binary file, first, open the binary file, next, select menu 
-“File – Hex Front Document” as :ref:`install_f14`. 
-Then select “Front document's file” as :ref:`install_f15`.
+**“File – Hex Front Document”** as :ref:`install_f14`. 
+Then select **“Front document's file”** as :ref:`install_f15`.
 
 .. _install_f14:
 .. figure:: ../Fig/install/14.png
@@ -484,7 +484,7 @@ Then select “Front document's file” as :ref:`install_f15`.
 
 	Select Front document's file in TextWrangler
 	
-Install binutils by command “brew install binutils” as follows,
+Install binutils by command ``brew install binutils`` as follows,
 
 .. code-block:: bash
 

@@ -24,7 +24,7 @@ follows,
 	
 The 5/Cpu0 support obj file generated. 
 It can get result for big endian and little endian with command 
-“llc -march=cpu0” and “llc -march=cpu0el”. 
+``llc -march=cpu0`` and ``llc -march=cpu0el``. 
 Run it will get the obj files as follows,
 
 .. code-block:: bash
@@ -92,14 +92,14 @@ Run it will get the obj files as follows,
 	 0010 000c0d00 10000000 18000000 00000000  ................ 
 	 0020 d4000000 00440e48                                    .....D.H        
 
-The first instruction is “addiu  $sp, -72” and it's corresponding obj is 
+The first instruction is **“addiu  $sp, -72”** and it's corresponding obj is 
 0x09d0ffb8. 
 The addiu opcode is 0x09, 8 bits, $sp register number is 13(0xd), 4bits, second 
 register is useless, so assign it to 0x0, and the immediate is 16 bits 
 -72(=0xffb8), so it's correct. 
-The third instruction “st  $2, 68($sp) ”  and it's and it's corresponding obj 
-is 0x012d0044. The st opcode is 0x0a, $2 is 0x2, $sp is 0xd and immediate is 
-68(0x0044). 
+The third instruction **“st  $2, 68($sp)”** and it's corresponding obj 
+is 0x012d0044. The **st** opcode is **0x0a**, $2 is 0x2, $sp is 0xd and 
+immediate is 68(0x0044). 
 Thanks to cpu0 instruction format which opcode, register operand and 
 offset(imediate value) size are multiple of 4 bits. 
 The obj format is easy to check by eye. 
@@ -271,7 +271,7 @@ Cpu0AsmInfo is derived from MCAsmInfo which is llvm built-in class.
 Most code is implemented in it's parent, back end reuse those code by inherit.
 
 In :ref:`genobj_f2`, instancing MCCodeGenInfo, and initialize it by pass 
-Roloc::PIC because we use command “llc -relocation-model=pic” to tell llc 
+Roloc::PIC because we use command ``llc -relocation-model=pic`` to tell ``llc`` 
 compile using position-independent code mode. 
 Recall the addressing mode in system program book has two mode, one is PIC 
 mode, the other is absolute addressing mode. 

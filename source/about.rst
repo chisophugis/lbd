@@ -138,6 +138,83 @@ these documents to get a deeper understanding of what the tutorial is teaching:
 
 `Description of the Tricore LLVM Backend <http://www.opus.ub.uni-erlangen.de/opus/volltexte/2010/1659/pdf/tricore_llvm.pdf>`_
 
-Mips ABI document (Search for it on Google)
+`Mips ABI document <http://www.linux-mips.org/pub/linux/mips/doc/ABI/mipsabi.pdf>`_
 
-.. todo:: Find official link for Mips ABI.
+
+Outline of chapters
+---------------------
+
+Chapter of Cpu0 Instruction and LLVM Target Description:
+
+Introduce Cpu0 and LLVM architecture, Target Description td, cmake and 
+LLVMBuild files, Target Registration. And shows how to start a backend and 
+build it through our example code Cpu0. 
+Around 750 lines of source code are added by the end of this chapter.
+
+
+Chapter of Back end Structure:
+
+Introduce the backend structure, and continue to add code in each section. 
+Around 2300 lines of source code added in this chapter. 
+These 2300 lines of source code is common in backend design. 
+Many code are same from backend to backend except the backend name. 
+At end of this chapter, an LLVM backend structure for cpu0 is created with 
+three instructions support to generate the assembly output file. 
+
+
+Chapter of Other instructions:
+
+Over ten of C operators and their corresponding LLVM IR instructions 
+introduced in this chapter. Around 200 lines of source code (most are in 
+.td Target Description file) are added. With these 200 lines, it can translate 
++, -, *, /, &, |, ^, <<, >>, ! and % into assembly code. 
+The ``llc`` debug option and debug tool **Graphviz** which supported by LLVM 
+introduced in this chapter.
+
+
+Chapter of Generate obj file:
+
+Add the obj file format generated support in cpu0 backend, and introduce the 
+cpu0 backend Target Registration structure. 
+The Registration structure is common in backend design. 
+Around 700 lines of code added, and cpu0 can handle big and little endian 
+obj file generated.
+
+
+Chapter of Global variable, struct and array:
+
+Global variable, struct and array support added in this chapter. 
+Over 300 lines of source code needed in global variable access while 200 lines 
+needed for ten of operators in chapter of Other instructions. 
+The cpu0 support PIC and static addressing mode. These two modes are explained 
+in this chapter.
+
+
+Chapter of Control flow statement:
+
+The if, else, while, for, goto statement flow control statements support is 
+added in this chapter.
+Around 150 lines of source code added in this chapter.
+
+
+Chapter of Function call:
+
+The stack frame, incoming & outgoing arguments, and LLVM corresponding handle 
+functions introduced in this chapter.
+Over 700 lines of source code added in this chapter.
+
+
+Chapter of ELF:
+
+Like many backend. Cpu0 support ELF obj format generated. The ELF format and 
+binutils tools (not a part of LLVM) introduced and demonstrate backend 
+designers how to use this ELF tool to verify and analysis the backend obj.  
+
+
+Chapter of Appendix A:
+
+Include the LLVM source code , development tools installation, and environment 
+setting on iMac and Linux platform.
+
+
+

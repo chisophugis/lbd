@@ -338,19 +338,19 @@ For example,
 
 .. literalinclude:: ../code_fragment/llvmstructure/5.txt
 
-Just like C++ class, the keyword “class” is used for declaring data structure 
+Just like C++ class, the keyword **“class”** is used for declaring data structure 
 layout. 
 ``Cpu0Reg<string n>`` declare a derived class from ``Register<n>`` which is 
 declared by llvm already, where n is the argument of type string. 
 In addition to inherited from all the fields of Register class, Cpu0Reg add a 
 new field "Num" of type 4 bits. 
 Namespace is same with  C++ namespace. 
-“Def” is used by define(instance) a concrete variable.
+**“Def”** is used by define(instance) a concrete variable.
 
 As above, we define a ZERO register which type is Cpu0GPRReg, it's field Num 
-is 0 (4 bits) and field n is “ZERO” (declared in Register class). 
-Note the use of “let” expressions to override values that are initially defined 
-in a superclass. For example, let Namespace = “Cpu0” in class Cpu0Reg, will 
+is 0 (4 bits) and field n is **“ZERO”** (declared in Register class). 
+Note the use of **“let”** expressions to override values that are initially defined 
+in a superclass. For example, let Namespace = **“Cpu0”** in class Cpu0Reg, will 
 override Namespace declared in Register class. 
 The Cpu0RegisterInfo.td also define that CPURegs is a variable for type of 
 RegisterClass, where the RegisterClass is a llvm built-in class. 
@@ -382,7 +382,7 @@ It's a lousy process.
 Similarly, LD and ST instruction definition can be expanded in this way. 
 Please notify the Pattern =  
 [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))] which include keyword 
-“add”. 
+**“add”**. 
 We will use it in DAG transformations later. 
 
 
@@ -462,18 +462,18 @@ for my setting),
 
 .. literalinclude:: ../terminal_io/llvmstructure/3.txt
 
-After build, you can type command llc –version to find the cpu0 backend,
+After build, you can type command ``llc –version`` to find the cpu0 backend,
 
 .. literalinclude:: ../terminal_io/llvmstructure/4.txt
 
-The “llc -version” can display “cpu0” and “cpu0el” message, because the 
-following code from file TargetInfo/Cpu0TargetInfo.cpp what in 
+The ``llc -version`` can display **“cpu0”** and **“cpu0el”** message, because 
+the following code from file TargetInfo/Cpu0TargetInfo.cpp what in 
 "section Target Registration" [#]_ we made. 
 List them as follows again,
 
 .. literalinclude:: ../code_fragment/llvmstructure/14.txt
 
-Now try to do llc command to compile input file ch3.cpp as follows,
+Now try to do ``llc`` command to compile input file ch3.cpp as follows,
 
 .. literalinclude:: ../code_fragment/llvmstructure/15.txt
 

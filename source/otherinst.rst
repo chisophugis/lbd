@@ -2,7 +2,7 @@ Other instructions
 ===================
 
 This chapter add more cpu0 arithmetic instructions support first.
-The logic operation “not” support and translation in 
+The logic operation **“not”** support and translation in 
 `section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
 will show you the DAG optimization steps and their corresponding llc display 
 options. 
@@ -220,7 +220,7 @@ file only.
 Operator “not” !
 -----------------
 
-Files ch4_2.cpp and ch4_2.bc are the C source code for “not” boolean operator 
+Files ch4_2.cpp and ch4_2.bc are the C source code for **“not”** boolean operator 
 and it's corresponding llvm IR. List them as follows,
 
 .. code-block:: c++
@@ -490,7 +490,7 @@ Adjust cpu0 instructions
 -------------------------
 
 We decide add instructions udiv and sra to avoid compiler errors for C language 
-operators “/” in unsigned int and “>>” in signed int as 
+operators **“/”** in unsigned int and **“>>”** in signed int as 
 `section Support arithmetic instructions`_ mentioned. 
 To support these 2 operators, we only need to add these code in 
 Cpu0InstrInfo.td as follows,
@@ -643,18 +643,18 @@ And **(add CPURegs:$gp, $imm16)** is translated into
 **(ADD CPURegs:$gp, (LDI ZERO, $imm16))**. 
 Let's run 4/4_2/Cpu0 with ch4_4.cpp to get the correct result 
 below. 
-As you will see, “addiu $sp, $sp, -24” will be replaced with the pair 
-instructions of “ldi $fp, -24” and “add $sp, $sp, $fp”. 
+As you will see, **“addiu $sp, $sp, -24”** will be replaced with the pair 
+instructions of **“ldi $fp, -24”** and **“add $sp, $sp, $fp”**. 
 Since the $sp pointer adjustment is so frequently occurs (it occurs in every 
 function entry and exit point), 
-we reserve the $fp to the pair of stack adjustment instructions “ldi” and 
-“add”. 
+we reserve the $fp to the pair of stack adjustment instructions **“ldi”** and 
+**“add”**. 
 If we didn't reserve the dedicate registers $fp and $sp, it need to save 
 and restore them in the stack adjustment. 
 It meaning more instructions running cost in this. 
-Anyway, the pair of “ldi” and “add” to adjust stack pointer is double in cost 
-compete to “addiu”, that's the benefit we mentioned in section 
-“2.1 CPU0 processor architecture”.
+Anyway, the pair of **“ldi”** and **“add”** to adjust stack pointer is double 
+in cost compete to **“addiu”**, that's the benefit we mentioned in 
+`section CPU0 processor architecture`_.
 
 .. code-block:: bash
 
@@ -889,8 +889,9 @@ Copy the reference as follows,
       <result> = **srem i32 4, %var**          ; yields {i32}:result = 4 % %var
 
 
-Run 4/5/Cpu0 with input file ch4_6.bc and llc option –view-isel-dags as follows,
- will get the error message as follows and the llvm DAG of :ref:`otherinst_f2`.
+Run 4/5/Cpu0 with input file ch4_6.bc and ``llc`` option –view-isel-dags as 
+follows, will get the error message as follows and the llvm DAG of 
+:ref:`otherinst_f2`.
 
 .. code-block:: bash
 
@@ -915,7 +916,7 @@ Run 4/5/Cpu0 with input file ch4_6.bc and llc option –view-isel-dags as follow
 
 LLVM replace srem divide operation with multiply operation in DAG optimization 
 because DIV operation cost more in time than MUL. 
-For example code “int b = 11; b=(b+1)%12;”, it translate into :ref:`otherinst_f2`. 
+For example code **“int b = 11; b=(b+1)%12;”**, it translate into :ref:`otherinst_f2`. 
 We verify the result and explain by calculate the value in each node. 
 The 0xC*0x2AAAAAAB=0x200000004, (mulhs 0xC, 0x2AAAAAAAB) meaning get the Signed 
 mul high word (32bits). 
@@ -990,7 +991,7 @@ Follows is the result of run 4/6_1/Cpu0 with ch4_6.bc.
     
 The other instruction UMMUL and llvm IR mulhu are unsigned int type for 
 operator %. 
-You can check it by unmark the “unsigned int b = 11;” in ch4_6.cpp.
+You can check it by unmark the **“unsigned int b = 11;”** in ch4_6.cpp.
 
 Use SMMUL instruction to get the high word of multiplication result is adopted 
 in ARM. 

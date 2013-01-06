@@ -46,7 +46,7 @@ if it over 4 arguments. :ref:`funccall_f1` is the Mips stack frame.
 
     Mips stack frame
     
-Run llc with -march=mips for ch8_1.bc, you will get the following result.
+Run ``llc -march=mips`` for ch8_1.bc, you will get the following result.
 
 .. code-block:: c++
 
@@ -334,16 +334,16 @@ Refresh "section Global variable" [#]_, we handled global
 variable translation by create the IR DAG in LowerGlobalAddress() first, and 
 then do the Instruction Selection by their corresponding machine instruction 
 DAG in Cpu0InstrInfo.td. 
-LowerGlobalAddress() is called when llc meet the global variable access. 
+LowerGlobalAddress() is called when ``llc`` meet the global variable access. 
 LowerFormalArguments() work with the same way. 
 It is called when function is entered. 
 It get incoming arguments information by CCInfo(CallConv,..., ArgLocs, …) 
-before enter “for loop”. In ch8_1.cpp, there are 6 arguments in sum_i(...) 
+before enter **“for loop”**. In ch8_1.cpp, there are 6 arguments in sum_i(...) 
 function call and we use the stack frame only for arguments passing without 
 any arguments pass in registers. 
 So ArgLocs.size() is 6, each argument information is in ArgLocs[i] and 
 ArgLocs[i].isMemLoc() is true. 
-In “for loop”, it create each frame index object by LastFI = 
+In **“for loop”**, it create each frame index object by LastFI = 
 MFI->CreateFixedObject(ValVT.getSizeInBits()/8,VA.getLocMemOffset(), true) and 
 FIN = DAG.getFrameIndex(LastFI, getPointerTy()). 
 And then create IR DAG load node and put the load node into vector InVals by 
@@ -357,7 +357,7 @@ Second time is for main() which didn't create any load DAG for no incoming
 argument passing into main(). 
 In addition to LowerFormalArguments() which create the load DAG, we need to 
 define the loadRegFromStackSlot() to issue the machine instruction 
-“ld $r, offset($sp)” to load incoming arguments from stack frame offset.
+**“ld $r, offset($sp)”** to load incoming arguments from stack frame offset.
 GetMemOperand(..., FI, ...) return the Memory location of the frame index 
 variable, which is the offset.
 
@@ -567,9 +567,9 @@ Store outgoing arguments to stack frame
 :ref:`funccall_f2` depicted two steps to take care arguments passing. 
 One is store outgoing arguments in caller function, and the other is load 
 incoming arguments in callee function. 
-We defined LowerFormalArguments() for “load incoming arguments” in callee 
+We defined LowerFormalArguments() for **“load incoming arguments”** in callee 
 function last section. 
-Now, we will finish “store outgoing arguments” in caller function. 
+Now, we will finish **“store outgoing arguments”** in caller function. 
 LowerCall() is responsible to do this. The implementation as follows,
 
 .. code-block:: c++
@@ -808,15 +808,15 @@ LowerCall() is responsible to do this. The implementation as follows,
 
 Just like load incoming arguments from stack frame, we call 
 CCInfo(CallConv,..., ArgLocs, …) to get outgoing arguments information before 
-enter “for loop” and set stack alignment with 8 bytes. 
-They're almost same in “for loop” with LowerFormalArguments(), except 
+enter **“for loop”** and set stack alignment with 8 bytes. 
+They're almost same in **“for loop”** with LowerFormalArguments(), except 
 LowerCall() create store DAG vector instead of load DAG vector. 
-After the “for loop”, it create “ld $6, %call24(_Z5sum_iiiiiii)($gp)” 
+After the **“for loop”**, it create **“ld $6, %call24(_Z5sum_iiiiiii)($gp)”** 
 and jalr $6 for calling subroutine (the $6 is $t9) in PIC mode.
-DAG.getCALLSEQ_START() and DAG.getCALLSEQ_END() are set before the “for loop” 
-and after call subroutine, they insert CALLSEQ_START, CALLSEQ_END, and 
-translate into pseudo machine instructions !ADJCALLSTACKDOWN, !ADJCALLSTACKUP 
-later according Cpu0InstrInfo.td definition as follows.
+DAG.getCALLSEQ_START() and DAG.getCALLSEQ_END() are set before the 
+**“for loop”** and after call subroutine, they insert CALLSEQ_START, 
+CALLSEQ_END, and translate into pseudo machine instructions !ADJCALLSTACKDOWN, 
+!ADJCALLSTACKUP later according Cpu0InstrInfo.td definition as follows.
 
 .. code-block:: c++
 
@@ -1372,29 +1372,29 @@ comment in it for explanation.
         .4byte  100                     # 0x64
         .size   gI, 4
 
-As above code comment, “.cprestore 24” is a pseudo instruction for saving $gp 
-to 24($sp); Instruction “ld $gp, 24($sp)” will restore the $gp. 
+As above code comment, **“.cprestore 24”** is a pseudo instruction for saving 
+**$gp** to **24($sp)**; Instruction **“ld $gp, 24($sp)”** will restore the $gp. 
 In other word, $gp is caller saved register, so main() need to save/restore $gp 
 before/after call the shared library _Z5sum_iiiiiii() function. 
 In _Z5sum_iiiiiii() function, we translate global variable gI address by 
-“ld $3, %got(gI)($gp)” where %got(gI) is offset of (gI - _Z5sum_iiiiiii) 
+**“ld $3, %got(gI)($gp)”** where %got(gI) is offset of (gI - _Z5sum_iiiiiii) 
 (we can write our cpu0 compiler to produce obj code by calculate the offset 
 value).
 
-According the original cpu0 web site information, it only support “jsub” 24 
+According the original cpu0 web site information, it only support **“jsub”** 24 
 bits address range access. 
-We add “jalr” to cpu0 and expand it to 32 bit address. We did this change for 
+We add **“jalr”** to cpu0 and expand it to 32 bit address. We did this change for 
 two reason. One is cpu0 can be expand to 32 bit address space by only add this 
 instruction. 
 The other is cpu0 is designed for teaching purpose, this book has the same 
-purpose for llvm backend design. We reserve “jalr” as PIC mode for shared 
+purpose for llvm backend design. We reserve **“jalr”** as PIC mode for shared 
 library or dynamic loading code to demonstrate the caller how to handle the 
 caller saved register $gp in calling the shared library and the shared library 
 how to use $gp to access global variable address. This solution is popular in 
 reality and deserve change cpu0 official design as a compiler book. 
 Mips use the same solution in 32 bits Mips32 CPU.
 
-Now, as the following code added in 8/5/Cpu0, we can issue “.cprestore” in 
+Now, as the following code added in 8/5/Cpu0, we can issue **“.cprestore”** in 
 emitPrologue() and emit ld $gp, ($gp save slot on stack) after jalr by create 
 file Cpu0EmitGPRestore.cpp which run as a function pass.
 
@@ -1729,14 +1729,14 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
 
 
 The above added code of Cpu0AsmPrinter.cpp will call the LowerCPLOAD() and 
-LowerCPRESTORE() when user run with “llc -filetype=obj”. 
+LowerCPRESTORE() when user run with ``llc -filetype=obj``. 
 The above added code of Cpu0MCInstLower.cpp take care the .cpload and 
 .cprestore machine instructions. 
 It translate pseudo asm .cpload into four machine instructions, and .cprestore 
 into one machine instruction as below. 
 As mentioned in "section Global variable" [#]_. 
 When the share library main() function be loaded, the loader will set the 
-$t9 value to $gp when meet “.cpload $t9”. 
+$t9 value to $gp when meet **“.cpload $t9”**. 
 After that, the $gp value is $t9 which point to main(), and the global variable 
 address is the relative address to main(). 
 The _gp_disp is zero as the following reason from Mips ABI.
@@ -1768,7 +1768,7 @@ The _gp_disp is zero as the following reason from Mips ABI.
   function that is strictly local to an object module. 
 
 
-By run with “llc -filetype=obj”, the .cpload and .cprestore are translated into 
+By run with ``llc -filetype=obj``, the .cpload and .cprestore are translated into 
 machine code as follows,
 
 .. code-block:: bash
@@ -1808,7 +1808,7 @@ machine code as follows,
     .cprestore  24  // save $gp to 24($sp)
   …
 
-Run “llc -static” will call jsub instruction instead of jalr as follows,
+Run ``llc -static`` will call jsub instruction instead of jalr as follows,
 
 .. code-block:: bash
 
@@ -1820,8 +1820,8 @@ Run “llc -static” will call jsub instruction instead of jalr as follows,
     jsub  _Z5sum_iiiiiii
   ...
 
-Run with llc -obj, you can find the Cx of “jsub Cx” is 0 since the Cx is 
-calculated by linker as below. 
+Run with ``llc -obj``, you can find the Cx of **“jsub Cx”** is 0 since the Cx 
+is calculated by linker as below. 
 Mips has the same 0 in it's jal instruction. 
 The ch8_1_2.cpp, ch8_1_3.cpp and ch8_1_4.cpp are example code more for test. 
 
@@ -2021,8 +2021,8 @@ Run 8/7/Cpu0 with ch8_3.cpp to get the following,
 
 We have problem in analysis of the output ch8_3.cpu0.s. 
 We guess and try to analysis as follows. 
-As above code, we get the first argument “amount” from “ld $2, 56($sp)” since 
-the stack size of the callee function “_Z5sum_iiz()” is 56. 
+As above code, we get the first argument **“amount”** from **“ld $2, 56($sp)”** 
+since the stack size of the callee function **“_Z5sum_iiz()”** is 56. 
 Next, check i < amount in block $BB0_1. If  i < amount, than enter into $BB0_2. 
 We assume arg_ptr < 40 and the content of address 8($sp) is the arg_ptr. 
 When it exits $BB0_2 and enter into $BB0_3, the register ($3 + $5) = (arg_ptr 
@@ -2217,7 +2217,7 @@ The llvm IR and mips assembly output as follows,
 
 
 We have verified the translation of ch8_3.cpp is correct by add printf in 
-ch8_3.cpp to get ch8_3_3.cpp and run with “lli” llvm interpreter. 
+ch8_3.cpp to get ch8_3_3.cpp and run with ``lli`` llvm interpreter. 
 We also translate it into native Intel CPU code and get the correct print 
 result. 
 Following are the ch8_3_3.cpp, and lli, Intel native code run result.

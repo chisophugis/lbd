@@ -125,7 +125,7 @@ Cpu0InstrInfo.cpp, Cpu0TargetMachine.h, and modify CMakeLists.txt as follows,
 
 Now, let's replace 3/1/Cpu0 with 3/2/Cpu0 of adding register class definition 
 and rebuild. 
-After that, let's try to run the llc compile command to see what happen,
+After that, let's try to run the ``llc`` compile command to see what happen,
 
 .. literalinclude:: ../terminal_io/backendstructure/2.txt
 
@@ -184,7 +184,7 @@ Now, run 3/3/Cpu0 for AsmPrinter support, will get error message as follows,
 
 .. literalinclude:: ../terminal_io/backendstructure/3.txt
 
-The llc fails to compile IR code into machine code since we didn't implement 
+The ``llc`` fails to compile IR code into machine code since we didn't implement 
 class Cpu0DAGToDAGISel. Before the implementation, we will introduce the LLVM 
 Code Generation Sequence, DAG, and LLVM instruction selection in next 3 
 sections.

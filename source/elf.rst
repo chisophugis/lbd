@@ -50,7 +50,7 @@ The “System Program” written by Beck is a famous book in concept of telling
 readers what is the compiler output, what is the linker output, what is the 
 loader output, and how they work together. 
 But it covers the concept only. 
-You can reference it to understand how the “Relocation Record” works if you 
+You can reference it to understand how the **“Relocation Record”** works if you 
 need to refresh or learning this knowledge for this chapter.
 
 [#]_, [#]_, [#]_ are the Chinese documents available from the cpu0 author on web site.
@@ -330,8 +330,8 @@ The cpu0 backend translate global variable as follows,
   0000001c  00000202 R_MIPS_32         00000000   .text
 
 
-As depicted in section “Handle $gp register in PIC addressing mode”, it 
-translate “.cpload %reg” into the following.
+As depicted in `section Handle $gp register in PIC addressing mode`_, it 
+translate **“.cpload %reg”** into the following.
 
 .. code-block:: c++
 
@@ -353,7 +353,7 @@ will update these two offset relocation records into the correct offset value.
 You can check the cpu0 of %hi(_gp_disp) and %lo(_gp_disp) are correct by above 
 mips Relocation Records of R_MIPS_HI(_gp_disp) and  R_MIPS_LO(_gp_disp) even 
 though the cpu0 is not a CPU recognized by greadelf utilitly. 
-The instruction “ld $2, %got(gI)($gp)” is same since we don't know what the 
+The instruction **“ld $2, %got(gI)($gp)”** is same since we don't know what the 
 address of .data section variable will load to. 
 So, translate the address to 0 and made a relocation record on 0x00000020 of 
 .text section. Loader will change this address too.
@@ -503,6 +503,21 @@ With these td description, LLVM translate the instruction into obj format
 automatically.
 
 
+lld
+----
+
+The lld is a project of LLVM linker. 
+It's under development and we cannot finish the installation by following the 
+web site direction. 
+Even with this, it's really make sense to develop a new linker according it's web 
+site information.
+Please visit the web site [#]_.
+
+
+.. _section Handle $gp register in PIC addressing mode:
+	http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
+
+
 .. [#] http://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 
 .. [#] http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
@@ -512,3 +527,6 @@ automatically.
 .. [#] http://ccckmit.wikidot.com/lk:objfile
 
 .. [#] http://ccckmit.wikidot.com/lk:elf
+
+.. [#] http://lld.llvm.org/
+

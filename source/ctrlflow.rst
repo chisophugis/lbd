@@ -2,8 +2,8 @@ Control flow statement
 =======================
 
 This chapter illustrates the corresponding IR for control flow statements, like 
-“if else”, “while” and “for” loop statements in C, and how to translate these 
-control flow statements of llvm IR into cpu0 instructions. 
+**“if else”**, **“while”** and **“for”** loop statements in C, and how to 
+translate these control flow statements of llvm IR into cpu0 instructions. 
 
 Control flow statement
 -----------------------
@@ -205,10 +205,10 @@ Run ch7_1.cpp with clang will get result as follows,
     }
 
 
-The “icmp ne” stand for integer compare NotEqual, “slt” stand for Set Less 
-Than, “sle” stand for Set Less Equal. 
-Run version 6/2/Cpu0 with llc  -view-isel-dags or -debug option, you can see 
-it has translated if statement into 
+The **“icmp ne”** stand for integer compare NotEqual, **“slt”** stand for Set 
+Less Than, **“sle”** stand for Set Less Equal. 
+Run version 6/2/Cpu0 with ``llc  -view-isel-dags`` or ``-debug`` option, you 
+can see it has translated **if** statement into 
 (br (brcond (%1, setcc(%2, Constant<c>, setne)), BasicBlock_02), BasicBlock_01).
 Ignore %1, we get the form (br (brcond (setcc(%2, Constant<c>, setne)), 
 BasicBlock_02), BasicBlock_01). 
@@ -354,8 +354,8 @@ readability.
       // Reserved
       ZERO, AT, GP, FP, SW, SP, LR, PC)>;
 
-By the following llc option, you can get the obj file and dump it's content by 
-hexdump as follows,
+By the following ``llc`` option, you can get the obj file and dump it's content 
+by hexdump as follows,
 
 .. code-block:: c++
 
@@ -582,8 +582,9 @@ Finally we list the code added for full support of control flow statement,
     
     defm : BrcondPats<CPURegs, JEQ, JNE, JLT, JGT, JLE, JGE, CMP, ZERO>;
 
-The ch7_1_2.cpp is for “nest if” test. The ch7_1_3.cpp is the “for loop” as 
-well as “while loop”, “continue”, “break”, “goto”  test. 
+The ch7_1_2.cpp is for **“nest if”** test. The ch7_1_3.cpp is the 
+**“for loop”** as well as **“while loop”**, **“continue”**, **“break”**, 
+**“goto”** test. 
 You can run with them if you like to test more.
 
 Finally, 7/1/Cpu0 support the local array definition by add the LowerCall() 
