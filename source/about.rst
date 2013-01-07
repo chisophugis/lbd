@@ -167,7 +167,7 @@ Chapter of Other instructions:
 Over ten of C operators and their corresponding LLVM IR instructions 
 introduced in this chapter. Around 200 lines of source code (most are in 
 .td Target Description file) are added. With these 200 lines, it can translate 
-+, -, *, /, &, |, ^, <<, >>, ! and % into assembly code. 
+**+, -, \*, /, &, |, ^, <<, >>, !** and **%** into assembly code. 
 The ``llc`` debug option and debug tool **Graphviz** which supported by LLVM 
 introduced in this chapter.
 
@@ -207,7 +207,7 @@ Over 700 lines of source code added in this chapter.
 Chapter of ELF:
 
 Like many backend. Cpu0 support ELF obj format generated. The ELF format and 
-binutils tools (not a part of LLVM) introduced and demonstrate backend 
+binutils tools (not a part of LLVM) introduced and demonstrate the backend 
 designers how to use this ELF tool to verify and analysis the backend obj.  
 
 

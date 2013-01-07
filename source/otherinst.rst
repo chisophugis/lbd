@@ -4,8 +4,8 @@ Other instructions
 This chapter add more cpu0 arithmetic instructions support first.
 The logic operation **“not”** support and translation in 
 `section Operator “not” !`_. The `section Display llvm IR nodes with Graphviz`_ 
-will show you the DAG optimization steps and their corresponding llc display 
-options. 
+will show you the DAG optimization steps and their corresponding ``llc`` 
+display options. 
 These DAG optimization steps result can be displayed by the graphic tool of 
 Graphviz which supply very useful information with graphic view. 
 You will appreciate Graphviz support in debug, we think. 
@@ -18,7 +18,8 @@ Finally, `section Operator mod, %`_ take care the C operator %.
 Support arithmetic instructions
 --------------------------------
 
-Run the 3/5/Cpu0 llc with input file ch4_1_1.bc will get the error as follows,
+Run the 3/5/Cpu0 ``llc`` with input file ch4_1_1.bc will get the error as 
+follows,
 
 .. code-block:: c++
 
@@ -269,8 +270,8 @@ Let's assume %0 != 0 first, then the (icmp ne i32 %0, 0) = 1 (or true), and
 When %0 = 0, (icmp ne i32 %0, 0) = 0 (or false), and (xor 0, 1) = 1. 
 So, the translation is correct. 
     
-Now, let's run ch4_2.bc with 4/2/Cpu0 with llc -debug option to get result as 
-follows,
+Now, let's run ch4_2.bc with 4/2/Cpu0 with ``llc -debug`` option to get result 
+as follows,
 
 .. code-block:: bash
 
@@ -405,18 +406,18 @@ Display llvm IR nodes with Graphviz
 ------------------------------------
 
 The previous section, display the DAG translation process in text on terminal 
-by llc -debug option. 
-The llc also support the graphic display. 
-The `section Install other tools on iMac`_ mentioned the web for llc 
+by ``llc -debug`` option. 
+The ``llc`` also support the graphic display. 
+The `section Install other tools on iMac`_ mentioned the web for ``llc`` 
 graphic display information. 
-The llc graphic display with tool Graphviz is introduced in this section. 
+The ``llc`` graphic display with tool Graphviz is introduced in this section. 
 The graphic display is more readable by eye than display text in terminal. 
 It's not necessary, but it help a lot especially when you are tired in tracking 
 the DAG translation process. 
-List the llc graphic support options from the sub-section "SelectionDAG 
+List the ``llc`` graphic support options from the sub-section "SelectionDAG 
 Instruction Selection Process" of web [#]_ as follows,
 
-.. note:: The llc Graphviz DAG display options
+.. note:: The ``llc`` Graphviz DAG display options
 
     -view-dag-combine1-dags displays the DAG after being built, before the 
     first optimization pass. 
@@ -430,7 +431,7 @@ Instruction Selection Process" of web [#]_ as follows,
     
     -view-sched-dags displays the DAG before Scheduling. 
     
-By tracking llc -debug, you can see the DAG translation steps as follows,
+By tracking ``llc -debug``, you can see the DAG translation steps as follows,
 
 .. code-block:: bash
 
@@ -446,8 +447,8 @@ By tracking llc -debug, you can see the DAG translation steps as follows,
     …
 
 
-Let's run llc with option -view-dag-combine1-dags, and open the output result 
-with Graphviz as follows,
+Let's run ``llc`` with option -view-dag-combine1-dags, and open the output 
+result with Graphviz as follows,
 
 .. code-block:: bash
 
@@ -907,8 +908,8 @@ follows, will get the error message as follows and the llvm DAG of
 
 .. _otherinst_f2:
 .. figure:: ../Fig/otherinst/2.png
-    :height: 786 px
-    :width: 778 px
+    :height: 629 px
+    :width: 580 px
     :scale: 100 %
     :align: center
 
@@ -918,7 +919,7 @@ LLVM replace srem divide operation with multiply operation in DAG optimization
 because DIV operation cost more in time than MUL. 
 For example code **“int b = 11; b=(b+1)%12;”**, it translate into :ref:`otherinst_f2`. 
 We verify the result and explain by calculate the value in each node. 
-The 0xC*0x2AAAAAAB=0x200000004, (mulhs 0xC, 0x2AAAAAAAB) meaning get the Signed 
+The 0xC*0x2AAAAAAB=0x2,00000004, (mulhs 0xC, 0x2AAAAAAAB) meaning get the Signed 
 mul high word (32bits). 
 Multiply with 2 operands of 1 word size generate the 2 word size of result 
 (0x2, 0xAAAAAAAB). 
@@ -929,14 +930,14 @@ The final result (sub 12, 12) is 0 which match the statement (11+1)%12.
 Arm solution
 ~~~~~~~~~~~~~
 
-Let's run 4/6_1/Cpu0 with ch4_6.cpp as well as llc option  -view-sched-dags to 
-get :ref:`otherinst_f3`. 
+Let's run 4/6_1/Cpu0 with ch4_6.cpp as well as ``llc -view-sched-dags`` option 
+to get :ref:`otherinst_f3`. 
 Similarly, SMMUL get the high word of multiply result.
 
 .. _otherinst_f3:
 .. figure:: ../Fig/otherinst/3.png
-    :height: 781 px
-    :width: 657 px
+    :height: 702 px
+    :width: 687 px
     :scale: 100 %
     :align: center
 
