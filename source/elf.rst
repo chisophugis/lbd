@@ -44,9 +44,9 @@ topics
 of assembler, linker, loader, compiler and OS in concept, and at same time 
 demonstrate how to use binutils and gcc to analysis ELF through the example 
 code in his book. 
-It's a Chinese book of “System Program” in concept and practice. 
+It's a Chinese book of “System Software” in concept and practice. 
 This book does the real analysis through binutils. 
-The “System Program” written by Beck is a famous book in concept of telling 
+The “System Software”[#]_ written by Beck is a famous book in concept of telling 
 readers what is the compiler output, what is the linker output, what is the 
 loader output, and how they work together. 
 But it covers the concept only. 
@@ -521,6 +521,8 @@ Please visit the web site [#]_.
 .. [#] http://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 
 .. [#] http://jonathan2251.github.com/lbd/install.html#install-other-tools-on-imac
+
+.. [#] Leland Beck, System Software: An Introduction to Systems Programming. 
 
 .. [#] http://ccckmit.wikidot.com/lk:aout
 

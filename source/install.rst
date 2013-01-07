@@ -323,7 +323,7 @@ Now, it's ready for building 1/Cpu0 code by command
 ``cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE
 =Debug -G "Xcode" ../src/`` as follows. 
 Remind, currently, the ``cmake`` terminal command can work with lldb debug, but 
-the "section Create LLVM.xcodeproj by cmake Graphic UI" [#]_ cannot.
+the "section Create LLVM.xcodeproj by cmake Graphic UI" [5]_ cannot.
 
 .. code-block:: bash
 
@@ -810,7 +810,7 @@ Then do make as follows,
 Install other tools on Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Download Graphviz from [#]_ according your 
-Linux distribution. Files compare tools Kdiff3 came from web site[9]_. 
+Linux distribution. Files compare tools Kdiff3 came from web site [8]_. 
 
 
 
@@ -823,8 +823,6 @@ Linux distribution. Files compare tools Kdiff3 came from web site[9]_.
 .. [#] http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-of-supporting-cpu0-by-terminal-cmake-command
 
 .. [#] http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-by-cmake-graphic-ui
-
-.. [#] http://jonathan2251.github.com/lbd/install.html#create-llvm-xcodeproj-of-supporting-cpu0-by-terminal-cmake-command
 
 .. [#] http://lldb.llvm.org/lldb-gdb.html
 

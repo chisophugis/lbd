@@ -157,7 +157,8 @@ Around 750 lines of source code are added by the end of this chapter.
 
 Chapter of Back end Structure:
 
-Introduce the backend structure, and continue to add code in each section. 
+Introduce the backend structure by UML graph, and continue to add code in each 
+section. 
 Around 2300 lines of source code added in this chapter. 
 These 2300 lines of source code is common in backend design. 
 Many code are same from backend to backend except the backend name. 
@@ -180,7 +181,7 @@ Chapter of Generate obj file:
 Add the obj file format generated support in cpu0 backend, and introduce the 
 cpu0 backend Target Registration structure. 
 The Registration structure is common in backend design. 
-Around 700 lines of code added, and cpu0 can handle big and little endian 
+With these 700 lines of code added, cpu0 can handle big and little endian 
 obj file generated.
 
 
@@ -195,7 +196,7 @@ in this chapter.
 
 Chapter of Control flow statement:
 
-The if, else, while, for, goto statement flow control statements support is 
+The **if, else, while, for, goto** flow control statements support is 
 added in this chapter.
 Around 150 lines of source code added in this chapter.
 
@@ -216,7 +217,7 @@ designers how to use this ELF tool to verify and analysis the backend obj.
 
 Chapter of Appendix A:
 
-Include the LLVM source code , development tools installation, and environment 
+Include the LLVM source code, development tools installation, and environment 
 setting on iMac and Linux platform.
 
 
