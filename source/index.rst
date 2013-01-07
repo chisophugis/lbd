@@ -32,7 +32,7 @@ Table of Contents
 Book example code
 -----------------
 
-The example code is available in:
+The example code is available in: 
 
 .. raw:: html
 
@@ -42,10 +42,13 @@ The example code is available in:
     </li>
     </ul>
 
+http://jonathan2251.github.com/lbd/LLVMBackendTutorialExampleCode.tar.gz
+
+
 Alternate formats
 -----------------
 
-The book is also available in:
+The book is also available in: 
 
 .. raw:: html
 
@@ -57,3 +60,10 @@ The book is also available in:
     <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.epub">ePub</a>
     </li>
     </ul>
+
+
+html: http://jonathan2251.github.com/lbd/index.html
+
+PDF: http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.pdf
+
+ePub: http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.epub
