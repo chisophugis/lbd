@@ -20,7 +20,7 @@ Anoushe Jamshidi
 Revision history
 ----------------
 
-Version 3.2.1, Released January 1, 2013
+Version 3.2.1, Released January 7, 2013
 	Add Footnote for references.
 	Reorganize chapters (Move bottom part of chapter "Global variable" to 
 	chapter "Other instruction"; Move section "Translate into obj file" to 
