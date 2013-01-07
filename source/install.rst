@@ -40,8 +40,6 @@ and change the llvm source code root directory into src.
 After that, move the clang source code to src/tools/clang, and move the 
 compiler-rt source to src/project/compiler-rt as shown in :ref:`install_f1`.
 
-.. todo:: Should we just write out commands in a terminal for people to execute?
-
 .. _install_f1: 
 .. figure:: ../Fig/install/1.png
 	:align: center
@@ -109,7 +107,6 @@ and then click **Done** button to get :ref:`install_f5`.
 
 	Create LLVM.xcodeproj by cmake – Before Adjust CMAKE_INSTALL_NAME_TOOL
 
-.. todo:: The html will follow the appear order in \*.rst source context but latexpdf didn't. For example, the :ref:`install_f4` Figure 2.4 and :ref:`install_f5` Figure 2.5 appear after the below text "Click OK from ..." in pdf. If find the **NoReorder** or **newpage** directive, maybe can solve this problem.
 
 Click OK from :ref:`install_f5` and select Cmake 2.8-9.app for CMAKE_INSTALL_NAM
 E_TOOL by click the right side button **“...”** of that row to get 
