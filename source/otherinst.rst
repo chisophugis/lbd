@@ -851,7 +851,7 @@ corresponding llvm IR, as follows,
 
 
 LLVM **srem** is the IR corresponding **“%”**, reference sub-section "srem instruction" 
-of [#]_. 
+of [3]_. 
 Copy the reference as follows,
 
 .. note:: **'srem'** Instruction 
@@ -1243,4 +1243,3 @@ from three to over ten.
 
 .. [#] http://llvm.org/docs/CodeGenerator.html
 
-.. [#] http://llvm.org/docs/LangRef.html

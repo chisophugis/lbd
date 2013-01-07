@@ -1288,7 +1288,7 @@ Run 8/4/Cpu0 with ch8_1.cpp will get the following result.
 Handle $gp register in PIC addressing mode
 -------------------------------------------
 
-In "section Global variable" [#]_, we mentioned two addressing 
+In "section Global variable" [5]_, we mentioned two addressing 
 mode, the static address mode and PIC (position-independent code) mode. 
 We also mentioned, one example of PIC mode is used in share library. 
 Share library usually can be loaded in different memory address decided at run 
@@ -1734,7 +1734,7 @@ The above added code of Cpu0MCInstLower.cpp take care the .cpload and
 .cprestore machine instructions. 
 It translate pseudo asm .cpload into four machine instructions, and .cprestore 
 into one machine instruction as below. 
-As mentioned in "section Global variable" [#]_. 
+As mentioned in "section Global variable" [5]_. 
 When the share library main() function be loaded, the loader will set the 
 $t9 value to $gp when meet **“.cpload $t9”**. 
 After that, the $gp value is $t9 which point to main(), and the global variable 
@@ -2597,10 +2597,6 @@ variable, control flow statement and function call.
 .. [#] http://www.linux-mips.org/pub/linux/mips/doc/ABI/mipsabi.pdf
 
 .. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
-
-.. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
-
-.. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
 
 .. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
 

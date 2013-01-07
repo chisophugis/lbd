@@ -409,8 +409,7 @@ debug as follows,
   (lldb) quit
   118-165-65-128:InputFiles Jonathan$ 
 
-About the lldb debug command, please reference [#]_
- or lldb portal [#]_.
+About the lldb debug command, please reference [#]_ or lldb portal [#]_. 
 
 
 Install other tools on iMac
@@ -811,7 +810,7 @@ Then do make as follows,
 Install other tools on Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Download Graphviz from [#]_ according your 
-Linux distribution.
+Linux distribution. Files compare tools Kdiff3 came from web site[9]_. 
 
 
 
