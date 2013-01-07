@@ -20,9 +20,12 @@ Anoushe Jamshidi
 Revision history
 ----------------
 
-Version 3.2.1, Released Not yet
+Version 3.2.1, Released January 1, 2013
 	Add Footnote for references.
-	Reorganize chapters.
+	Reorganize chapters (Move bottom part of chapter "Global variable" to 
+	chapter "Other instruction"; Move section "Translate into obj file" to 
+	new chapter "Generate obj file". 
+	Fix errors in Fig/otherinst/2.png and Fig/otherinst/3.png. 
 Version 3.2.0, Released January 1, 2013
 	Add chapter Function.
 	Move Chapter "Installing LLVM and the Cpu0 example code" from beginning to 
