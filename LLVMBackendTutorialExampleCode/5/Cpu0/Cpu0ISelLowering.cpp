@@ -42,13 +42,73 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
 
   // Set up the register classes
   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
+  
+  setOperationAction(ISD::SDIV, MVT::i32, Expand);
+  setOperationAction(ISD::SREM, MVT::i32, Expand);
+  setOperationAction(ISD::UDIV, MVT::i32, Expand);
+  setOperationAction(ISD::UREM, MVT::i32, Expand);
 
+  setTargetDAGCombine(ISD::SDIVREM);
+  setTargetDAGCombine(ISD::UDIVREM);
+  
 //- Set .align 2
 // It will emit .align 2 later
   setMinFunctionAlignment(2);
 
 // must, computeRegisterProperties - Once all of the register classes are added, this allows us to compute derived properties we expose
   computeRegisterProperties();
+}
+
+static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
+                                    TargetLowering::DAGCombinerInfo &DCI,
+                                    const Cpu0Subtarget* Subtarget) {
+  if (DCI.isBeforeLegalizeOps())
+    return SDValue();
+
+  EVT Ty = N->getValueType(0);
+  unsigned LO = Cpu0::LO;
+  unsigned HI = Cpu0::HI;
+  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
+                                                  Cpu0ISD::DivRemU;
+  DebugLoc dl = N->getDebugLoc();
+
+  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
+                               N->getOperand(0), N->getOperand(1));
+  SDValue InChain = DAG.getEntryNode();
+  SDValue InGlue = DivRem;
+
+  // insert MFLO
+  if (N->hasAnyUseOfValue(0)) {
+    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
+                                            InGlue);
+    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
+    InChain = CopyFromLo.getValue(1);
+    InGlue = CopyFromLo.getValue(2);
+  }
+
+  // insert MFHI
+  if (N->hasAnyUseOfValue(1)) {
+    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
+                                            HI, Ty, InGlue);
+    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
+  }
+
+  return SDValue();
+}
+
+SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
+  const {
+  SelectionDAG &DAG = DCI.DAG;
+  unsigned opc = N->getOpcode();
+
+  switch (opc) {
+  default: break;
+  case ISD::SDIVREM:
+  case ISD::UDIVREM:
+    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
+  }
+
+  return SDValue();
 }
 
 #include "Cpu0GenCallingConv.inc"

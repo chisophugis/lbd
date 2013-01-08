@@ -23,10 +23,23 @@ include "Cpu0InstrFormats.td"
 
 def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>;
 
+def SDT_Cpu0DivRem       : SDTypeProfile<0, 2,
+                                         [SDTCisInt<0>,
+                                          SDTCisSameAs<0, 1>]>;
+
 // Return
 def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain,
                      SDNPOptInGlue]>;
 
+// DivRem(u) nodes
+def Cpu0DivRem    : SDNode<"Cpu0ISD::DivRem", SDT_Cpu0DivRem,
+                           [SDNPOutGlue]>;
+def Cpu0DivRemU   : SDNode<"Cpu0ISD::DivRemU", SDT_Cpu0DivRem,
+                           [SDNPOutGlue]>;
+
+//===----------------------------------------------------------------------===//
+// Cpu0 Instruction Predicate Definitions.
+//===----------------------------------------------------------------------===//
 def RelocPIC    :     Predicate<"TM.getRelocationModel() == Reloc::PIC_">,
                       AssemblerPredicate<"FeatureCpu032">;
 
@@ -216,6 +229,18 @@ class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
 class Mult32<bits<8> op, string instr_asm, InstrItinClass itin>:
   Mult<op, instr_asm, itin, CPURegs, [HI, LO]>;
 
+class Div<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin,
+          RegisterClass RC, list<Register> DefRegs>:
+  FL<op, (outs), (ins RC:$rb, RC:$rc),
+     !strconcat(instr_asm, "\t$$zero, $rb, $rc"),
+     [(opNode RC:$rb, RC:$rc)], itin> {
+  let imm16 = 0;
+  let Defs = DefRegs;
+}
+
+class Div32<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin>:
+  Div<opNode, op, instr_asm, itin, CPURegs, [HI, LO]>;
+
 // Move from Hi/Lo
 class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
                    list<Register> UseRegs>:
@@ -224,6 +249,16 @@ class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
   let rb = 0;
   let imm16 = 0;
   let Uses = UseRegs;
+  let neverHasSideEffects = 1;
+}
+
+class MoveToLOHI<bits<8> op, string instr_asm, RegisterClass RC,
+                 list<Register> DefRegs>:
+  FL<op, (outs), (ins RC:$ra),
+     !strconcat(instr_asm, "\t$ra"), [], IIHiLo> {
+  let rb = 0;
+  let imm16 = 0;
+  let Defs = DefRegs;
   let neverHasSideEffects = 1;
 }
 
@@ -254,8 +289,8 @@ def CMP		: CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
 def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
 def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
 def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
-def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
-def UDIV    : ArithLogicR<0x17, "udiv", udiv, IIIdiv, CPURegs, 1>;
+def SDIV    : Div32<Cpu0DivRem, 0x16, "div", IIIdiv>;
+def UDIV    : Div32<Cpu0DivRemU, 0x17, "divu", IIIdiv>;
 def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
 def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
 def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
@@ -266,13 +301,17 @@ def MULTu   : Mult32<0x51, "multu", IIImul>;
 
 def MFHI : MoveFromLOHI<0x40, "mfhi", CPURegs, [HI]>;
 def MFLO : MoveFromLOHI<0x41, "mflo", CPURegs, [LO]>;
+def MTHI : MoveToLOHI<0x42, "mthi", CPURegs, [HI]>;
+def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
 
 /// Shift Instructions
-def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>; // work, it's for ashr llvm IR instruction
+ // work, it's for ashr llvm IR instruction
+def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
 def ROL     : shift_rotate_imm32<0x1C, 0x01, "rol", rotl>;
 def ROR     : shift_rotate_imm32<0x1D, 0x01, "ror", rotr>;
 def SHL     : shift_rotate_imm32<0x1E, 0x00, "shl", shl>;
-def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>; // work, it's for lshr llvm IR instruction
+ // work, it's for lshr llvm IR instruction
+def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>;
 
 let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
     isBarrier=1, hasCtrlDep=1 in
@@ -302,7 +341,8 @@ def : Pat<(i32 immSExt16:$in),
           
 // Arbitrary immediates
 def : Pat<(i32 imm:$imm),
-          (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 imm:$imm)))>;
+          (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 
+              imm:$imm)))>;
 
 
 def : Pat<(not CPURegs:$in),

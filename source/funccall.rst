@@ -1181,7 +1181,7 @@ function and define eliminateCallFramePseudoInstr() as follows,
 With above definition, eliminateCallFramePseudoInstr() will be called when 
 llvm meet pseudo instructions ADJCALLSTACKDOWN and ADJCALLSTACKUP. 
 We just discard these 2 pseudo instructions. 
-Run 8/4/Cpu0 with ch8_1.cpp will get the following result.
+Run 8/5/Cpu0 with ch8_1.cpp will get the following result.
 
 .. code-block:: bash
 
@@ -1301,7 +1301,7 @@ But, we can caculate the distance between the global variable address and
 shared library function if they will be loaded to the contiguous memory space 
 together.
 
-Let's run 8/5/Cpu0 with ch8_2.cpp to get the following result of we putting the 
+Let's run 8/6/Cpu0 with ch8_2.cpp to get the following result of we putting the 
 comment in it for explanation.
 
 .. code-block:: bash
@@ -1394,7 +1394,7 @@ how to use $gp to access global variable address. This solution is popular in
 reality and deserve change cpu0 official design as a compiler book. 
 Mips use the same solution in 32 bits Mips32 CPU.
 
-Now, as the following code added in 8/5/Cpu0, we can issue **“.cprestore”** in 
+Now, as the following code added in 8/6/Cpu0, we can issue **“.cprestore”** in 
 emitPrologue() and emit ld $gp, ($gp save slot on stack) after jalr by create 
 file Cpu0EmitGPRestore.cpp which run as a function pass.
 

@@ -67,3 +67,6 @@ def CPURegs : RegisterClass<"Cpu0", [i32], 32, (add
   // Reserved
   ZERO, AT, GP, FP, SW, SP, LR, PC)>;
 
+// Hi/Lo Registers
+def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
+

@@ -49,6 +49,8 @@ const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
   case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
   case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
+  case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
+  case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
   case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
   default:                         return NULL;
   }
@@ -73,6 +75,11 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
   setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
   setOperationAction(ISD::VASTART,            MVT::Other, Custom);
 
+  setOperationAction(ISD::SDIV, MVT::i32, Expand);
+  setOperationAction(ISD::SREM, MVT::i32, Expand);
+  setOperationAction(ISD::UDIV, MVT::i32, Expand);
+  setOperationAction(ISD::UREM, MVT::i32, Expand);
+  
   // Operations not directly supported by Cpu0.
   setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
   
@@ -82,6 +89,9 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
   setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
   setOperationAction(ISD::VAEND,             MVT::Other, Expand);
 
+  setTargetDAGCombine(ISD::SDIVREM);
+  setTargetDAGCombine(ISD::UDIVREM);
+  
 //- Set .align 2
 // It will emit .align 2 later
   setMinFunctionAlignment(2);
@@ -89,6 +99,58 @@ Cpu0TargetLowering(Cpu0TargetMachine &TM)
 // must, computeRegisterProperties - Once all of the register classes are 
 //  added, this allows us to compute derived properties we expose.
   computeRegisterProperties();
+}
+
+static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
+                                    TargetLowering::DAGCombinerInfo &DCI,
+                                    const Cpu0Subtarget* Subtarget) {
+  if (DCI.isBeforeLegalizeOps())
+    return SDValue();
+
+  EVT Ty = N->getValueType(0);
+  unsigned LO = Cpu0::LO;
+  unsigned HI = Cpu0::HI;
+  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
+                                                  Cpu0ISD::DivRemU;
+  DebugLoc dl = N->getDebugLoc();
+
+  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
+                               N->getOperand(0), N->getOperand(1));
+  SDValue InChain = DAG.getEntryNode();
+  SDValue InGlue = DivRem;
+
+  // insert MFLO
+  if (N->hasAnyUseOfValue(0)) {
+    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
+                                            InGlue);
+    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
+    InChain = CopyFromLo.getValue(1);
+    InGlue = CopyFromLo.getValue(2);
+  }
+
+  // insert MFHI
+  if (N->hasAnyUseOfValue(1)) {
+    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
+                                            HI, Ty, InGlue);
+    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
+  }
+
+  return SDValue();
+}
+
+SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
+  const {
+  SelectionDAG &DAG = DCI.DAG;
+  unsigned opc = N->getOpcode();
+
+  switch (opc) {
+  default: break;
+  case ISD::SDIVREM:
+  case ISD::UDIVREM:
+    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
+  }
+
+  return SDValue();
 }
 
 SDValue Cpu0TargetLowering::

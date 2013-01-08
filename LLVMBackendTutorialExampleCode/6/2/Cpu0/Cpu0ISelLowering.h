@@ -44,6 +44,10 @@ namespace llvm {
       // Return
       Ret,
 
+      // DivRem(u)
+      DivRem,
+      DivRemU,
+      
       Wrapper,
       DynAlloc,
       Sync
@@ -65,6 +69,8 @@ namespace llvm {
     /// getTargetNodeName - This method returns the name of a target specific
     //  DAG node.
     virtual const char *getTargetNodeName(unsigned Opcode) const;
+
+    virtual SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const;
 
   private:
     // Subtarget Info

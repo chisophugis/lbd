@@ -25,7 +25,10 @@ namespace llvm {
     enum NodeType {
       // Start the numbering from where ISD NodeType finishes.
       FIRST_NUMBER = ISD::BUILTIN_OP_END,
-      Ret
+      Ret,
+      // DivRem(u)
+      DivRem,
+      DivRemU
     };
   }
 
@@ -36,6 +39,8 @@ namespace llvm {
   class Cpu0TargetLowering : public TargetLowering  {
   public:
     explicit Cpu0TargetLowering(Cpu0TargetMachine &TM);
+
+    virtual SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const;
 
   private:
     // Subtarget Info
