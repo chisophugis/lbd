@@ -20,6 +20,9 @@ Anoushe Jamshidi
 Revision history
 ----------------
 
+Version 3.2.2, Released January 10, 2013
+	Add section "Full support %" and section "Verify DIV for operator %".
+	
 Version 3.2.1, Released January 7, 2013
 	Add Footnote for references.
 	Reorganize chapters (Move bottom part of chapter "Global variable" to 
