@@ -2578,6 +2578,43 @@ backend code too.
 
 Mips qemu reference [#]_.
 
+
+Verify DIV for operator %
+--------------------------
+
+Now, let's run 8/7/Cpu0 with 4_6_2.cpp to get the result as below. 
+It translate **“(b+1)%c”** into **“div $zero, $3, $2”** and **“mfhi $2”**.
+
+.. code-block:: c++
+
+  // ch4_6_2.cpp
+  #include <stdlib.h>
+  
+  int main()
+  {
+    int b = 11;
+  //  unsigned int b = 11;
+    int c = rand();
+    
+    b = (b+1)%c;
+    
+    return b;
+  }
+
+.. code-block:: bash
+
+  118-165-70-242:InputFiles Jonathan$ clang -c ch4_6_2.cpp -I/Applications/
+  Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+  MacOSX10.8.sdk/usr/include/ -emit-llvm -o ch4_6_2.bc
+  118-165-70-242:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake
+  _debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch4_6_2.bc -o ch4_6_2.cpu0.s
+  118-165-70-242:InputFiles Jonathan$ cat ch4_6_2.cpu0.s 
+    ...
+    div $zero, $3, $2
+    mfhi  $2
+    …
+
 Summary of this chapter
 ------------------------
 

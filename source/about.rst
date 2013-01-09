@@ -170,7 +170,7 @@ Chapter of Other instructions:
 
 Over ten of C operators and their corresponding LLVM IR instructions 
 introduced in this chapter. Around 200 lines of source code (most are in 
-.td Target Description file) are added. With these 200 lines, it can translate 
+.td Target Description file) are added. With these 345 lines, it can translate 
 **+, -, \*, /, &, |, ^, <<, >>, !** and **%** into assembly code. 
 The ``llc`` debug option and debug tool **Graphviz** which supported by LLVM 
 introduced in this chapter.
@@ -188,7 +188,7 @@ obj file generated.
 Chapter of Global variable, struct and array:
 
 Global variable, struct and array support added in this chapter. 
-Over 300 lines of source code needed in global variable access while 200 lines 
+Over 300 lines of source code needed in global variable access while 345 lines 
 needed for ten of operators in chapter of Other instructions. 
 The cpu0 support PIC and static addressing mode. These two modes are explained 
 in this chapter.

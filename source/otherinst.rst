@@ -1200,12 +1200,272 @@ ch4_6.bc.
     .size main, ($tmp2)-main
     .cfi_endproc
 
+Full support %
+---------------
+
+The sensitive readers may find the llvm using **“multiplication”** instead 
+of **“div”** to get the **“%”** result just because our example use constant as 
+divider, **“(b+1)%12”** in our example. 
+If programmer use variable as the divider like **“(b+1)%a”**, then what will 
+happens in our code. 
+The answer is our code will have error to take care this. 
+In `section Support arithmetic instructions`_, we use **“div a, b”** 
+to hold the quotient part in register. 
+The multiplication operator **“*”** need 64 bits of register to hold the result 
+for two 32 bits of operands multiplication. 
+We modify cpu0 to use the pair of registers LO and HI which just like Mips to 
+solve this issue in last section. 
+Now, it's time to modify cpu0 for integer **“divide”** operator again. 
+We use LO and HI registers to hold the **"quotient"** and **"remainder"** and 
+use instructions **“mflo”** and **“mfhi”** to get the result from LO or HI 
+registers. 
+With this solution, the **“c = a / b”** can be got by **“div a, b”** and 
+**“mflo c”**; the **“c = a % b”** can be got by **“div a, b”** and **“mfhi c”**.
+
+4/6_4/Cpu0 support operator **“%”** and **“/”**. 
+The code added in 4/6_4/Cpu0 as follows,
+
+.. code-block:: c++
+
+  // Cpu0InstrInfo.cpp
+  ...
+  void Cpu0InstrInfo::
+  copyPhysReg(MachineBasicBlock &MBB,
+        MachineBasicBlock::iterator I, DebugLoc DL,
+        unsigned DestReg, unsigned SrcReg,
+        bool KillSrc) const {
+    unsigned Opc = 0, ZeroReg = 0;
+  
+    if (Cpu0::CPURegsRegClass.contains(DestReg)) { // Copy to CPU Reg.
+    if (Cpu0::CPURegsRegClass.contains(SrcReg))
+      Opc = Cpu0::ADD, ZeroReg = Cpu0::ZERO;
+    else if (SrcReg == Cpu0::HI)
+      Opc = Cpu0::MFHI, SrcReg = 0;
+    else if (SrcReg == Cpu0::LO)
+      Opc = Cpu0::MFLO, SrcReg = 0;
+    }
+    else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
+    if (DestReg == Cpu0::HI)
+      Opc = Cpu0::MTHI, DestReg = 0;
+    else if (DestReg == Cpu0::LO)
+      Opc = Cpu0::MTLO, DestReg = 0;
+    }
+  
+    assert(Opc && "Cannot copy registers");
+  
+    MachineInstrBuilder MIB = BuildMI(MBB, I, DL, get(Opc));
+  
+    if (DestReg)
+    MIB.addReg(DestReg, RegState::Define);
+  
+    if (ZeroReg)
+    MIB.addReg(ZeroReg);
+  
+    if (SrcReg)
+    MIB.addReg(SrcReg, getKillRegState(KillSrc));
+  }
+  
+  // Cpu0InstrInfo.h
+  ...
+    virtual void copyPhysReg(MachineBasicBlock &MBB,
+                 MachineBasicBlock::iterator MI, DebugLoc DL,
+                 unsigned DestReg, unsigned SrcReg,
+                 bool KillSrc) const;
+  
+  // Cpu0InstrInfo.td
+  ...
+  def SDT_Cpu0DivRem       : SDTypeProfile<0, 2,
+                       [SDTCisInt<0>,
+                        SDTCisSameAs<0, 1>]>;
+  ...
+  // DivRem(u) nodes
+  def Cpu0DivRem    : SDNode<"Cpu0ISD::DivRem", SDT_Cpu0DivRem,
+                 [SDNPOutGlue]>;
+  def Cpu0DivRemU   : SDNode<"Cpu0ISD::DivRemU", SDT_Cpu0DivRem,
+                 [SDNPOutGlue]>;
+  ...
+  class Div<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin,
+        RegisterClass RC, list<Register> DefRegs>:
+    FL<op, (outs), (ins RC:$rb, RC:$rc),
+     !strconcat(instr_asm, "\t$$zero, $rb, $rc"),
+     [(opNode RC:$rb, RC:$rc)], itin> {
+    let imm16 = 0;
+    let Defs = DefRegs;
+  }
+  
+  class Div32<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin>:
+    Div<opNode, op, instr_asm, itin, CPURegs, [HI, LO]>;
+  …
+  class MoveToLOHI<bits<8> op, string instr_asm, RegisterClass RC,
+           list<Register> DefRegs>:
+    FL<op, (outs), (ins RC:$ra),
+     !strconcat(instr_asm, "\t$ra"), [], IIHiLo> {
+    let rb = 0;
+    let imm16 = 0;
+    let Defs = DefRegs;
+    let neverHasSideEffects = 1;
+  }
+  ...
+  def SDIV    : Div32<Cpu0DivRem, 0x16, "div", IIIdiv>;
+  def UDIV    : Div32<Cpu0DivRemU, 0x17, "divu", IIIdiv>;
+  …
+  def MTHI : MoveToLOHI<0x42, "mthi", CPURegs, [HI]>;
+  def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
+  
+  // Cpu0ISelLowering.cpp
+  …
+  Cpu0TargetLowering::
+  Cpu0TargetLowering(Cpu0TargetMachine &TM)
+    : TargetLowering(TM, new TargetLoweringObjectFileELF()),
+    Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+    ...
+    setOperationAction(ISD::SDIV, MVT::i32, Expand);
+    setOperationAction(ISD::SREM, MVT::i32, Expand);
+    setOperationAction(ISD::UDIV, MVT::i32, Expand);
+    setOperationAction(ISD::UREM, MVT::i32, Expand);
+  
+    setTargetDAGCombine(ISD::SDIVREM);
+    setTargetDAGCombine(ISD::UDIVREM);
+    ...
+  }
+  ...
+  static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
+                    TargetLowering::DAGCombinerInfo &DCI,
+                    const Cpu0Subtarget* Subtarget) {
+    if (DCI.isBeforeLegalizeOps())
+    return SDValue();
+  
+    EVT Ty = N->getValueType(0);
+    unsigned LO = Cpu0::LO;
+    unsigned HI = Cpu0::HI;
+    unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
+                            Cpu0ISD::DivRemU;
+    DebugLoc dl = N->getDebugLoc();
+  
+    SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
+                   N->getOperand(0), N->getOperand(1));
+    SDValue InChain = DAG.getEntryNode();
+    SDValue InGlue = DivRem;
+  
+    // insert MFLO
+    if (N->hasAnyUseOfValue(0)) {
+    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
+                        InGlue);
+    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
+    InChain = CopyFromLo.getValue(1);
+    InGlue = CopyFromLo.getValue(2);
+    }
+  
+    // insert MFHI
+    if (N->hasAnyUseOfValue(1)) {
+    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
+                        HI, Ty, InGlue);
+    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
+    }
+  
+    return SDValue();
+  }
+  
+  SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
+    const {
+    SelectionDAG &DAG = DCI.DAG;
+    unsigned opc = N->getOpcode();
+  
+    switch (opc) {
+    default: break;
+    case ISD::SDIVREM:
+    case ISD::UDIVREM:
+    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
+    }
+  
+    return SDValue();
+  }
+  
+  // Cpu0ISelLowering.h
+  …
+  namespace llvm {
+    namespace Cpu0ISD {
+    enum NodeType {
+      // Start the numbering from where ISD NodeType finishes.
+      FIRST_NUMBER = ISD::BUILTIN_OP_END,
+      Ret,
+      // DivRem(u)
+      DivRem,
+      DivRemU
+    };
+    }
+  …
+  
+  // Cpu0RegisterInfo.td
+  ...
+  // Hi/Lo Registers
+  def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
+
+
+Run with ch4_1_2.cpp can get the result for operator **“/”** as below. 
+But run with ch4_6_1.cpp as below, cannot get the **“div”** for operator 
+**“%”**. 
+It still use **"multiplication"** instead of **"div"** because llvm do 
+**“Constant Propagation Optimization”** in this. 
+The ch4_6_2.cpp can get the **“div”** for **“%”** result since it make the 
+llvm **“Constant Propagation Optimization”** useless in this. 
+Unfortunately, we cannot run it now since it need the function call support. 
+We will verify **“%”** with ch4_6_2.cpp at the end of chapter “Function Call”. 
+You can run with the end of Example Code of chapter “Function Call”, if you 
+like to verify it now.
+
+.. code-block:: c++
+
+  // ch4_1_2.cpp
+  int main()
+  {
+    …
+    f = a / b;
+    …
+  }
+
+.. code-block:: bash
+
+  118-165-77-79:InputFiles Jonathan$ clang -c ch4_1_2.cpp -emit-llvm -o ch4_1_2.bc
+  118-165-77-79:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch4_1_2.bc -o ch4_1_2.cpu0.s
+  118-165-77-79:InputFiles Jonathan$ cat ch4_1_2.cpu0.s 
+    div $zero, $3, $2
+    mflo  $2
+    …
+  
+  // ch4_6_1.cpp
+  int main()
+  {
+    int b = 11;
+    int a = 12;
+  
+    b = (b+1)%a;
+    
+    return b;
+  }
+  
+  // ch4_6_2.cpp
+  #include <stdlib.h>
+  
+  int main()
+  {
+    int b = 11;
+  //  unsigned int b = 11;
+    int c = rand();
+    
+    b = (b+1)%c;
+    
+    return b;
+  }
+
 
 Summary
 --------
 We support most of C operators in this chapter. 
-Until now, we have 3226 lines of source code with comments. 
-With these 199 lines of source code added, it support the number of operators 
+Until now, we have 3372 lines of source code with comments. 
+With these 345 lines of source code added, it support the number of operators 
 from three to over ten.
 
 .. _section Operator “not” !:
