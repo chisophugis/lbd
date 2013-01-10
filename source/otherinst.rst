@@ -570,7 +570,7 @@ and reasonable than **ldi** instruction.
 We highlight this change in `section CPU0 processor architecture`_. 
 Even with that, we show you how to replace our **addiu** with **ldi** according 
 the cpu0 original design. 
-4/5_2/Cpu0 is the code changes for use **ldi** instruction. 
+4/4_2/Cpu0 is the code changes for use **ldi** instruction. 
 This changes replace **addiu** with **ldi** in Cpu0InstrInfo.td and modify 
 Cpu0FrameLowering.cpp as follows,
 
@@ -1464,7 +1464,7 @@ like to verify it now.
 Summary
 --------
 We support most of C operators in this chapter. 
-Until now, we have 3372 lines of source code with comments. 
+Until now, we have around 3400 lines of source code with comments. 
 With these 345 lines of source code added, it support the number of operators 
 from three to over ten.
 
