@@ -1138,11 +1138,12 @@ from TargetSelectionDAG.td.
 Except the custom type, llvm IR operations of expand and promote type will call 
 Cpu0DAGToDAGISel::Select() during instruction selection of DAG translation. 
 In Select(), it return the HI part of multiplication result to HI register, 
-for IR operations of mulhs or mulhu, and LO part to LO register. 
-After that, MFHI instruction move the HI register to $ra register. 
-MFHI instruction is FL format and only use $ra register, we set the $rb and 
-imm16 to 0. :ref:`otherinst_f4` and ch4_6.cpu0.s are the result of compile 
-ch4_6.bc.
+for IR operations of mulhs or mulhu. 
+After that, MFHI instruction move the HI register to cpu0 field "a" register, 
+$ra. 
+MFHI instruction is FL format and only use cpu0 field "a" register, we set 
+the $rb and imm16 to 0. 
+:ref:`otherinst_f4` and ch4_6.cpu0.s are the result of compile ch4_6.bc.
 
 .. _otherinst_f4:
 .. figure:: ../Fig/otherinst/4.png
