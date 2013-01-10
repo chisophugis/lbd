@@ -8,11 +8,11 @@ translate these control flow statements of llvm IR into cpu0 instructions.
 Control flow statement
 -----------------------
 
-Run ch7_1.cpp with clang will get result as follows,
+Run ch7_1_1.cpp with clang will get result as follows,
 
 .. code-block:: c++
 
-    // ch7_1.cpp
+    // ch7_1_1.cpp
     int main()
     {
         unsigned int a = 0;
