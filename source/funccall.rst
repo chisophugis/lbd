@@ -2618,12 +2618,12 @@ It translate **“(b+1)%c”** into **“div $zero, $3, $2”** and **“mfhi $2
 Summary of this chapter
 ------------------------
 
-Until now, we have 5,500 lines of source code around in 8/7/Cpu0. 
+Until now, we have 5,700 lines of source code around in 8/7/Cpu0. 
 The cpu0 backend code now can take care the integer function call and control 
 statement just like the llvm front end tutorial example code. 
 Look back the chapter of “Back end structure”, there are 3,000 lines of source 
 code with taking three instructions only. 
-With this 80% more of code, it can translate tens of instructions, global 
+With this 87% more of code, it can translate tens of instructions, global 
 variable, control flow statement and function call.
 
 

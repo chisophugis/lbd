@@ -172,7 +172,7 @@ three instructions support to generate the assembly output file.
 Chapter of Other instructions:
 
 Over ten of C operators and their corresponding LLVM IR instructions 
-introduced in this chapter. Around 200 lines of source code (most are in 
+introduced in this chapter. Around 345 lines of source code (most are in 
 .td Target Description file) are added. With these 345 lines, it can translate 
 **+, -, \*, /, &, |, ^, <<, >>, !** and **%** into assembly code. 
 The ``llc`` debug option and debug tool **Graphviz** which supported by LLVM 
