@@ -1,0 +1,778 @@
+diff -Naur 2/Cpu0/CMakeLists.txt 3/1/Cpu0/CMakeLists.txt
+--- 2/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
++++ 3/1/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+@@ -9,6 +9,8 @@
+ #  came from Cpu0InstrInfo.td.
+ tablegen(LLVM Cpu0GenRegisterInfo.inc -gen-register-info)
+ tablegen(LLVM Cpu0GenInstrInfo.inc -gen-instr-info)
++tablegen(LLVM Cpu0GenDAGISel.inc -gen-dag-isel)
++tablegen(LLVM Cpu0GenCallingConv.inc -gen-callingconv)
+ tablegen(LLVM Cpu0GenSubtargetInfo.inc -gen-subtarget)
+ 
+ # Cpu0CommonTableGen must be defined
+@@ -16,7 +18,12 @@
+ 
+ # Cpu0CodeGen should match with LLVMBuild.txt Cpu0CodeGen
+ add_llvm_target(Cpu0CodeGen
++  Cpu0ISelLowering.cpp
++  Cpu0InstrInfo.cpp
++  Cpu0FrameLowering.cpp
++  Cpu0Subtarget.cpp
+   Cpu0TargetMachine.cpp
++  Cpu0SelectionDAGInfo.cpp
+   )
+ 
+ # Should match with "subdirectories =  MCTargetDesc TargetInfo" in LLVMBuild.txt
+diff -Naur 2/Cpu0/Cpu0.td 3/1/Cpu0/Cpu0.td
+--- 2/Cpu0/Cpu0.td	2013-01-10 18:32:51.000000000 +0800
++++ 3/1/Cpu0/Cpu0.td	2013-01-10 18:32:51.000000000 +0800
+@@ -22,6 +22,7 @@
+ include "Cpu0RegisterInfo.td"
+ include "Cpu0Schedule.td"
+ include "Cpu0InstrInfo.td"
++include "Cpu0CallingConv.td"
+ 
+ def Cpu0InstrInfo : InstrInfo;
+ 
+diff -Naur 2/Cpu0/Cpu0CallingConv.td 3/1/Cpu0/Cpu0CallingConv.td
+--- 2/Cpu0/Cpu0CallingConv.td	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0CallingConv.td	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,18 @@
++//===-- Cpu0CallingConv.td - Calling Conventions for Cpu0 --*- tablegen -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++// This describes the calling conventions for Cpu0 architecture.
++//===----------------------------------------------------------------------===//
++
++/// CCIfSubtarget - Match if the current subtarget has a feature F.
++class CCIfSubtarget<string F, CCAction A>:
++  CCIf<!strconcat("State.getTarget().getSubtarget<Cpu0Subtarget>().", F), A>;
++
++def CSR_O32 : CalleeSavedRegs<(add LR, FP,
++                                   (sequence "S%u", 2, 0))>;
++
+diff -Naur 2/Cpu0/Cpu0FrameLowering.cpp 3/1/Cpu0/Cpu0FrameLowering.cpp
+--- 2/Cpu0/Cpu0FrameLowering.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0FrameLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,100 @@
++//===-- Cpu0FrameLowering.cpp - Cpu0 Frame Information --------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file contains the Cpu0 implementation of TargetFrameLowering class.
++//
++//===----------------------------------------------------------------------===//
++
++#include "Cpu0FrameLowering.h"
++#include "Cpu0InstrInfo.h"
++#include "Cpu0MachineFunction.h"
++#include "llvm/Function.h"
++#include "llvm/CodeGen/MachineFrameInfo.h"
++#include "llvm/CodeGen/MachineFunction.h"
++#include "llvm/CodeGen/MachineInstrBuilder.h"
++#include "llvm/CodeGen/MachineModuleInfo.h"
++#include "llvm/CodeGen/MachineRegisterInfo.h"
++#include "llvm/Target/TargetData.h"
++#include "llvm/Target/TargetOptions.h"
++#include "llvm/Support/CommandLine.h"
++
++using namespace llvm;
++
++//- emitPrologue() and emitEpilogue must exist for main(). 
++
++//===----------------------------------------------------------------------===//
++//
++// Stack Frame Processing methods
++// +----------------------------+
++//
++// The stack is allocated decrementing the stack pointer on
++// the first instruction of a function prologue. Once decremented,
++// all stack references are done thought a positive offset
++// from the stack/frame pointer, so the stack is considering
++// to grow up! Otherwise terrible hacks would have to be made
++// to get this stack ABI compliant :)
++//
++//  The stack frame required by the ABI (after call):
++//  Offset
++//
++//  0                 ----------
++//  4                 Args to pass
++//  .                 saved $GP  (used in PIC)
++//  .                 Alloca allocations
++//  .                 Local Area
++//  .                 CPU "Callee Saved" Registers
++//  .                 saved FP
++//  .                 saved RA
++//  .                 FPU "Callee Saved" Registers
++//  StackSize         -----------
++//
++// Offset - offset from sp after stack allocation on function prologue
++//
++// The sp is the stack pointer subtracted/added from the stack size
++// at the Prologue/Epilogue
++//
++// References to the previous stack (to obtain arguments) are done
++// with offsets that exceeds the stack size: (stacksize+(4*(num_arg-1))
++//
++// Examples:
++// - reference to the actual stack frame
++//   for any local area var there is smt like : FI >= 0, StackOffset: 4
++//     st REGX, 4(SP)
++//
++// - reference to previous stack frame
++//   suppose there's a load to the 5th arguments : FI < 0, StackOffset: 16.
++//   The emitted instruction will be something like:
++//     ld REGX, 16+StackSize(SP)
++//
++// Since the total stack size is unknown on LowerFormalArguments, all
++// stack references (ObjectOffset) created to reference the function
++// arguments, are negative numbers. This way, on eliminateFrameIndex it's
++// possible to detect those references and the offsets are adjusted to
++// their real location.
++//
++//===----------------------------------------------------------------------===//
++
++//- Must have, hasFP() is pure virtual of parent
++// hasFP - Return true if the specified function should have a dedicated frame
++// pointer register.  This is true if the function has variable sized allocas or
++// if frame pointer elimination is disabled.
++bool Cpu0FrameLowering::hasFP(const MachineFunction &MF) const {
++  const MachineFrameInfo *MFI = MF.getFrameInfo();
++  return MF.getTarget().Options.DisableFramePointerElim(MF) ||
++      MFI->hasVarSizedObjects() || MFI->isFrameAddressTaken();
++}
++
++void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
++}
++
++void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,
++                                 MachineBasicBlock &MBB) const {
++}
++
++
+diff -Naur 2/Cpu0/Cpu0FrameLowering.h 3/1/Cpu0/Cpu0FrameLowering.h
+--- 2/Cpu0/Cpu0FrameLowering.h	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0FrameLowering.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,43 @@
++//===-- Cpu0FrameLowering.h - Define frame lowering for Cpu0 ----*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++//
++//
++//===----------------------------------------------------------------------===//
++#ifndef CPU0_FRAMEINFO_H
++#define CPU0_FRAMEINFO_H
++
++#include "Cpu0.h"
++#include "Cpu0Subtarget.h"
++#include "llvm/Target/TargetFrameLowering.h"
++
++namespace llvm {
++  class Cpu0Subtarget;
++
++class Cpu0FrameLowering : public TargetFrameLowering {
++protected:
++  const Cpu0Subtarget &STI;
++
++public:
++  explicit Cpu0FrameLowering(const Cpu0Subtarget &sti)
++    : TargetFrameLowering(StackGrowsDown, 8, 0),
++      STI(sti) {
++  }
++
++  /// emitProlog/emitEpilog - These methods insert prolog and epilog code into
++  /// the function.
++  void emitPrologue(MachineFunction &MF) const;
++  void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const;
++  bool hasFP(const MachineFunction &MF) const;
++};
++
++} // End llvm namespace
++
++#endif
++
+diff -Naur 2/Cpu0/Cpu0ISelLowering.cpp 3/1/Cpu0/Cpu0ISelLowering.cpp
+--- 2/Cpu0/Cpu0ISelLowering.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,72 @@
++//===-- Cpu0ISelLowering.cpp - Cpu0 DAG Lowering Implementation -----------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file defines the interfaces that Cpu0 uses to lower LLVM code into a
++// selection DAG.
++//
++//===----------------------------------------------------------------------===//
++
++#define DEBUG_TYPE "cpu0-lower"
++#include "Cpu0ISelLowering.h"
++#include "Cpu0TargetMachine.h"
++#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
++#include "Cpu0Subtarget.h"
++#include "llvm/DerivedTypes.h"
++#include "llvm/Function.h"
++#include "llvm/GlobalVariable.h"
++#include "llvm/Intrinsics.h"
++#include "llvm/CallingConv.h"
++#include "llvm/CodeGen/CallingConvLower.h"
++#include "llvm/CodeGen/MachineFrameInfo.h"
++#include "llvm/CodeGen/MachineFunction.h"
++#include "llvm/CodeGen/MachineInstrBuilder.h"
++#include "llvm/CodeGen/MachineRegisterInfo.h"
++#include "llvm/CodeGen/SelectionDAGISel.h"
++#include "llvm/CodeGen/ValueTypes.h"
++#include "llvm/Support/Debug.h"
++#include "llvm/Support/ErrorHandling.h"
++#include "llvm/Support/raw_ostream.h"
++
++using namespace llvm;
++
++Cpu0TargetLowering::
++Cpu0TargetLowering(Cpu0TargetMachine &TM)
++  : TargetLowering(TM, new TargetLoweringObjectFileELF()),
++    Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
++}
++
++#include "Cpu0GenCallingConv.inc"
++
++/// LowerFormalArguments - transform physical registers into virtual registers
++/// and generate load operations for arguments places on the stack.
++SDValue
++Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
++                                         CallingConv::ID CallConv,
++                                         bool isVarArg,
++                                      const SmallVectorImpl<ISD::InputArg> &Ins,
++                                         DebugLoc dl, SelectionDAG &DAG,
++                                         SmallVectorImpl<SDValue> &InVals)
++                                          const {
++  return Chain;
++}
++
++//===----------------------------------------------------------------------===//
++//               Return Value Calling Convention Implementation
++//===----------------------------------------------------------------------===//
++
++SDValue
++Cpu0TargetLowering::LowerReturn(SDValue Chain,
++                                CallingConv::ID CallConv, bool isVarArg,
++                                const SmallVectorImpl<ISD::OutputArg> &Outs,
++                                const SmallVectorImpl<SDValue> &OutVals,
++                                DebugLoc dl, SelectionDAG &DAG) const {
++
++    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
++                       Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
++}
+diff -Naur 2/Cpu0/Cpu0ISelLowering.h 3/1/Cpu0/Cpu0ISelLowering.h
+--- 2/Cpu0/Cpu0ISelLowering.h	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,62 @@
++//===-- Cpu0ISelLowering.h - Cpu0 DAG Lowering Interface --------*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file defines the interfaces that Cpu0 uses to lower LLVM code into a
++// selection DAG.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef Cpu0ISELLOWERING_H
++#define Cpu0ISELLOWERING_H
++
++#include "Cpu0.h"
++#include "Cpu0Subtarget.h"
++#include "llvm/CodeGen/SelectionDAG.h"
++#include "llvm/Target/TargetLowering.h"
++
++namespace llvm {
++  namespace Cpu0ISD {
++    enum NodeType {
++      // Start the numbering from where ISD NodeType finishes.
++      FIRST_NUMBER = ISD::BUILTIN_OP_END,
++      Ret
++    };
++  }
++
++  //===--------------------------------------------------------------------===//
++  // TargetLowering Implementation
++  //===--------------------------------------------------------------------===//
++
++  class Cpu0TargetLowering : public TargetLowering  {
++  public:
++    explicit Cpu0TargetLowering(Cpu0TargetMachine &TM);
++
++  private:
++    // Subtarget Info
++    const Cpu0Subtarget *Subtarget;
++
++	//- must be exist without function all
++    virtual SDValue
++      LowerFormalArguments(SDValue Chain,
++                           CallingConv::ID CallConv, bool isVarArg,
++                           const SmallVectorImpl<ISD::InputArg> &Ins,
++                           DebugLoc dl, SelectionDAG &DAG,
++                           SmallVectorImpl<SDValue> &InVals) const;
++
++	//- must be exist without function all
++    virtual SDValue
++      LowerReturn(SDValue Chain,
++                  CallingConv::ID CallConv, bool isVarArg,
++                  const SmallVectorImpl<ISD::OutputArg> &Outs,
++                  const SmallVectorImpl<SDValue> &OutVals,
++                  DebugLoc dl, SelectionDAG &DAG) const;
++  };
++}
++
++#endif // Cpu0ISELLOWERING_H
+diff -Naur 2/Cpu0/Cpu0InstrInfo.cpp 3/1/Cpu0/Cpu0InstrInfo.cpp
+--- 2/Cpu0/Cpu0InstrInfo.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,24 @@
++//===-- Cpu0InstrInfo.cpp - Cpu0 Instruction Information ------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file contains the Cpu0 implementation of the TargetInstrInfo class.
++//
++//===----------------------------------------------------------------------===//
++
++#include "Cpu0InstrInfo.h"
++#include "Cpu0TargetMachine.h"
++#define GET_INSTRINFO_CTOR
++#include "Cpu0GenInstrInfo.inc"
++
++using namespace llvm;
++
++Cpu0InstrInfo::Cpu0InstrInfo(Cpu0TargetMachine &tm)
++  : 
++    TM(tm)
++    {}
+diff -Naur 2/Cpu0/Cpu0InstrInfo.h 3/1/Cpu0/Cpu0InstrInfo.h
+--- 2/Cpu0/Cpu0InstrInfo.h	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,33 @@
++//===-- Cpu0InstrInfo.h - Cpu0 Instruction Information ----------*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file contains the Cpu0 implementation of the TargetInstrInfo class.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef CPU0INSTRUCTIONINFO_H
++#define CPU0INSTRUCTIONINFO_H
++
++#include "Cpu0.h"
++#include "llvm/Support/ErrorHandling.h"
++#include "llvm/Target/TargetInstrInfo.h"
++
++#define GET_INSTRINFO_HEADER
++#include "Cpu0GenInstrInfo.inc"
++
++namespace llvm {
++
++class Cpu0InstrInfo : public Cpu0GenInstrInfo {
++  Cpu0TargetMachine &TM;
++public:
++  explicit Cpu0InstrInfo(Cpu0TargetMachine &TM);
++};
++}
++
++#endif
+diff -Naur 2/Cpu0/Cpu0MachineFunction.h 3/1/Cpu0/Cpu0MachineFunction.h
+--- 2/Cpu0/Cpu0MachineFunction.h	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,40 @@
++//===-- Cpu0MachineFunctionInfo.h - Private data used for Cpu0 ----*- C++ -*-=//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file declares the Cpu0 specific subclass of MachineFunctionInfo.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef CPU0_MACHINE_FUNCTION_INFO_H
++#define CPU0_MACHINE_FUNCTION_INFO_H
++
++#include "llvm/CodeGen/MachineFunction.h"
++#include "llvm/CodeGen/MachineFrameInfo.h"
++#include <utility>
++
++namespace llvm {
++
++/// Cpu0FunctionInfo - This class is derived from MachineFunction private
++/// Cpu0 target-specific information for each MachineFunction.
++class Cpu0FunctionInfo : public MachineFunctionInfo {
++  MachineFunction& MF;
++  unsigned MaxCallFrameSize;
++
++public:
++  Cpu0FunctionInfo(MachineFunction& MF)
++  : MF(MF), MaxCallFrameSize(0)
++  {}
++
++  unsigned getMaxCallFrameSize() const { return MaxCallFrameSize; }
++};
++
++} // end of namespace llvm
++
++#endif // CPU0_MACHINE_FUNCTION_INFO_H
++
+diff -Naur 2/Cpu0/Cpu0SelectionDAGInfo.cpp 3/1/Cpu0/Cpu0SelectionDAGInfo.cpp
+--- 2/Cpu0/Cpu0SelectionDAGInfo.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0SelectionDAGInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,23 @@
++//===-- Cpu0SelectionDAGInfo.cpp - Cpu0 SelectionDAG Info -----------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements the Cpu0SelectionDAGInfo class.
++//
++//===----------------------------------------------------------------------===//
++
++#define DEBUG_TYPE "cpu0-selectiondag-info"
++#include "Cpu0TargetMachine.h"
++using namespace llvm;
++
++Cpu0SelectionDAGInfo::Cpu0SelectionDAGInfo(const Cpu0TargetMachine &TM)
++  : TargetSelectionDAGInfo(TM) {
++}
++
++Cpu0SelectionDAGInfo::~Cpu0SelectionDAGInfo() {
++}
+diff -Naur 2/Cpu0/Cpu0SelectionDAGInfo.h 3/1/Cpu0/Cpu0SelectionDAGInfo.h
+--- 2/Cpu0/Cpu0SelectionDAGInfo.h	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0SelectionDAGInfo.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,31 @@
++//===-- Cpu0SelectionDAGInfo.h - Cpu0 SelectionDAG Info ---------*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file defines the Cpu0 subclass for TargetSelectionDAGInfo.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef CPU0SELECTIONDAGINFO_H
++#define CPU0SELECTIONDAGINFO_H
++
++#include "llvm/Target/TargetSelectionDAGInfo.h"
++
++namespace llvm {
++
++class Cpu0TargetMachine;
++
++class Cpu0SelectionDAGInfo : public TargetSelectionDAGInfo {
++public:
++  explicit Cpu0SelectionDAGInfo(const Cpu0TargetMachine &TM);
++  ~Cpu0SelectionDAGInfo();
++};
++
++}
++
++#endif
+diff -Naur 2/Cpu0/Cpu0Subtarget.cpp 3/1/Cpu0/Cpu0Subtarget.cpp
+--- 2/Cpu0/Cpu0Subtarget.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0Subtarget.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,45 @@
++//===-- Cpu0Subtarget.cpp - Cpu0 Subtarget Information --------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements the Cpu0 specific subclass of TargetSubtargetInfo.
++//
++//===----------------------------------------------------------------------===//
++
++#include "Cpu0Subtarget.h"
++#include "Cpu0.h"
++#include "llvm/Support/TargetRegistry.h"
++
++#define GET_SUBTARGETINFO_TARGET_DESC
++#define GET_SUBTARGETINFO_CTOR
++#include "Cpu0GenSubtargetInfo.inc"
++
++using namespace llvm;
++
++void Cpu0Subtarget::anchor() { }
++
++Cpu0Subtarget::Cpu0Subtarget(const std::string &TT, const std::string &CPU,
++                             const std::string &FS, bool little) :
++  Cpu0GenSubtargetInfo(TT, CPU, FS),
++  Cpu0ABI(UnknownABI), IsLittle(little)
++{
++  std::string CPUName = CPU;
++  if (CPUName.empty())
++    CPUName = "cpu032";
++
++  // Parse features string.
++  ParseSubtargetFeatures(CPUName, FS);
++
++  // Initialize scheduling itinerary for the specified CPU.
++  InstrItins = getInstrItineraryForCPU(CPUName);
++
++  // Set Cpu0ABI if it hasn't been set yet.
++  if (Cpu0ABI == UnknownABI)
++    Cpu0ABI = O32;
++}
++
+diff -Naur 2/Cpu0/Cpu0Subtarget.h 3/1/Cpu0/Cpu0Subtarget.h
+--- 2/Cpu0/Cpu0Subtarget.h	2013-01-10 18:32:51.000000000 +0800
++++ 3/1/Cpu0/Cpu0Subtarget.h	2013-01-10 18:32:51.000000000 +0800
+@@ -18,11 +18,13 @@
+ #include "llvm/MC/MCInstrItineraries.h"
+ #include <string>
+ 
++#define GET_SUBTARGETINFO_HEADER
++#include "Cpu0GenSubtargetInfo.inc"
++
+ namespace llvm {
+ class StringRef;
+ 
+-//class Cpu0Subtarget : public Cpu0GenSubtargetInfo {
+-class Cpu0Subtarget {
++class Cpu0Subtarget : public Cpu0GenSubtargetInfo {
+   virtual void anchor();
+ 
+ public:
+@@ -55,6 +57,11 @@
+   Cpu0Subtarget(const std::string &TT, const std::string &CPU,
+                 const std::string &FS, bool little);
+ 
++//- Vitual function, must have
++  /// ParseSubtargetFeatures - Parses features string setting specified
++  /// subtarget options.  Definition of function is auto generated by tblgen.
++  void ParseSubtargetFeatures(StringRef CPU, StringRef FS);
++
+   bool isLittle() const { return IsLittle; }
+ };
+ } // End llvm namespace
+diff -Naur 2/Cpu0/Cpu0TargetMachine.cpp 3/1/Cpu0/Cpu0TargetMachine.cpp
+--- 2/Cpu0/Cpu0TargetMachine.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 3/1/Cpu0/Cpu0TargetMachine.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -11,9 +11,80 @@
+ //
+ //===----------------------------------------------------------------------===//
+ 
++#include "Cpu0TargetMachine.h"
++#include "Cpu0.h"
++#include "llvm/PassManager.h"
++#include "llvm/CodeGen/Passes.h"
+ #include "llvm/Support/TargetRegistry.h"
+ using namespace llvm;
+ 
+ extern "C" void LLVMInitializeCpu0Target() {
++  // Register the target.
++  //- Big endian Target Machine
++  RegisterTargetMachine<Cpu0ebTargetMachine> X(TheCpu0Target);
++  //- Little endian Target Machine
++  RegisterTargetMachine<Cpu0elTargetMachine> Y(TheCpu0elTarget);
++}
++
++// DataLayout --> Big-endian, 32-bit pointer/ABI/alignment
++// The stack is always 8 byte aligned
++// On function prologue, the stack is created by decrementing
++// its pointer. Once decremented, all references are done with positive
++// offset from the stack/frame pointer, using StackGrowsUp enables
++// an easier handling.
++// Using CodeModel::Large enables different CALL behavior.
++Cpu0TargetMachine::
++Cpu0TargetMachine(const Target &T, StringRef TT,
++                  StringRef CPU, StringRef FS, const TargetOptions &Options,
++                  Reloc::Model RM, CodeModel::Model CM,
++                  CodeGenOpt::Level OL,
++                  bool isLittle)
++  //- Default is big endian
++  : LLVMTargetMachine(T, TT, CPU, FS, Options, RM, CM, OL),
++    Subtarget(TT, CPU, FS, isLittle),
++    DataLayout(isLittle ?
++               ("e-p:32:32:32-i8:8:32-i16:16:32-i64:64:64-n32") :
++               ("E-p:32:32:32-i8:8:32-i16:16:32-i64:64:64-n32")),
++    InstrInfo(*this),
++    FrameLowering(Subtarget), 
++    TLInfo(*this), TSInfo(*this) {
++}
++
++void Cpu0ebTargetMachine::anchor() { }
++
++Cpu0ebTargetMachine::
++Cpu0ebTargetMachine(const Target &T, StringRef TT,
++                    StringRef CPU, StringRef FS, const TargetOptions &Options,
++                    Reloc::Model RM, CodeModel::Model CM,
++                    CodeGenOpt::Level OL)
++  : Cpu0TargetMachine(T, TT, CPU, FS, Options, RM, CM, OL, false) {}
++
++void Cpu0elTargetMachine::anchor() { }
++
++Cpu0elTargetMachine::
++Cpu0elTargetMachine(const Target &T, StringRef TT,
++                    StringRef CPU, StringRef FS, const TargetOptions &Options,
++                    Reloc::Model RM, CodeModel::Model CM,
++                    CodeGenOpt::Level OL)
++  : Cpu0TargetMachine(T, TT, CPU, FS, Options, RM, CM, OL, true) {}
++namespace {
++/// Cpu0 Code Generator Pass Configuration Options.
++class Cpu0PassConfig : public TargetPassConfig {
++public:
++  Cpu0PassConfig(Cpu0TargetMachine *TM, PassManagerBase &PM)
++    : TargetPassConfig(TM, PM) {}
++
++  Cpu0TargetMachine &getCpu0TargetMachine() const {
++    return getTM<Cpu0TargetMachine>();
++  }
++
++  const Cpu0Subtarget &getCpu0Subtarget() const {
++    return *getCpu0TargetMachine().getSubtargetImpl();
++  }
++};
++} // namespace
++
++TargetPassConfig *Cpu0TargetMachine::createPassConfig(PassManagerBase &PM) {
++  return new Cpu0PassConfig(this, PM);
+ }
+ 
+diff -Naur 2/Cpu0/Cpu0TargetMachine.h 3/1/Cpu0/Cpu0TargetMachine.h
+--- 2/Cpu0/Cpu0TargetMachine.h	1970-01-01 08:00:00.000000000 +0800
++++ 3/1/Cpu0/Cpu0TargetMachine.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,88 @@
++//===-- Cpu0TargetMachine.h - Define TargetMachine for Cpu0 -----*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file declares the Cpu0 specific subclass of TargetMachine.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef CPU0TARGETMACHINE_H
++#define CPU0TARGETMACHINE_H
++
++#include "Cpu0FrameLowering.h"
++#include "Cpu0InstrInfo.h"
++#include "Cpu0ISelLowering.h"
++#include "Cpu0SelectionDAGInfo.h"
++#include "Cpu0Subtarget.h"
++#include "llvm/Target/TargetMachine.h"
++#include "llvm/Target/TargetData.h"
++#include "llvm/Target/TargetFrameLowering.h"
++
++namespace llvm {
++  class formatted_raw_ostream;
++
++  class Cpu0TargetMachine : public LLVMTargetMachine {
++    Cpu0Subtarget       Subtarget;
++    const TargetData    DataLayout; // Calculates type size & alignment
++    Cpu0InstrInfo       InstrInfo;	//- Instructions
++    Cpu0FrameLowering   FrameLowering;	//- Stack(Frame) and Stack direction
++    Cpu0TargetLowering  TLInfo;	//- Stack(Frame) and Stack direction
++    Cpu0SelectionDAGInfo TSInfo;	//- Map .bc DAG to backend DAG
++
++  public:
++    Cpu0TargetMachine(const Target &T, StringRef TT,
++                      StringRef CPU, StringRef FS, const TargetOptions &Options,
++                      Reloc::Model RM, CodeModel::Model CM,
++                      CodeGenOpt::Level OL,
++                      bool isLittle);
++
++    virtual const Cpu0InstrInfo   *getInstrInfo()     const
++    { return &InstrInfo; }
++    virtual const TargetFrameLowering *getFrameLowering()     const
++    { return &FrameLowering; }
++    virtual const Cpu0Subtarget   *getSubtargetImpl() const
++    { return &Subtarget; }
++    virtual const TargetData      *getTargetData()    const
++    { return &DataLayout;}
++
++    virtual const Cpu0TargetLowering *getTargetLowering() const {
++      return &TLInfo;
++    }
++
++    virtual const Cpu0SelectionDAGInfo* getSelectionDAGInfo() const {
++      return &TSInfo;
++    }
++
++    // Pass Pipeline Configuration
++    virtual TargetPassConfig *createPassConfig(PassManagerBase &PM);
++  };
++
++/// Cpu0ebTargetMachine - Cpu032 big endian target machine.
++///
++class Cpu0ebTargetMachine : public Cpu0TargetMachine {
++  virtual void anchor();
++public:
++  Cpu0ebTargetMachine(const Target &T, StringRef TT,
++                      StringRef CPU, StringRef FS, const TargetOptions &Options,
++                      Reloc::Model RM, CodeModel::Model CM,
++                      CodeGenOpt::Level OL);
++};
++
++/// Cpu0elTargetMachine - Cpu032 little endian target machine.
++///
++class Cpu0elTargetMachine : public Cpu0TargetMachine {
++  virtual void anchor();
++public:
++  Cpu0elTargetMachine(const Target &T, StringRef TT,
++                      StringRef CPU, StringRef FS, const TargetOptions &Options,
++                      Reloc::Model RM, CodeModel::Model CM,
++                      CodeGenOpt::Level OL);
++};
++} // End llvm namespace
++
++#endif

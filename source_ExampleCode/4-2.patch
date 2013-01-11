@@ -1,0 +1,28 @@
+diff -Naur 4/1/Cpu0/Cpu0InstrInfo.td 4/2/Cpu0/Cpu0InstrInfo.td
+--- 4/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 4/2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -196,7 +196,7 @@
+ defm ST     : StoreM32<0x01, "st",  store_a>;
+ 
+ /// Arithmetic Instructions (ALU Immediate)
+-//def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
++def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+ // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+ def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+ 
+@@ -232,3 +232,15 @@
+ 
+ def : Pat<(i32 immSExt16:$in),
+           (ADDiu ZERO, imm:$in)>;
++
++def : Pat<(not CPURegs:$in),
++          (XOR CPURegs:$in, (LDI ZERO, 1))>;
++
++// setcc patterns
++multiclass SeteqPats<RegisterClass RC, Instruction XOROp,
++                     Register ZEROReg> {
++  def : Pat<(seteq RC:$lhs, RC:$rhs),
++            (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
++}
++
++defm : SeteqPats<CPURegs, XOR, ZERO>;

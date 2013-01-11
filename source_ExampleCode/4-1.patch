@@ -1,0 +1,141 @@
+diff -Naur 3/5/Cpu0/Cpu0InstrInfo.td 4/1/Cpu0/Cpu0InstrInfo.td
+--- 3/5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 4/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -36,6 +36,8 @@
+   let DecoderMethod= "DecodeSimm16";
+ }
+ 
++def shamt       : Operand<i32>;
++
+ // Address operand
+ def mem : Operand<i32> {
+   let PrintMethod = "printMemOperand";
+@@ -47,6 +49,9 @@
+ // e.g. addi, andi
+ def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+ 
++// shamt field must fit in 5 bits.
++def immZExt5 : ImmLeaf<i32, [{return Imm == (Imm & 0x1f);}]>;
++
+ // Cpu0 Address Mode! SDNode frameindex could possibily be a match
+ // since load and store instructions from stack used it.
+ def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], [SDNPWantParent]>;
+@@ -75,6 +80,26 @@
+ // Instructions specific format
+ //===----------------------------------------------------------------------===//
+ 
++// Arithmetic and logical instructions with 3 register operands.
++class ArithLogicR<bits<8> op, string instr_asm, SDNode OpNode,
++                  InstrItinClass itin, RegisterClass RC, bit isComm = 0>:
++  FA<op, (outs RC:$ra), (ins RC:$rb, RC:$rc),
++     !strconcat(instr_asm, "\t$ra, $rb, $rc"),
++     [(set RC:$ra, (OpNode RC:$rb, RC:$rc))], itin> {
++  let shamt = 0;
++  let isCommutable = isComm;	// e.g. add rb rc =  add rc rb
++  let isReMaterializable = 1;
++}
++
++class CmpInstr<bits<8> op, string instr_asm,
++                    InstrItinClass itin, RegisterClass RC, bit isComm = 0>:
++  FA<op, (outs RC:$SW), (ins RC:$ra, RC:$rb),
++     !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
++  let rc = 0;
++  let shamt = 0;
++  let isCommutable = isComm;
++}
++
+ // Arithmetic and logical instructions with 2 register operands.
+ class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode,
+                   Operand Od, PatLeaf imm_type, RegisterClass RC> :
+@@ -94,6 +119,31 @@
+   let isReMaterializable = 1;
+ }
+ 
++// Shifts
++class shift_rotate_imm<bits<8> op, bits<4> isRotate, string instr_asm,
++                       SDNode OpNode, PatFrag PF, Operand ImmOpnd,
++                       RegisterClass RC>:
++  FA<op, (outs RC:$ra), (ins RC:$rb, ImmOpnd:$shamt),
++     !strconcat(instr_asm, "\t$ra, $rb, $shamt"),
++     [(set RC:$ra, (OpNode RC:$rb, PF:$shamt))], IIAlu> {
++  let rc = isRotate;
++  let shamt = shamt;
++}
++
++// 32-bit shift instructions.
++class shift_rotate_imm32<bits<8> func, bits<4> isRotate, string instr_asm,
++                         SDNode OpNode>:
++  shift_rotate_imm<func, isRotate, instr_asm, OpNode, immZExt5, shamt, CPURegs>;
++
++// Load Upper Imediate
++class LoadUpper<bits<8> op, string instr_asm, RegisterClass RC, Operand Imm>:
++  FL<op, (outs RC:$ra), (ins Imm:$imm16),
++     !strconcat(instr_asm, "\t$ra, $imm16"), [], IIAlu> {
++  let rb = 0;
++  let neverHasSideEffects = 1;
++  let isReMaterializable = 1;
++}
++
+ class FMem<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern,
+           InstrItinClass itin>: FL<op, outs, ins, asmstr, pattern, itin> {
+   bits<20> addr;
+@@ -150,6 +200,25 @@
+ // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+ def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+ 
++/// Arithmetic Instructions (3-Operand, R-Type)
++def CMP		: CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
++def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
++def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
++def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
++def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
++def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
++def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
++def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
++
++/// Shift Instructions
++def ROL     : shift_rotate_imm32<0x1C, 0x01, "rol", rotl>;
++def ROR     : shift_rotate_imm32<0x1D, 0x01, "ror", rotr>;
++def SHL     : shift_rotate_imm32<0x1E, 0x00, "shl", shl>;
++// work, it's for ashr llvm IR instruction
++//def SHR     : shift_rotate_imm32<0x1F, 0x00, "sra", sra>;
++// work, it's for lshr llvm IR instruction
++def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>;
++
+ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
+     isBarrier=1, hasCtrlDep=1 in
+   def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
+diff -Naur 3/5/Cpu0/Cpu0Schedule.td 4/1/Cpu0/Cpu0Schedule.td
+--- 3/5/Cpu0/Cpu0Schedule.td	2013-01-10 18:32:51.000000000 +0800
++++ 4/1/Cpu0/Cpu0Schedule.td	2013-01-10 18:32:51.000000000 +0800
+@@ -11,6 +11,7 @@
+ // Functional units across Cpu0 chips sets. Based on GCC/Cpu0 backend files.
+ //===----------------------------------------------------------------------===//
+ def ALU     : FuncUnit;
++def IMULDIV : FuncUnit;
+ 
+ //===----------------------------------------------------------------------===//
+ // Instruction Itinerary classes used for Cpu0
+@@ -19,6 +20,8 @@
+ def IILoad             : InstrItinClass;
+ def IIStore            : InstrItinClass;
+ def IIBranch           : InstrItinClass;
++def IIImul             : InstrItinClass;
++def IIIdiv             : InstrItinClass;
+ 
+ def IIPseudo           : InstrItinClass;
+ 
+@@ -26,9 +29,11 @@
+ // Cpu0 Generic instruction itineraries.
+ //===----------------------------------------------------------------------===//
+ // http://llvm.org/docs/doxygen/html/structllvm_1_1InstrStage.html
+-def Cpu0GenericItineraries : ProcessorItineraries<[ALU], [], [
++def Cpu0GenericItineraries : ProcessorItineraries<[ALU, IMULDIV], [], [
+   InstrItinData<IIAlu              , [InstrStage<1,  [ALU]>]>,
+   InstrItinData<IILoad             , [InstrStage<3,  [ALU]>]>,
+   InstrItinData<IIStore            , [InstrStage<1,  [ALU]>]>,
+-  InstrItinData<IIBranch           , [InstrStage<1,  [ALU]>]>
++  InstrItinData<IIBranch           , [InstrStage<1,  [ALU]>]>,
++  InstrItinData<IIImul             , [InstrStage<17, [IMULDIV]>]>,
++  InstrItinData<IIIdiv             , [InstrStage<38, [IMULDIV]>]>
+ ]>;

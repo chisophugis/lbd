@@ -160,6 +160,8 @@ gh-pages:
 	rm -rf build _sources _static _images
 	git checkout master $(GH_PAGES_SOURCES)
 	git reset HEAD
+	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
+	sh genexample.sh
 	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
 	make html latexpdf epub
 	mv -fv build/html/* ./
@@ -168,3 +170,8 @@ gh-pages:
 	rm -rf $(GH_PAGES_SOURCES) build
 	git add -A
 	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
+
+genexample:
+	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
+	sh genexample.sh
+	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode

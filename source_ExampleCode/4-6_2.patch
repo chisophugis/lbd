@@ -1,0 +1,156 @@
+diff -Naur 4/6_1/Cpu0/Cpu0ISelDAGToDAG.cpp 4/6_2/Cpu0/Cpu0ISelDAGToDAG.cpp
+--- 4/6_1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_2/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:35:24.000000000 +0800
+@@ -84,6 +84,9 @@
+ 
+   SDNode *getGlobalBaseReg();
+ 
++  std::pair<SDNode*, SDNode*> SelectMULT(SDNode *N, unsigned Opc, DebugLoc dl,
++                                         EVT Ty, bool HasLo, bool HasHi);
++
+   SDNode *Select(SDNode *N);
+   // Complex Pattern.
+   bool SelectAddr(SDNode *Parent, SDValue N, SDValue &Base, SDValue &Offset);
+@@ -133,10 +136,32 @@
+   return true;
+ }
+ 
++/// Select multiply instructions.
++std::pair<SDNode*, SDNode*>
++Cpu0DAGToDAGISel::SelectMULT(SDNode *N, unsigned Opc, DebugLoc dl, EVT Ty,
++                             bool HasLo, bool HasHi) {
++  SDNode *Lo = 0, *Hi = 0;
++  SDNode *Mul = CurDAG->getMachineNode(Opc, dl, MVT::Glue, N->getOperand(0),
++                                       N->getOperand(1));
++  SDValue InFlag = SDValue(Mul, 0);
++
++  if (HasLo) {
++    Lo = CurDAG->getMachineNode(Cpu0::MFLO, dl,
++                                Ty, MVT::Glue, InFlag);
++    InFlag = SDValue(Lo, 1);
++  }
++  if (HasHi)
++    Hi = CurDAG->getMachineNode(Cpu0::MFHI, dl,
++                                Ty, InFlag);
++
++  return std::make_pair(Lo, Hi);
++}
++
+ /// Select instructions not customized! Used for
+ /// expanded, promoted and normal instructions
+ SDNode* Cpu0DAGToDAGISel::Select(SDNode *Node) {
+   unsigned Opcode = Node->getOpcode();
++  DebugLoc dl = Node->getDebugLoc();
+ 
+   // Dump information about the Node being selected
+   DEBUG(errs() << "Selecting: "; Node->dump(CurDAG); errs() << "\n");
+@@ -151,10 +176,18 @@
+   // Instruction Selection not handled by the auto-generated
+   // tablegen selection should be handled here.
+   ///
++  EVT NodeTy = Node->getValueType(0);
++  unsigned MultOpc;
+ 
+   switch(Opcode) {
+   default: break;
+ 
++  case ISD::MULHS:
++  case ISD::MULHU: {
++    MultOpc = (Opcode == ISD::MULHU ? Cpu0::MULTu : Cpu0::MULT);
++    return SelectMULT(Node, MultOpc, dl, NodeTy, false, true).second;
++  }
++
+   case ISD::Constant: {
+     const ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Node);
+     unsigned Size = CN->getValueSizeInBits(0);
+diff -Naur 4/6_1/Cpu0/Cpu0InstrInfo.td 4/6_2/Cpu0/Cpu0InstrInfo.td
+--- 4/6_1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:35:24.000000000 +0800
+@@ -198,6 +198,31 @@
+   def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>;
+ }
+ 
++// Mul, Div
++class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
++           RegisterClass RC, list<Register> DefRegs>:
++  FL<op, (outs), (ins RC:$ra, RC:$rb),
++     !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
++  let imm16 = 0;
++  let isCommutable = 1;
++  let Defs = DefRegs;
++  let neverHasSideEffects = 1;
++}
++
++class Mult32<bits<8> op, string instr_asm, InstrItinClass itin>:
++  Mult<op, instr_asm, itin, CPURegs, [HI, LO]>;
++
++// Move from Hi/Lo
++class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
++                   list<Register> UseRegs>:
++  FL<op, (outs RC:$ra), (ins),
++     !strconcat(instr_asm, "\t$ra"), [], IIHiLo> {
++  let rb = 0;
++  let imm16 = 0;
++  let Uses = UseRegs;
++  let neverHasSideEffects = 1;
++}
++
+ class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
+   FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
+      instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
+@@ -230,8 +255,13 @@
+ def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
+ def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
+ def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
+-def SMMUL   : ArithLogicR<0x50, "smmul", mulhs, IIImul, CPURegs, 1>;
+-def UMMUL   : ArithLogicR<0x51, "ummul", mulhu, IIImul, CPURegs, 1>;
++
++
++def MULT    : Mult32<0x50, "mult", IIImul>;
++def MULTu   : Mult32<0x51, "multu", IIImul>;
++
++def MFHI : MoveFromLOHI<0x40, "mfhi", CPURegs, [HI]>;
++def MFLO : MoveFromLOHI<0x41, "mflo", CPURegs, [LO]>;
+ 
+ /// Shift Instructions
+ // work, sra for ashr llvm IR instruction
+diff -Naur 4/6_1/Cpu0/Cpu0RegisterInfo.td 4/6_2/Cpu0/Cpu0RegisterInfo.td
+--- 4/6_1/Cpu0/Cpu0RegisterInfo.td	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_2/Cpu0/Cpu0RegisterInfo.td	2013-01-10 18:35:24.000000000 +0800
+@@ -47,6 +47,10 @@
+   def PC   : Cpu0GPRReg< 15, "PC">,   DwarfRegNum<[15]>;
+ //  def MAR  : Register< 16, "MAR">,  DwarfRegNum<[16]>;
+ //  def MDR  : Register< 17, "MDR">,  DwarfRegNum<[17]>;
++
++  // Hi/Lo registers
++  def HI  : Register<"hi">, DwarfRegNum<[18]>;
++  def LO  : Register<"lo">, DwarfRegNum<[19]>;
+ }
+ 
+ //===----------------------------------------------------------------------===//
+@@ -63,3 +67,6 @@
+   // Reserved
+   ZERO, AT, GP, FP, SW, SP, LR, PC)>;
+ 
++// Hi/Lo Registers
++def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
++
+diff -Naur 4/6_1/Cpu0/Cpu0Schedule.td 4/6_2/Cpu0/Cpu0Schedule.td
+--- 4/6_1/Cpu0/Cpu0Schedule.td	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_2/Cpu0/Cpu0Schedule.td	2013-01-10 18:35:24.000000000 +0800
+@@ -20,6 +20,7 @@
+ def IILoad             : InstrItinClass;
+ def IIStore            : InstrItinClass;
+ def IIBranch           : InstrItinClass;
++def IIHiLo             : InstrItinClass;
+ def IIImul             : InstrItinClass;
+ def IIIdiv             : InstrItinClass;
+ 
+@@ -34,6 +35,7 @@
+   InstrItinData<IILoad             , [InstrStage<3,  [ALU]>]>,
+   InstrItinData<IIStore            , [InstrStage<1,  [ALU]>]>,
+   InstrItinData<IIBranch           , [InstrStage<1,  [ALU]>]>,
++  InstrItinData<IIHiLo             , [InstrStage<1,  [IMULDIV]>]>,
+   InstrItinData<IIImul             , [InstrStage<17, [IMULDIV]>]>,
+   InstrItinData<IIIdiv             , [InstrStage<38, [IMULDIV]>]>
+ ]>;

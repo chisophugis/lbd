@@ -1,0 +1,759 @@
+diff -Naur 5/Cpu0/CMakeLists.txt 6/1/Cpu0/CMakeLists.txt
+--- 5/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+@@ -29,9 +29,11 @@
+   Cpu0ISelLowering.cpp
+   Cpu0FrameLowering.cpp
+   Cpu0MCInstLower.cpp
++  Cpu0MachineFunction.cpp
+   Cpu0RegisterInfo.cpp
+   Cpu0Subtarget.cpp
+   Cpu0TargetMachine.cpp
++  Cpu0TargetObjectFile.cpp
+   Cpu0SelectionDAGInfo.cpp
+   )
+ 
+diff -Naur 5/Cpu0/Cpu0AsmPrinter.cpp 6/1/Cpu0/Cpu0AsmPrinter.cpp
+--- 5/Cpu0/Cpu0AsmPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0AsmPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -188,6 +188,9 @@
+   MCInstLowering.Initialize(Mang, &MF->getContext());
+ 
+   emitFrameDirective();
++  bool EmitCPLoad = (MF->getTarget().getRelocationModel() == Reloc::PIC_) &&
++    Cpu0FI->globalBaseRegSet() &&
++    Cpu0FI->globalBaseRegFixed();
+ 
+   if (OutStreamer.hasRawTextSupport()) {
+     SmallString<128> Str;
+@@ -197,6 +200,13 @@
+ 
+     OutStreamer.EmitRawText(StringRef("\t.set\tnoreorder"));
+ 
++    // Emit .cpload directive if needed.
++    if (EmitCPLoad)
++	//- .cpload	$t9
++      OutStreamer.EmitRawText(StringRef("\t.cpload\t$t9"));
++	//- .cpload	$10
++    //  OutStreamer.EmitRawText(StringRef("\t.cpload\t$6"));
++
+     OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
+   }
+ }
+diff -Naur 5/Cpu0/Cpu0ISelDAGToDAG.cpp 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp
+--- 5/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -13,6 +13,7 @@
+ 
+ #define DEBUG_TYPE "cpu0-isel"
+ #include "Cpu0.h"
++#include "Cpu0MachineFunction.h"
+ #include "Cpu0RegisterInfo.h"
+ #include "Cpu0Subtarget.h"
+ #include "Cpu0TargetMachine.h"
+@@ -94,6 +95,7 @@
+   inline SDValue getImm(const SDNode *Node, unsigned Imm) {
+     return CurDAG->getTargetConstant(Imm, Node->getValueType(0));
+   }
++  void InitGlobalBaseReg(MachineFunction &MF);
+ };
+ }
+ 
+@@ -103,6 +105,13 @@
+   return Ret;
+ }
+ 
++/// getGlobalBaseReg - Output the instructions required to put the
++/// GOT address into a register.
++SDNode *Cpu0DAGToDAGISel::getGlobalBaseReg() {
++  unsigned GlobalBaseReg = MF->getInfo<Cpu0FunctionInfo>()->getGlobalBaseReg();
++  return CurDAG->getRegister(GlobalBaseReg, TLI.getPointerTy()).getNode();
++}
++
+ /// ComplexPattern used on Cpu0InstrInfo
+ /// Used on Cpu0 Load/Store instructions
+ bool Cpu0DAGToDAGISel::
+@@ -131,6 +140,19 @@
+     return true;
+   }
+ 
++  // on PIC code Load GA
++  if (Addr.getOpcode() == Cpu0ISD::Wrapper) {
++    Base   = Addr.getOperand(0);
++    Offset = Addr.getOperand(1);
++    return true;
++  }
++
++  if (TM.getRelocationModel() != Reloc::PIC_) {
++    if ((Addr.getOpcode() == ISD::TargetExternalSymbol ||
++        Addr.getOpcode() == ISD::TargetGlobalAddress))
++      return false;
++  }
++
+   Base   = Addr;
+   Offset = CurDAG->getTargetConstant(0, ValTy);
+   return true;
+@@ -188,6 +210,16 @@
+     return SelectMULT(Node, MultOpc, dl, NodeTy, false, true).second;
+   }
+ 
++  // Get target GOT address.
++  // For global variables as follows,
++  //- @gI = global i32 100, align 4
++  //- %2 = load i32* @gI, align 4
++  // =>
++  //- .cpload	$gp
++  //- ld	$2, %got(gI)($gp)
++  case ISD::GLOBAL_OFFSET_TABLE:
++    return getGlobalBaseReg();
++
+   case ISD::Constant: {
+     const ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Node);
+     unsigned Size = CN->getValueSizeInBits(0);
+diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
+--- 5/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -14,9 +14,11 @@
+ 
+ #define DEBUG_TYPE "cpu0-lower"
+ #include "Cpu0ISelLowering.h"
++#include "Cpu0MachineFunction.h"
+ #include "Cpu0TargetMachine.h"
+-#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
++#include "Cpu0TargetObjectFile.h"
+ #include "Cpu0Subtarget.h"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
+ #include "llvm/DerivedTypes.h"
+ #include "llvm/Function.h"
+ #include "llvm/GlobalVariable.h"
+@@ -35,14 +37,33 @@
+ 
+ using namespace llvm;
+ 
++static SDValue GetGlobalReg(SelectionDAG &DAG, EVT Ty) {
++  Cpu0FunctionInfo *FI = DAG.getMachineFunction().getInfo<Cpu0FunctionInfo>();
++  return DAG.getRegister(FI->getGlobalBaseReg(), Ty);
++}
++
++const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
++  switch (Opcode) {
++  case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
++  case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
++  case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
++  case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
++  case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
++  default:                         return NULL;
++  }
++}
++
+ Cpu0TargetLowering::
+ Cpu0TargetLowering(Cpu0TargetMachine &TM)
+-  : TargetLowering(TM, new TargetLoweringObjectFileELF()),
++  : TargetLowering(TM, new Cpu0TargetObjectFile()),
+     Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+ 
+   // Set up the register classes
+   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
+-  
++
++  // Cpu0 Custom Operations
++  setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
++
+   setOperationAction(ISD::SDIV, MVT::i32, Expand);
+   setOperationAction(ISD::SREM, MVT::i32, Expand);
+   setOperationAction(ISD::UDIV, MVT::i32, Expand);
+@@ -112,6 +133,71 @@
+   return SDValue();
+ }
+ 
++SDValue Cpu0TargetLowering::
++LowerOperation(SDValue Op, SelectionDAG &DAG) const
++{
++  switch (Op.getOpcode())
++  {
++    case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
++  }
++  return SDValue();
++}
++
++//===----------------------------------------------------------------------===//
++//  Lower helper functions
++//===----------------------------------------------------------------------===//
++
++//===----------------------------------------------------------------------===//
++//  Misc Lower Operation implementation
++//===----------------------------------------------------------------------===//
++
++SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
++                                               SelectionDAG &DAG) const {
++  // FIXME there isn't actually debug info here
++  DebugLoc dl = Op.getDebugLoc();
++  const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
++
++  if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
++    SDVTList VTs = DAG.getVTList(MVT::i32);
++
++    Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
++
++    // %gp_rel relocation
++    if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
++      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_GPREL);
++      SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
++      SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
++      return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
++    }
++    // %hi/%lo relocation
++    SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_HI);
++    SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_LO);
++    SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
++    SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
++    return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
++  }
++
++  EVT ValTy = Op.getValueType();
++  bool HasGotOfst = (GV->hasInternalLinkage() ||
++                     (GV->hasLocalLinkage() && !isa<Function>(GV)));
++  unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
++  SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
++  GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
++  SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
++                                MachinePointerInfo(), false, false, false, 0);
++  // On functions and global targets not internal linked only
++  // a load from got/GP is necessary for PIC to work.
++  if (!HasGotOfst)
++    return ResNode;
++  SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
++                                                        Cpu0II::MO_ABS_LO);
++  SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
++  return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
++}
++
+ #include "Cpu0GenCallingConv.inc"
+ 
+ /// LowerFormalArguments - transform physical registers into virtual registers
+diff -Naur 5/Cpu0/Cpu0ISelLowering.h 6/1/Cpu0/Cpu0ISelLowering.h
+--- 5/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+@@ -25,10 +25,32 @@
+     enum NodeType {
+       // Start the numbering from where ISD NodeType finishes.
+       FIRST_NUMBER = ISD::BUILTIN_OP_END,
++
++      // Jump and link (call)
++      JmpLink,
++
++      // Get the Higher 16 bits from a 32-bit immediate
++      // No relation with Cpu0 Hi register
++      Hi,
++      // Get the Lower 16 bits from a 32-bit immediate
++      // No relation with Cpu0 Lo register
++      Lo,
++
++      // Handle gp_rel (small data/bss sections) relocation.
++      GPRel,
++
++      // Thread Pointer
++      ThreadPointer,
++      // Return
+       Ret,
++
+       // DivRem(u)
+       DivRem,
+-      DivRemU
++      DivRemU,
++
++      Wrapper,
++      DynAlloc,
++      Sync
+     };
+   }
+ 
+@@ -40,12 +62,23 @@
+   public:
+     explicit Cpu0TargetLowering(Cpu0TargetMachine &TM);
+ 
++    virtual MVT getShiftAmountTy(EVT LHSTy) const { return MVT::i32; }
++    /// LowerOperation - Provide custom lowering hooks for some operations.
++    virtual SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const;
++
++    /// getTargetNodeName - This method returns the name of a target specific
++    //  DAG node.
++    virtual const char *getTargetNodeName(unsigned Opcode) const;
++
+     virtual SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const;
+ 
+   private:
+     // Subtarget Info
+     const Cpu0Subtarget *Subtarget;
+ 
++    // Lower Operand specifics
++    SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
++
+ 	//- must be exist without function all
+     virtual SDValue
+       LowerFormalArguments(SDValue Chain,
+diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
+--- 5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -27,6 +27,13 @@
+                                          [SDTCisInt<0>,
+                                           SDTCisSameAs<0, 1>]>;
+ 
++// Hi and Lo nodes are used to handle global addresses. Used on
++// Cpu0ISelLowering to lower stuff like GlobalAddress, ExternalSymbol
++// static model. (nothing to do with Cpu0 Registers Hi and Lo)
++def Cpu0Hi    : SDNode<"Cpu0ISD::Hi", SDTIntUnaryOp>;
++def Cpu0Lo    : SDNode<"Cpu0ISD::Lo", SDTIntUnaryOp>;
++def Cpu0GPRel : SDNode<"Cpu0ISD::GPRel", SDTIntUnaryOp>;
++
+ // Return
+ def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain,
+                      SDNPOptInGlue]>;
+@@ -54,6 +61,11 @@
+ 
+ def shamt       : Operand<i32>;
+ 
++// Unsigned Operand
++def uimm16      : Operand<i32> {
++  let PrintMethod = "printUnsignedImm";
++}
++
+ // Address operand
+ def mem : Operand<i32> {
+   let PrintMethod = "printMemOperand";
+@@ -81,6 +93,17 @@
+ // e.g. addi, andi
+ def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+ 
++// Node immediate fits as 16-bit zero extended on target immediate.
++// The LO16 param means that only the lower 16 bits of the node
++// immediate are caught.
++// e.g. addiu, sltiu
++def immZExt16  : PatLeaf<(imm), [{
++  if (N->getValueType(0) == MVT::i32)
++    return (uint32_t)N->getZExtValue() == (unsigned short)N->getZExtValue();
++  else
++    return (uint64_t)N->getZExtValue() == (unsigned short)N->getZExtValue();
++}]>;
++
+ // shamt field must fit in 5 bits.
+ def immZExt5 : ImmLeaf<i32, [{return Imm == (Imm & 0x1f);}]>;
+ 
+@@ -294,7 +317,6 @@
+ def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
+ def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
+ 
+-
+ def MULT    : Mult32<0x50, "mult", IIImul>;
+ def MULTu   : Mult32<0x51, "multu", IIImul>;
+ 
+@@ -334,15 +356,26 @@
+ //===----------------------------------------------------------------------===//
+ 
+ // Small immediates
+-
+ def : Pat<(i32 immSExt16:$in),
+           (ADDiu ZERO, imm:$in)>;
+-          
++
+ // Arbitrary immediates
+ def : Pat<(i32 imm:$imm),
+           (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 
+               imm:$imm)))>;
+ 
++// hi/lo relocs
++def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (ADDiu ZERO, tglobaladdr:$in), 16)>;
++// Expect cpu0 add LUi support, like Mips
++//def : Pat<(Cpu0Hi tglobaladdr:$in), (LUi tglobaladdr:$in)>;
++def : Pat<(Cpu0Lo tglobaladdr:$in), (ADDiu ZERO, tglobaladdr:$in)>;
++
++def : Pat<(add CPURegs:$hi, (Cpu0Lo tglobaladdr:$lo)),
++          (ADDiu CPURegs:$hi, tglobaladdr:$lo)>;
++
++// gp_rel relocs
++def : Pat<(add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)),
++          (ADDiu CPURegs:$gp, tglobaladdr:$in)>;
+ 
+ def : Pat<(not CPURegs:$in),
+           (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
+@@ -354,4 +387,3 @@
+ }
+ 
+ defm : SeteqPats<CPURegs, XOR>;
+-
+diff -Naur 5/Cpu0/Cpu0MCInstLower.cpp 6/1/Cpu0/Cpu0MCInstLower.cpp
+--- 5/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -42,6 +42,16 @@
+ 
+   switch(MO.getTargetFlags()) {
+   default:                   llvm_unreachable("Invalid target flag!");
++// Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static -cpu0-islinux-
++//  format=false (global var in .sdata).
++  case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break;
++
++  case Cpu0II::MO_GOT16:     Kind = MCSymbolRefExpr::VK_Cpu0_GOT16; break;
++  case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break;
++// ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static (global 
++//  var in .data).
++  case Cpu0II::MO_ABS_HI:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_HI; break;
++  case Cpu0II::MO_ABS_LO:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_LO; break;
+   }
+ 
+   switch (MOTy) {
+@@ -78,6 +88,8 @@
+     return MCOperand::CreateReg(MO.getReg());
+   case MachineOperand::MO_Immediate:
+     return MCOperand::CreateImm(MO.getImm() + offset);
++  case MachineOperand::MO_GlobalAddress:
++    return LowerSymbolOperand(MO, MOTy, offset);
+   case MachineOperand::MO_RegisterMask:
+     break;
+  }
+diff -Naur 5/Cpu0/Cpu0MachineFunction.cpp 6/1/Cpu0/Cpu0MachineFunction.cpp
+--- 5/Cpu0/Cpu0MachineFunction.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 6/1/Cpu0/Cpu0MachineFunction.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,44 @@
++//===-- Cpu0MachineFunctionInfo.cpp - Private data used for Cpu0 ----------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "Cpu0MachineFunction.h"
++#include "Cpu0InstrInfo.h"
++#include "Cpu0Subtarget.h"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
++#include "llvm/Function.h"
++#include "llvm/CodeGen/MachineInstrBuilder.h"
++#include "llvm/CodeGen/MachineRegisterInfo.h"
++
++using namespace llvm;
++
++bool FixGlobalBaseReg = true;
++
++bool Cpu0FunctionInfo::globalBaseRegFixed() const {
++  return FixGlobalBaseReg;
++}
++
++bool Cpu0FunctionInfo::globalBaseRegSet() const {
++  return GlobalBaseReg;
++}
++
++unsigned Cpu0FunctionInfo::getGlobalBaseReg() {
++  // Return if it has already been initialized.
++  if (GlobalBaseReg)
++    return GlobalBaseReg;
++
++  if (FixGlobalBaseReg) // $gp is the global base register.
++    return GlobalBaseReg = Cpu0::GP;
++
++  const TargetRegisterClass *RC;
++  RC = Cpu0::CPURegsRegisterClass;
++
++  return GlobalBaseReg = MF.getRegInfo().createVirtualRegister(RC);
++}
++
++void Cpu0FunctionInfo::anchor() { }
+diff -Naur 5/Cpu0/Cpu0MachineFunction.h 6/1/Cpu0/Cpu0MachineFunction.h
+--- 5/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
+@@ -23,14 +23,25 @@
+ /// Cpu0FunctionInfo - This class is derived from MachineFunction private
+ /// Cpu0 target-specific information for each MachineFunction.
+ class Cpu0FunctionInfo : public MachineFunctionInfo {
++  virtual void anchor();
+   MachineFunction& MF;
++
++  /// GlobalBaseReg - keeps track of the virtual register initialized for
++  /// use as the global base register. This is used for PIC in some PIC
++  /// relocation models.
++  unsigned GlobalBaseReg;
++  int GPFI; // Index of the frame object for restoring $gp
+   unsigned MaxCallFrameSize;
+ 
+ public:
+   Cpu0FunctionInfo(MachineFunction& MF)
+-  : MF(MF), MaxCallFrameSize(0)
++  : MF(MF), GlobalBaseReg(0), MaxCallFrameSize(0)
+   {}
+ 
++  bool globalBaseRegFixed() const;
++  bool globalBaseRegSet() const;
++  unsigned getGlobalBaseReg();
++
+   unsigned getMaxCallFrameSize() const { return MaxCallFrameSize; }
+ };
+ 
+diff -Naur 5/Cpu0/Cpu0RegisterInfo.cpp 6/1/Cpu0/Cpu0RegisterInfo.cpp
+--- 5/Cpu0/Cpu0RegisterInfo.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0RegisterInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -78,6 +78,11 @@
+   for (unsigned I = 0; I < array_lengthof(ReservedCPURegs); ++I)
+     Reserved.set(ReservedCPURegs[I]);
+ 
++  // If GP is dedicated as a global base register, reserve it.
++  if (MF.getInfo<Cpu0FunctionInfo>()->globalBaseRegFixed()) {
++    Reserved.set(Cpu0::GP);
++  }
++
+   return Reserved;
+ }
+ 
+diff -Naur 5/Cpu0/Cpu0Subtarget.cpp 6/1/Cpu0/Cpu0Subtarget.cpp
+--- 5/Cpu0/Cpu0Subtarget.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0Subtarget.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -14,6 +14,7 @@
+ #include "Cpu0Subtarget.h"
+ #include "Cpu0.h"
+ #include "llvm/Support/TargetRegistry.h"
++#include "llvm/Support/CommandLine.h"
+ 
+ #define GET_SUBTARGETINFO_TARGET_DESC
+ #define GET_SUBTARGETINFO_CTOR
+@@ -21,12 +22,16 @@
+ 
+ using namespace llvm;
+ 
++static cl::opt<bool>
++IsLinuxOpt("cpu0-islinux-format", cl::Hidden, cl::init(true),
++                 cl::desc("Always use linux format."));
++
+ void Cpu0Subtarget::anchor() { }
+ 
+ Cpu0Subtarget::Cpu0Subtarget(const std::string &TT, const std::string &CPU,
+                              const std::string &FS, bool little) :
+   Cpu0GenSubtargetInfo(TT, CPU, FS),
+-  Cpu0ABI(UnknownABI), IsLittle(little)
++  Cpu0ABI(UnknownABI), IsLittle(little), IsLinux(IsLinuxOpt)
+ {
+   std::string CPUName = CPU;
+   if (CPUName.empty())
+diff -Naur 5/Cpu0/Cpu0Subtarget.h 6/1/Cpu0/Cpu0Subtarget.h
+--- 5/Cpu0/Cpu0Subtarget.h	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0Subtarget.h	2013-01-10 18:32:51.000000000 +0800
+@@ -47,6 +47,9 @@
+   // IsLittle - The target is Little Endian
+   bool IsLittle;
+ 
++  // isLinux - Target system is Linux. Is false we consider ELFOS for now.
++  bool IsLinux;
++
+   InstrItineraryData InstrItins;
+ 
+ public:
+@@ -63,6 +66,7 @@
+   void ParseSubtargetFeatures(StringRef CPU, StringRef FS);
+ 
+   bool isLittle() const { return IsLittle; }
++  bool isLinux() const { return IsLinux; }
+ };
+ } // End llvm namespace
+ 
+diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
+--- 5/Cpu0/Cpu0TargetObjectFile.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 6/1/Cpu0/Cpu0TargetObjectFile.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,102 @@
++//===-- Cpu0TargetObjectFile.cpp - Cpu0 Object Files ----------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "Cpu0TargetObjectFile.h"
++#include "Cpu0Subtarget.h"
++#include "llvm/DerivedTypes.h"
++#include "llvm/GlobalVariable.h"
++#include "llvm/MC/MCContext.h"
++#include "llvm/MC/MCSectionELF.h"
++#include "llvm/Target/TargetData.h"
++#include "llvm/Target/TargetMachine.h"
++#include "llvm/Support/CommandLine.h"
++#include "llvm/Support/ELF.h"
++using namespace llvm;
++
++static cl::opt<unsigned>
++SSThreshold("cpu0-ssection-threshold", cl::Hidden,
++            cl::desc("Small data and bss section threshold size (default=8)"),
++            cl::init(8));
++
++void Cpu0TargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM){
++  TargetLoweringObjectFileELF::Initialize(Ctx, TM);
++
++  SmallDataSection =
++    getContext().getELFSection(".sdata", ELF::SHT_PROGBITS,
++                               ELF::SHF_WRITE |ELF::SHF_ALLOC,
++                               SectionKind::getDataRel());
++
++  SmallBSSSection =
++    getContext().getELFSection(".sbss", ELF::SHT_NOBITS,
++                               ELF::SHF_WRITE |ELF::SHF_ALLOC,
++                               SectionKind::getBSS());
++
++}
++
++// A address must be loaded from a small section if its size is less than the
++// small section size threshold. Data in this section must be addressed using
++// gp_rel operator.
++static bool IsInSmallSection(uint64_t Size) {
++  return Size > 0 && Size <= SSThreshold;
++}
++
++bool Cpu0TargetObjectFile::IsGlobalInSmallSection(const GlobalValue *GV,
++                                                const TargetMachine &TM) const {
++  if (GV->isDeclaration() || GV->hasAvailableExternallyLinkage())
++    return false;
++
++  return IsGlobalInSmallSection(GV, TM, getKindForGlobal(GV, TM));
++}
++
++/// IsGlobalInSmallSection - Return true if this global address should be
++/// placed into small data/bss section.
++bool Cpu0TargetObjectFile::
++IsGlobalInSmallSection(const GlobalValue *GV, const TargetMachine &TM,
++                       SectionKind Kind) const {
++
++  // Only use small section for non linux targets.
++  const Cpu0Subtarget &Subtarget = TM.getSubtarget<Cpu0Subtarget>();
++  if (Subtarget.isLinux())
++    return false;
++
++  // Only global variables, not functions.
++  const GlobalVariable *GVA = dyn_cast<GlobalVariable>(GV);
++  if (!GVA)
++    return false;
++
++  // We can only do this for datarel or BSS objects for now.
++  if (!Kind.isBSS() && !Kind.isDataRel())
++    return false;
++
++  // If this is a internal constant string, there is a special
++  // section for it, but not in small data/bss.
++  if (Kind.isMergeable1ByteCString())
++    return false;
++
++  Type *Ty = GV->getType()->getElementType();
++  return IsInSmallSection(TM.getTargetData()->getTypeAllocSize(Ty));
++}
++
++
++
++const MCSection *Cpu0TargetObjectFile::
++SelectSectionForGlobal(const GlobalValue *GV, SectionKind Kind,
++                       Mangler *Mang, const TargetMachine &TM) const {
++  // TODO: Could also support "weak" symbols as well with ".gnu.linkonce.s.*"
++  // sections?
++
++  // Handle Small Section classification here.
++  if (Kind.isBSS() && IsGlobalInSmallSection(GV, TM, Kind))
++    return SmallBSSSection;
++  if (Kind.isDataNoRel() && IsGlobalInSmallSection(GV, TM, Kind))
++    return SmallDataSection;
++
++  // Otherwise, we work the same as ELF.
++  return TargetLoweringObjectFileELF::SelectSectionForGlobal(GV, Kind, Mang,TM);
++}
+diff -Naur 5/Cpu0/Cpu0TargetObjectFile.h 6/1/Cpu0/Cpu0TargetObjectFile.h
+--- 5/Cpu0/Cpu0TargetObjectFile.h	1970-01-01 08:00:00.000000000 +0800
++++ 6/1/Cpu0/Cpu0TargetObjectFile.h	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,41 @@
++//===-- llvm/Target/Cpu0TargetObjectFile.h - Cpu0 Object Info ---*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef LLVM_TARGET_CPU0_TARGETOBJECTFILE_H
++#define LLVM_TARGET_CPU0_TARGETOBJECTFILE_H
++
++#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
++
++namespace llvm {
++
++  class Cpu0TargetObjectFile : public TargetLoweringObjectFileELF {
++    const MCSection *SmallDataSection;
++    const MCSection *SmallBSSSection;
++  public:
++
++    void Initialize(MCContext &Ctx, const TargetMachine &TM);
++
++
++    /// IsGlobalInSmallSection - Return true if this global address should be
++    /// placed into small data/bss section.
++    bool IsGlobalInSmallSection(const GlobalValue *GV,
++                                const TargetMachine &TM, SectionKind Kind)const;
++    bool IsGlobalInSmallSection(const GlobalValue *GV,
++                                const TargetMachine &TM) const;
++
++    const MCSection *SelectSectionForGlobal(const GlobalValue *GV,
++                                            SectionKind Kind,
++                                            Mangler *Mang,
++                                            const TargetMachine &TM) const;
++
++    // TODO: Classify globals as cpu0 wishes.
++  };
++} // end namespace llvm
++
++#endif
+diff -Naur 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
+--- 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -56,6 +56,12 @@
+   switch (Kind) {
+   default:                                 llvm_unreachable("Invalid kind!");
+   case MCSymbolRefExpr::VK_None:           break;
++// Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
++  case MCSymbolRefExpr::VK_Cpu0_GPREL:     OS << "%gp_rel("; break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT16:     OS << "%got(";    break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
++  case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
++  case MCSymbolRefExpr::VK_Cpu0_ABS_LO:    OS << "%lo(";     break;
+   }
+ 
+   OS << SRE->getSymbol();
+diff -Naur 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
+--- 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -143,6 +143,30 @@
+ 
+   assert (Kind == MCExpr::SymbolRef);
+ 
++  Cpu0::Fixups FixupKind = Cpu0::Fixups(0);
++
++  switch(cast<MCSymbolRefExpr>(Expr)->getKind()) {
++  case MCSymbolRefExpr::VK_Cpu0_GPREL:
++    FixupKind = Cpu0::fixup_Cpu0_GPREL16;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT16:
++    FixupKind = Cpu0::fixup_Cpu0_GOT_Global;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT:
++    FixupKind = Cpu0::fixup_Cpu0_GOT_Local;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_ABS_HI:
++    FixupKind = Cpu0::fixup_Cpu0_HI16;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_ABS_LO:
++    FixupKind = Cpu0::fixup_Cpu0_LO16;
++    break;
++  default:
++    break;
++  } // switch
++
++  Fixups.push_back(MCFixup::Create(0, MO.getExpr(), MCFixupKind(FixupKind)));
++
+   // All of the information is in the fixup.
+   return 0;
+ }

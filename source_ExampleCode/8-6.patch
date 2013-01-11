@@ -1,0 +1,400 @@
+diff -Naur 8/5/Cpu0/CMakeLists.txt 8/6/Cpu0/CMakeLists.txt
+--- 8/5/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+@@ -24,6 +24,7 @@
+ # Cpu0CodeGen should match with LLVMBuild.txt Cpu0CodeGen
+ add_llvm_target(Cpu0CodeGen
+   Cpu0AsmPrinter.cpp
++  Cpu0EmitGPRestore.cpp
+   Cpu0InstrInfo.cpp
+   Cpu0ISelDAGToDAG.cpp
+   Cpu0ISelLowering.cpp
+diff -Naur 8/5/Cpu0/Cpu0.h 8/6/Cpu0/Cpu0.h
+--- 8/5/Cpu0/Cpu0.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0.h	2013-01-10 18:32:51.000000000 +0800
+@@ -23,6 +23,7 @@
+   class FunctionPass;
+ 
+   FunctionPass *createCpu0ISelDag(Cpu0TargetMachine &TM);
++  FunctionPass *createCpu0EmitGPRestorePass(Cpu0TargetMachine &TM);
+ 
+ } // end namespace llvm;
+ 
+diff -Naur 8/5/Cpu0/Cpu0AsmPrinter.cpp 8/6/Cpu0/Cpu0AsmPrinter.cpp
+--- 8/5/Cpu0/Cpu0AsmPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0AsmPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -43,6 +43,19 @@
+ 
+ using namespace llvm;
+ 
++void Cpu0AsmPrinter::EmitInstrWithMacroNoAT(const MachineInstr *MI) {
++  MCInst TmpInst;
++
++  MCInstLowering.Lower(MI, TmpInst);
++  OutStreamer.EmitRawText(StringRef("\t.set\tmacro"));
++  if (Cpu0FI->getEmitNOAT())
++    OutStreamer.EmitRawText(StringRef("\t.set\tat"));
++  OutStreamer.EmitInstruction(TmpInst);
++  if (Cpu0FI->getEmitNOAT())
++    OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
++  OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
++}
++
+ bool Cpu0AsmPrinter::runOnMachineFunction(MachineFunction &MF) {
+   Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+   AsmPrinter::runOnMachineFunction(MF);
+@@ -59,7 +72,37 @@
+     return;
+   }
+ 
++  unsigned Opc = MI->getOpcode();
+   MCInst TmpInst0;
++  SmallVector<MCInst, 4> MCInsts;
++
++  switch (Opc) {
++  case Cpu0::CPRESTORE: {
++    const MachineOperand &MO = MI->getOperand(0);
++    assert(MO.isImm() && "CPRESTORE's operand must be an immediate.");
++    int64_t Offset = MO.getImm();
++
++    if (OutStreamer.hasRawTextSupport()) {
++      if (!isInt<16>(Offset)) {
++        EmitInstrWithMacroNoAT(MI);
++        return;
++      }
++    } else {
++      MCInstLowering.LowerCPRESTORE(Offset, MCInsts);
++
++      for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
++           I != MCInsts.end(); ++I)
++        OutStreamer.EmitInstruction(*I);
++
++      return;
++    }
++
++    break;
++  }
++  default:
++    break;
++  }
++
+   MCInstLowering.Lower(MI, TmpInst0);
+   OutStreamer.EmitInstruction(TmpInst0);
+ }
+@@ -208,6 +251,15 @@
+     //  OutStreamer.EmitRawText(StringRef("\t.cpload\t$6"));
+ 
+     OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
++
++    if (Cpu0FI->getEmitNOAT())
++      OutStreamer.EmitRawText(StringRef("\t.set\tnoat"));
++  } else if (EmitCPLoad) {
++    SmallVector<MCInst, 4> MCInsts;
++    MCInstLowering.LowerCPLOAD(MCInsts);
++    for (SmallVector<MCInst, 4>::iterator I = MCInsts.begin();
++         I != MCInsts.end(); ++I)
++      OutStreamer.EmitInstruction(*I);
+   }
+ }
+ 
+diff -Naur 8/5/Cpu0/Cpu0EmitGPRestore.cpp 8/6/Cpu0/Cpu0EmitGPRestore.cpp
+--- 8/5/Cpu0/Cpu0EmitGPRestore.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 8/6/Cpu0/Cpu0EmitGPRestore.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,99 @@
++//===-- Cpu0EmitGPRestore.cpp - Emit GP Restore Instruction ---------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This pass emits instructions that restore $gp right
++// after jalr instructions.
++//
++//===----------------------------------------------------------------------===//
++
++#define DEBUG_TYPE "emit-gp-restore"
++
++#include "Cpu0.h"
++#include "Cpu0TargetMachine.h"
++#include "Cpu0MachineFunction.h"
++#include "llvm/CodeGen/MachineFunctionPass.h"
++#include "llvm/CodeGen/MachineInstrBuilder.h"
++#include "llvm/Target/TargetInstrInfo.h"
++#include "llvm/ADT/Statistic.h"
++
++using namespace llvm;
++
++namespace {
++  struct Inserter : public MachineFunctionPass {
++
++    TargetMachine &TM;
++    const TargetInstrInfo *TII;
++
++    static char ID;
++    Inserter(TargetMachine &tm)
++      : MachineFunctionPass(ID), TM(tm), TII(tm.getInstrInfo()) { }
++
++    virtual const char *getPassName() const {
++      return "Cpu0 Emit GP Restore";
++    }
++
++    bool runOnMachineFunction(MachineFunction &F);
++  };
++  char Inserter::ID = 0;
++} // end of anonymous namespace
++
++bool Inserter::runOnMachineFunction(MachineFunction &F) {
++  Cpu0FunctionInfo *Cpu0FI = F.getInfo<Cpu0FunctionInfo>();
++
++  if ((TM.getRelocationModel() != Reloc::PIC_) ||
++      (!Cpu0FI->globalBaseRegFixed()))
++    return false;
++
++  bool Changed = false;
++  int FI = Cpu0FI->getGPFI();
++
++  for (MachineFunction::iterator MFI = F.begin(), MFE = F.end();
++       MFI != MFE; ++MFI) {
++    MachineBasicBlock& MBB = *MFI;
++    MachineBasicBlock::iterator I = MFI->begin();
++    
++    /// IsLandingPad - Indicate that this basic block is entered via an
++    /// exception handler.
++    // If MBB is a landing pad, insert instruction that restores $gp after
++    // EH_LABEL.
++    if (MBB.isLandingPad()) {
++      // Find EH_LABEL first.
++      for (; I->getOpcode() != TargetOpcode::EH_LABEL; ++I) ;
++
++      // Insert ld.
++      ++I;
++      DebugLoc dl = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
++      BuildMI(MBB, I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
++                                                       .addImm(0);
++      Changed = true;
++    }
++
++    while (I != MFI->end()) {
++      if (I->getOpcode() != Cpu0::JALR) {
++        ++I;
++        continue;
++      }
++
++      DebugLoc dl = I->getDebugLoc();
++      // emit lw $gp, ($gp save slot on stack) after jalr
++      BuildMI(MBB, ++I, dl, TII->get(Cpu0::LD), Cpu0::GP).addFrameIndex(FI)
++                                                         .addImm(0);
++      Changed = true;
++    }
++  }
++
++  return Changed;
++}
++
++/// createCpu0EmitGPRestorePass - Returns a pass that emits instructions that
++/// restores $gp clobbered by jalr instructions.
++FunctionPass *llvm::createCpu0EmitGPRestorePass(Cpu0TargetMachine &tm) {
++  return new Inserter(tm);
++}
++
+diff -Naur 8/5/Cpu0/Cpu0FrameLowering.cpp 8/6/Cpu0/Cpu0FrameLowering.cpp
+--- 8/5/Cpu0/Cpu0FrameLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0FrameLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -103,7 +103,10 @@
+   unsigned ADDiu = Cpu0::ADDiu;
+   // First, compute final stack size.
+   unsigned StackAlign = getStackAlignment();
+-  unsigned LocalVarAreaOffset = Cpu0FI->getMaxCallFrameSize();
++  unsigned RegSize = 4;
++  unsigned LocalVarAreaOffset = Cpu0FI->needGPSaveRestore() ?
++    (MFI->getObjectOffset(Cpu0FI->getGPFI()) + RegSize) :
++    Cpu0FI->getMaxCallFrameSize();
+   uint64_t StackSize =  RoundUpToAlignment(LocalVarAreaOffset, StackAlign) +
+      RoundUpToAlignment(MFI->getStackSize(), StackAlign);
+ 
+@@ -159,6 +162,13 @@
+       }
+     }
+   }
++  
++  // Restore GP from the saved stack location
++  if (Cpu0FI->needGPSaveRestore()) {
++    unsigned Offset = MFI->getObjectOffset(Cpu0FI->getGPFI());
++    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::CPRESTORE)).addImm(Offset)
++      .addReg(Cpu0::GP);
++  }
+ }
+ 
+ void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,
+diff -Naur 8/5/Cpu0/Cpu0ISelLowering.cpp 8/6/Cpu0/Cpu0ISelLowering.cpp
+--- 8/5/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -263,6 +263,8 @@
+     unsigned StackAlignment = TFL->getStackAlignment();
+     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
+                       StackAlignment * StackAlignment;
++    if (Cpu0FI->needGPSaveRestore())
++      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
+ 
+     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
+   }
+diff -Naur 8/5/Cpu0/Cpu0InstrInfo.td 8/6/Cpu0/Cpu0InstrInfo.td
+--- 8/5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -371,6 +371,14 @@
+                                   [(callseq_end timm:$amt1, timm:$amt2)]>;
+ }
+ 
++// When handling PIC code the assembler needs .cpload and .cprestore
++// directives. If the real instructions corresponding these directives
++// are used, we have the same behavior, but get also a bunch of warnings
++// from the assembler.
++let neverHasSideEffects = 1 in
++def CPRESTORE : Cpu0Pseudo<(outs), (ins i32imm:$loc, CPURegs:$gp),
++                           ".cprestore\t$loc", []>;
++
+ //===----------------------------------------------------------------------===//
+ // Instruction definition
+ //===----------------------------------------------------------------------===//
+diff -Naur 8/5/Cpu0/Cpu0MCInstLower.cpp 8/6/Cpu0/Cpu0MCInstLower.cpp
+--- 8/5/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -83,6 +83,72 @@
+   return MCOperand::CreateExpr(AddExpr);
+ }
+ 
++static void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
++                         const MCOperand& Opnd1,
++                         const MCOperand& Opnd2 = MCOperand()) {
++  Inst.setOpcode(Opc);
++  Inst.addOperand(Opnd0);
++  Inst.addOperand(Opnd1);
++  if (Opnd2.isValid())
++    Inst.addOperand(Opnd2);
++}
++
++// Lower ".cpload $reg" to
++//  "addiu $gp, $zero, %hi(_gp_disp)"
++//  "shl   $gp, $gp, 16"
++//  "addiu $gp, $gp, %lo(_gp_disp)"
++//  "addu  $gp, $gp, $t9"
++void Cpu0MCInstLower::LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts) {
++  MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
++  MCOperand T9Reg = MCOperand::CreateReg(Cpu0::T9);
++  MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
++  StringRef SymName("_gp_disp");
++  const MCSymbol *Sym = Ctx->GetOrCreateSymbol(SymName);
++  const MCSymbolRefExpr *MCSym;
++
++  MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_HI, *Ctx);
++  MCOperand SymHi = MCOperand::CreateExpr(MCSym);
++  MCSym = MCSymbolRefExpr::Create(Sym, MCSymbolRefExpr::VK_Cpu0_ABS_LO, *Ctx);
++  MCOperand SymLo = MCOperand::CreateExpr(MCSym);
++
++  MCInsts.resize(4);
++
++  CreateMCInst(MCInsts[0], Cpu0::ADDiu, GPReg, ZEROReg, SymHi);
++  CreateMCInst(MCInsts[1], Cpu0::SHL, GPReg, GPReg, MCOperand::CreateImm(16));
++  CreateMCInst(MCInsts[2], Cpu0::ADDiu, GPReg, GPReg, SymLo);
++  CreateMCInst(MCInsts[3], Cpu0::ADD, GPReg, GPReg, T9Reg);
++}
++
++// Lower ".cprestore offset" to "st $gp, offset($sp)".
++void Cpu0MCInstLower::LowerCPRESTORE(int64_t Offset,
++                                     SmallVector<MCInst, 4>& MCInsts) {
++  assert(isInt<32>(Offset) && (Offset >= 0) &&
++         "Imm operand of .cprestore must be a non-negative 32-bit value.");
++
++  MCOperand SPReg = MCOperand::CreateReg(Cpu0::SP), BaseReg = SPReg;
++  MCOperand GPReg = MCOperand::CreateReg(Cpu0::GP);
++  MCOperand ZEROReg = MCOperand::CreateReg(Cpu0::ZERO);
++
++  if (!isInt<16>(Offset)) {
++    unsigned Hi = ((Offset + 0x8000) >> 16) & 0xffff;
++    Offset &= 0xffff;
++    MCOperand ATReg = MCOperand::CreateReg(Cpu0::AT);
++    BaseReg = ATReg;
++
++    // addiu   at,zero,hi
++    // shl     at,at,16
++    // add     at,at,sp
++    MCInsts.resize(3);
++    CreateMCInst(MCInsts[0], Cpu0::ADDiu, ATReg, ZEROReg, MCOperand::CreateImm(Hi));
++    CreateMCInst(MCInsts[1], Cpu0::SHL, ATReg, ATReg, MCOperand::CreateImm(16));
++    CreateMCInst(MCInsts[2], Cpu0::ADD, ATReg, ATReg, SPReg);
++  }
++
++  MCInst St;
++  CreateMCInst(St, Cpu0::ST, GPReg, BaseReg, MCOperand::CreateImm(Offset));
++  MCInsts.push_back(St);
++}
++
+ MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
+                                         unsigned offset) const {
+   MachineOperandType MOTy = MO.getType();
+diff -Naur 8/5/Cpu0/Cpu0MCInstLower.h 8/6/Cpu0/Cpu0MCInstLower.h
+--- 8/5/Cpu0/Cpu0MCInstLower.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0MCInstLower.h	2013-01-10 18:32:51.000000000 +0800
+@@ -33,6 +33,8 @@
+   Cpu0MCInstLower(Cpu0AsmPrinter &asmprinter);
+   void Initialize(Mangler *mang, MCContext* C);
+   void Lower(const MachineInstr *MI, MCInst &OutMI) const;
++  void LowerCPLOAD(SmallVector<MCInst, 4>& MCInsts);
++  void LowerCPRESTORE(int64_t Offset, SmallVector<MCInst, 4>& MCInsts);
+ private:
+   MCOperand LowerSymbolOperand(const MachineOperand &MO,
+                                MachineOperandType MOTy, unsigned Offset) const;
+diff -Naur 8/5/Cpu0/Cpu0MachineFunction.h 8/6/Cpu0/Cpu0MachineFunction.h
+--- 8/5/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
+@@ -48,13 +48,14 @@
+   int GPFI; // Index of the frame object for restoring $gp
+   mutable int DynAllocFI; // Frame index of dynamically allocated stack area.
+   unsigned MaxCallFrameSize;
++  bool EmitNOAT;
+ 
+ public:
+   Cpu0FunctionInfo(MachineFunction& MF)
+   : MF(MF), SRetReturnReg(0), GlobalBaseReg(0),
+     VarArgsFrameIndex(0), InArgFIRange(std::make_pair(-1, 0)),
+     OutArgFIRange(std::make_pair(-1, 0)), GPFI(0), DynAllocFI(0),
+-    MaxCallFrameSize(0)
++    MaxCallFrameSize(0), EmitNOAT(false)
+     {}
+   
+   bool isInArgFI(int FI) const {
+@@ -100,6 +101,9 @@
+ 
+   unsigned getMaxCallFrameSize() const { return MaxCallFrameSize; }
+   void setMaxCallFrameSize(unsigned S) { MaxCallFrameSize = S; }
++  bool getEmitNOAT() const { return EmitNOAT; }
++  void setEmitNOAT() { EmitNOAT = true; }
++
+ };
+ 
+ } // end of namespace llvm
+diff -Naur 8/5/Cpu0/Cpu0TargetMachine.cpp 8/6/Cpu0/Cpu0TargetMachine.cpp
+--- 8/5/Cpu0/Cpu0TargetMachine.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/6/Cpu0/Cpu0TargetMachine.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -82,6 +82,7 @@
+     return *getCpu0TargetMachine().getSubtargetImpl();
+   }
+   virtual bool addInstSelector();
++  virtual bool addPreRegAlloc();
+ };
+ } // namespace
+ 
+@@ -96,3 +97,10 @@
+   return false;
+ }
+ 
++bool Cpu0PassConfig::addPreRegAlloc() {
++  // Do not restore $gp if target is Cpu064.
++  // In N32/64, $gp is a callee-saved register.
++
++    PM->add(createCpu0EmitGPRestorePass(getCpu0TargetMachine()));
++  return true;
++}

@@ -1,0 +1,74 @@
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -49,6 +49,8 @@
+   case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
+   case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
+   case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
++  case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
++  case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
+   case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
+   default:                         return NULL;
+   }
+@@ -71,6 +73,7 @@
+   // Cpu0 Custom Operations
+   setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
+   setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
++  setOperationAction(ISD::VASTART,            MVT::Other, Custom);
+ 
+   setOperationAction(ISD::SDIV, MVT::i32, Expand);
+   setOperationAction(ISD::SREM, MVT::i32, Expand);
+@@ -80,6 +83,12 @@
+   // Operations not directly supported by Cpu0.
+   setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
+ 
++  // Support va_arg(): variable numbers (not fixed numbers) of arguments 
++  //  (parameters) for function all
++  setOperationAction(ISD::VAARG,             MVT::Other, Expand);
++  setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
++  setOperationAction(ISD::VAEND,             MVT::Other, Expand);
++
+   setTargetDAGCombine(ISD::SDIVREM);
+   setTargetDAGCombine(ISD::UDIVREM);
+ 
+@@ -151,6 +160,7 @@
+   {
+     case ISD::BRCOND:             return LowerBRCOND(Op, DAG);
+     case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
++    case ISD::VASTART:            return LowerVASTART(Op, DAG);
+   }
+   return SDValue();
+ }
+@@ -215,6 +225,21 @@
+   return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
+ }
+ 
++SDValue Cpu0TargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
++  MachineFunction &MF = DAG.getMachineFunction();
++  Cpu0FunctionInfo *FuncInfo = MF.getInfo<Cpu0FunctionInfo>();
++
++  DebugLoc dl = Op.getDebugLoc();
++  SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
++                                 getPointerTy());
++
++  // vastart just stores the address of the VarArgsFrameIndex slot into the
++  // memory location argument.
++  const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
++  return DAG.getStore(Op.getOperand(0), dl, FI, Op.getOperand(1),
++                      MachinePointerInfo(SV), false, false, 0);
++}
++
+ #include "Cpu0GenCallingConv.inc"
+ 
+ SDValue
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.h 8/7/Cpu0/Cpu0ISelLowering.h
+--- 8/6/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+@@ -86,6 +86,7 @@
+     // Lower Operand specifics
+     SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
+     SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
++    SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG) const;
+ 
+ 	//- must be exist without function all
+     virtual SDValue

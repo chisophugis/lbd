@@ -1,0 +1,52 @@
+diff -Naur 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp 6/2/Cpu0/Cpu0ISelDAGToDAG.cpp
+--- 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -152,6 +152,23 @@
+         Addr.getOpcode() == ISD::TargetGlobalAddress))
+       return false;
+   }
++  
++  // Addresses of the form FI+const or FI|const
++  if (CurDAG->isBaseWithConstantOffset(Addr)) {
++    ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
++    if (isInt<16>(CN->getSExtValue())) {
++
++      // If the first operand is a FI, get the TargetFI Node
++      if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>
++                                  (Addr.getOperand(0)))
++        Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
++      else
++        Base = Addr.getOperand(0);
++
++      Offset = CurDAG->getTargetConstant(CN->getZExtValue(), ValTy);
++      return true;
++    }
++  }
+ 
+   Base   = Addr;
+   Offset = CurDAG->getTargetConstant(0, ValTy);
+diff -Naur 6/1/Cpu0/Cpu0ISelLowering.cpp 6/2/Cpu0/Cpu0ISelLowering.cpp
+--- 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -227,3 +227,9 @@
+     return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+                        Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
+ }
++
++bool
++Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
++  // The Mips target isn't yet aware of offsets.
++  return false;
++}
+diff -Naur 6/1/Cpu0/Cpu0ISelLowering.h 6/2/Cpu0/Cpu0ISelLowering.h
+--- 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+@@ -94,6 +94,8 @@
+                   const SmallVectorImpl<ISD::OutputArg> &Outs,
+                   const SmallVectorImpl<SDValue> &OutVals,
+                   DebugLoc dl, SelectionDAG &DAG) const;
++
++    virtual bool isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const;
+   };
+ }
+ 

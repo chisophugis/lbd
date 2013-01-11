@@ -1,0 +1,254 @@
+diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.cpp 4/6_4/Cpu0/Cpu0ISelLowering.cpp
+--- 4/6_2/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:35:24.000000000 +0800
+@@ -42,7 +42,15 @@
+ 
+   // Set up the register classes
+   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
+-
++  
++  setOperationAction(ISD::SDIV, MVT::i32, Expand);
++  setOperationAction(ISD::SREM, MVT::i32, Expand);
++  setOperationAction(ISD::UDIV, MVT::i32, Expand);
++  setOperationAction(ISD::UREM, MVT::i32, Expand);
++
++  setTargetDAGCombine(ISD::SDIVREM);
++  setTargetDAGCombine(ISD::UDIVREM);
++  
+ //- Set .align 2
+ // It will emit .align 2 later
+   setMinFunctionAlignment(2);
+@@ -52,6 +60,58 @@
+   computeRegisterProperties();
+ }
+ 
++static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
++                                    TargetLowering::DAGCombinerInfo &DCI,
++                                    const Cpu0Subtarget* Subtarget) {
++  if (DCI.isBeforeLegalizeOps())
++    return SDValue();
++
++  EVT Ty = N->getValueType(0);
++  unsigned LO = Cpu0::LO;
++  unsigned HI = Cpu0::HI;
++  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
++                                                  Cpu0ISD::DivRemU;
++  DebugLoc dl = N->getDebugLoc();
++
++  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
++                               N->getOperand(0), N->getOperand(1));
++  SDValue InChain = DAG.getEntryNode();
++  SDValue InGlue = DivRem;
++
++  // insert MFLO
++  if (N->hasAnyUseOfValue(0)) {
++    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
++                                            InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
++    InChain = CopyFromLo.getValue(1);
++    InGlue = CopyFromLo.getValue(2);
++  }
++
++  // insert MFHI
++  if (N->hasAnyUseOfValue(1)) {
++    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
++                                            HI, Ty, InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
++  }
++
++  return SDValue();
++}
++
++SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
++  const {
++  SelectionDAG &DAG = DCI.DAG;
++  unsigned opc = N->getOpcode();
++
++  switch (opc) {
++  default: break;
++  case ISD::SDIVREM:
++  case ISD::UDIVREM:
++    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
++  }
++
++  return SDValue();
++}
++
+ #include "Cpu0GenCallingConv.inc"
+ 
+ /// LowerFormalArguments - transform physical registers into virtual registers
+diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.h 4/6_4/Cpu0/Cpu0ISelLowering.h
+--- 4/6_2/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:35:24.000000000 +0800
+@@ -25,7 +25,10 @@
+     enum NodeType {
+       // Start the numbering from where ISD NodeType finishes.
+       FIRST_NUMBER = ISD::BUILTIN_OP_END,
+-      Ret
++      Ret,
++      // DivRem(u)
++      DivRem,
++      DivRemU
+     };
+   }
+ 
+@@ -37,6 +40,8 @@
+   public:
+     explicit Cpu0TargetLowering(Cpu0TargetMachine &TM);
+ 
++    virtual SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const;
++
+   private:
+     // Subtarget Info
+     const Cpu0Subtarget *Subtarget;
+diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.cpp 4/6_4/Cpu0/Cpu0InstrInfo.cpp
+--- 4/6_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:35:24.000000000 +0800
+@@ -28,6 +28,42 @@
+   return RI;
+ }
+ 
++void Cpu0InstrInfo::
++copyPhysReg(MachineBasicBlock &MBB,
++            MachineBasicBlock::iterator I, DebugLoc DL,
++            unsigned DestReg, unsigned SrcReg,
++            bool KillSrc) const {
++  unsigned Opc = 0, ZeroReg = 0;
++
++  if (Cpu0::CPURegsRegClass.contains(DestReg)) { // Copy to CPU Reg.
++    if (Cpu0::CPURegsRegClass.contains(SrcReg))
++      Opc = Cpu0::ADD, ZeroReg = Cpu0::ZERO;
++    else if (SrcReg == Cpu0::HI)
++      Opc = Cpu0::MFHI, SrcReg = 0;
++    else if (SrcReg == Cpu0::LO)
++      Opc = Cpu0::MFLO, SrcReg = 0;
++  }
++  else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
++    if (DestReg == Cpu0::HI)
++      Opc = Cpu0::MTHI, DestReg = 0;
++    else if (DestReg == Cpu0::LO)
++      Opc = Cpu0::MTLO, DestReg = 0;
++  }
++
++  assert(Opc && "Cannot copy registers");
++
++  MachineInstrBuilder MIB = BuildMI(MBB, I, DL, get(Opc));
++
++  if (DestReg)
++    MIB.addReg(DestReg, RegState::Define);
++
++  if (ZeroReg)
++    MIB.addReg(ZeroReg);
++
++  if (SrcReg)
++    MIB.addReg(SrcReg, getKillRegState(KillSrc));
++}
++
+ MachineInstr*
+ Cpu0InstrInfo::emitFrameIndexDebugValue(MachineFunction &MF, int FrameIx,
+                                         uint64_t Offset, const MDNode *MDPtr,
+diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.h 4/6_4/Cpu0/Cpu0InstrInfo.h
+--- 4/6_2/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:35:24.000000000 +0800
+@@ -36,6 +36,11 @@
+   ///
+   virtual const Cpu0RegisterInfo &getRegisterInfo() const;
+ 
++  virtual void copyPhysReg(MachineBasicBlock &MBB,
++                           MachineBasicBlock::iterator MI, DebugLoc DL,
++                           unsigned DestReg, unsigned SrcReg,
++                           bool KillSrc) const;
++
+ public:
+   virtual MachineInstr* emitFrameIndexDebugValue(MachineFunction &MF,
+                                                  int FrameIx, uint64_t Offset,
+diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
+--- 4/6_2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:35:24.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:35:24.000000000 +0800
+@@ -23,10 +23,20 @@
+ 
+ def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>;
+ 
++def SDT_Cpu0DivRem       : SDTypeProfile<0, 2,
++                                         [SDTCisInt<0>,
++                                          SDTCisSameAs<0, 1>]>;
++
+ // Return
+ def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain,
+                      SDNPOptInGlue]>;
+ 
++// DivRem(u) nodes
++def Cpu0DivRem    : SDNode<"Cpu0ISD::DivRem", SDT_Cpu0DivRem,
++                           [SDNPOutGlue]>;
++def Cpu0DivRemU   : SDNode<"Cpu0ISD::DivRemU", SDT_Cpu0DivRem,
++                           [SDNPOutGlue]>;
++
+ //===----------------------------------------------------------------------===//
+ // Cpu0 Operand, Complex Patterns and Transformations Definitions.
+ //===----------------------------------------------------------------------===//
+@@ -212,6 +222,18 @@
+ class Mult32<bits<8> op, string instr_asm, InstrItinClass itin>:
+   Mult<op, instr_asm, itin, CPURegs, [HI, LO]>;
+ 
++class Div<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin,
++          RegisterClass RC, list<Register> DefRegs>:
++  FL<op, (outs), (ins RC:$rb, RC:$rc),
++     !strconcat(instr_asm, "\t$$zero, $rb, $rc"),
++     [(opNode RC:$rb, RC:$rc)], itin> {
++  let imm16 = 0;
++  let Defs = DefRegs;
++}
++
++class Div32<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin>:
++  Div<opNode, op, instr_asm, itin, CPURegs, [HI, LO]>;
++
+ // Move from Hi/Lo
+ class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
+                    list<Register> UseRegs>:
+@@ -223,6 +245,16 @@
+   let neverHasSideEffects = 1;
+ }
+ 
++class MoveToLOHI<bits<8> op, string instr_asm, RegisterClass RC,
++                 list<Register> DefRegs>:
++  FL<op, (outs), (ins RC:$ra),
++     !strconcat(instr_asm, "\t$ra"), [], IIHiLo> {
++  let rb = 0;
++  let imm16 = 0;
++  let Defs = DefRegs;
++  let neverHasSideEffects = 1;
++}
++
+ class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
+   FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
+      instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
+@@ -250,8 +282,8 @@
+ def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+ def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
+ def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
+-def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
+-def UDIV    : ArithLogicR<0x17, "udiv", udiv, IIIdiv, CPURegs, 1>;
++def SDIV    : Div32<Cpu0DivRem, 0x16, "div", IIIdiv>;
++def UDIV    : Div32<Cpu0DivRemU, 0x17, "divu", IIIdiv>;
+ def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
+ def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
+ def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
+@@ -262,6 +294,8 @@
+ 
+ def MFHI : MoveFromLOHI<0x40, "mfhi", CPURegs, [HI]>;
+ def MFLO : MoveFromLOHI<0x41, "mflo", CPURegs, [LO]>;
++def MTHI : MoveToLOHI<0x42, "mthi", CPURegs, [HI]>;
++def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
+ 
+ /// Shift Instructions
+ // work, sra for ashr llvm IR instruction
+@@ -296,7 +330,8 @@
+           
+ // Arbitrary immediates
+ def : Pat<(i32 imm:$imm),
+-          (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 imm:$imm)))>;
++          (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 
++              imm:$imm)))>;
+ 
+ 
+ def : Pat<(not CPURegs:$in),

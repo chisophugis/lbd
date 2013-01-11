@@ -1,0 +1,80 @@
+diff -Naur 8/3/Cpu0/Cpu0MachineFunction.h 8/4/Cpu0/Cpu0MachineFunction.h
+--- 8/3/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/4/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
+@@ -26,6 +26,11 @@
+   virtual void anchor();
+   MachineFunction& MF;
+ 
++  /// SRetReturnReg - Some subtargets require that sret lowering includes
++  /// returning the value of the returned struct in a register. This field
++  /// holds the virtual register into which the sret argument is passed.
++  unsigned SRetReturnReg;
++
+   /// GlobalBaseReg - keeps track of the virtual register initialized for
+   /// use as the global base register. This is used for PIC in some PIC
+   /// relocation models.
+@@ -46,7 +51,7 @@
+ 
+ public:
+   Cpu0FunctionInfo(MachineFunction& MF)
+-  : MF(MF), GlobalBaseReg(0),
++  : MF(MF), SRetReturnReg(0), GlobalBaseReg(0),
+     VarArgsFrameIndex(0), InArgFIRange(std::make_pair(-1, 0)),
+     OutArgFIRange(std::make_pair(-1, 0)), GPFI(0), DynAllocFI(0),
+     MaxCallFrameSize(0)
+@@ -57,6 +62,10 @@
+   }
+   void setLastInArgFI(int FI) { InArgFIRange.second = FI; }
+ 
++  bool isOutArgFI(int FI) const {
++    return FI <= OutArgFIRange.first && FI >= OutArgFIRange.second;
++  }
++
+   void extendOutArgFIRange(int FirstFI, int LastFI) {
+     if (!OutArgFIRange.second)
+       // this must be the first time this function was called.
+@@ -79,6 +88,9 @@
+   }
+   bool isDynAllocFI(int FI) const { return DynAllocFI && DynAllocFI == FI; }
+ 
++  unsigned getSRetReturnReg() const { return SRetReturnReg; }
++  void setSRetReturnReg(unsigned Reg) { SRetReturnReg = Reg; }
++
+   bool globalBaseRegFixed() const;
+   bool globalBaseRegSet() const;
+   unsigned getGlobalBaseReg();
+diff -Naur 8/3/Cpu0/Cpu0RegisterInfo.cpp 8/4/Cpu0/Cpu0RegisterInfo.cpp
+--- 8/3/Cpu0/Cpu0RegisterInfo.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/4/Cpu0/Cpu0RegisterInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -97,6 +97,7 @@
+   MachineInstr &MI = *II;
+   MachineFunction &MF = *MI.getParent()->getParent();
+   MachineFrameInfo *MFI = MF.getFrameInfo();
++  Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+ 
+   unsigned i = 0;
+   while (!MI.getOperand(i).isFI()) {
+@@ -133,6 +134,10 @@
+   // getFrameRegister() returns.
+   unsigned FrameReg;
+ 
++  if (Cpu0FI->isOutArgFI(FrameIndex) || Cpu0FI->isDynAllocFI(FrameIndex) ||
++      (FrameIndex >= MinCSFI && FrameIndex <= MaxCSFI))
++    FrameReg = Cpu0::SP;
++  else
+     FrameReg = getFrameRegister(MF);
+ 
+   // Calculate final offset.
+@@ -143,7 +148,11 @@
+   //   by adding the size of the stack:
+   //   incoming argument, callee-saved register location or local variable.
+   int64_t Offset;
+-  Offset = spOffset + (int64_t)stackSize;
++  if (Cpu0FI->isOutArgFI(FrameIndex) || Cpu0FI->isGPFI(FrameIndex) ||
++      Cpu0FI->isDynAllocFI(FrameIndex))
++    Offset = spOffset;
++  else
++    Offset = spOffset + (int64_t)stackSize;
+ 
+   Offset    += MI.getOperand(i+1).getImm();
+ 

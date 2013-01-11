@@ -1,0 +1,383 @@
+diff -Naur 7/1/Cpu0/Cpu0CallingConv.td 8/2/Cpu0/Cpu0CallingConv.td
+--- 7/1/Cpu0/Cpu0CallingConv.td	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0CallingConv.td	2013-01-10 18:32:51.000000000 +0800
+@@ -13,6 +13,37 @@
+ class CCIfSubtarget<string F, CCAction A>:
+   CCIf<!strconcat("State.getTarget().getSubtarget<Cpu0Subtarget>().", F), A>;
+ 
++def RetCC_Cpu0EABI : CallingConv<[
++  // i32 are returned in registers V0, V1
++  CCIfType<[i32], CCAssignToReg<[V0, V1]>>
++]>;
++
++//===----------------------------------------------------------------------===//
++// Cpu0 EABI Calling Convention
++//===----------------------------------------------------------------------===//
++
++def CC_Cpu0EABI : CallingConv<[
++  // Promote i8/i16 arguments to i32.
++  CCIfType<[i8, i16], CCPromoteToType<i32>>,
++  // Integer values get stored in stack slots that are 4 bytes in
++  // size and 4-byte aligned.
++  CCIfType<[i32], CCAssignToStack<4, 4>>
++]>;
++
++
++//===----------------------------------------------------------------------===//
++// Cpu0 Calling Convention Dispatch
++//===----------------------------------------------------------------------===//
++
++def CC_Cpu0 : CallingConv<[
++  CCDelegateTo<CC_Cpu0EABI>
++]>;
++
++
++def RetCC_Cpu0 : CallingConv<[
++  CCDelegateTo<RetCC_Cpu0EABI>
++]>;
++
+ def CSR_O32 : CalleeSavedRegs<(add LR, FP,
+                                    (sequence "S%u", 2, 0))>;
+ 
+diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp 8/2/Cpu0/Cpu0ISelLowering.cpp
+--- 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -71,7 +71,7 @@
+   // Cpu0 Custom Operations
+   setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
+   setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
+-  
++
+   setOperationAction(ISD::SDIV, MVT::i32, Expand);
+   setOperationAction(ISD::SREM, MVT::i32, Expand);
+   setOperationAction(ISD::UDIV, MVT::i32, Expand);
+@@ -239,6 +239,58 @@
+                                          DebugLoc dl, SelectionDAG &DAG,
+                                          SmallVectorImpl<SDValue> &InVals)
+                                           const {
++  MachineFunction &MF = DAG.getMachineFunction();
++  MachineFrameInfo *MFI = MF.getFrameInfo();
++  Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
++
++  Cpu0FI->setVarArgsFrameIndex(0);
++
++  // Used with vargs to acumulate store chains.
++  std::vector<SDValue> OutChains;
++
++  // Assign locations to all of the incoming arguments.
++  SmallVector<CCValAssign, 16> ArgLocs;
++  CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
++                 getTargetMachine(), ArgLocs, *DAG.getContext());
++                         
++  CCInfo.AnalyzeFormalArguments(Ins, CC_Cpu0);
++
++  Function::const_arg_iterator FuncArg =
++    DAG.getMachineFunction().getFunction()->arg_begin();
++  int LastFI = 0;// Cpu0FI->LastInArgFI is 0 at the entry of this function.
++
++  for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i, ++FuncArg) {
++    CCValAssign &VA = ArgLocs[i];
++    EVT ValVT = VA.getValVT();
++    ISD::ArgFlagsTy Flags = Ins[i].Flags;
++    bool IsRegLoc = VA.isRegLoc();
++
++    if (Flags.isByVal()) {
++      assert(Flags.getByValSize() &&
++             "ByVal args of size 0 should have been ignored by front-end."); 
++      continue;
++    }
++    // sanity check
++    assert(VA.isMemLoc());
++
++    // The stack pointer offset is relative to the caller stack frame.
++    LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
++                                    VA.getLocMemOffset(), true);
++
++    // Create load nodes to retrieve arguments from the stack
++    SDValue FIN = DAG.getFrameIndex(LastFI, getPointerTy());
++    InVals.push_back(DAG.getLoad(ValVT, dl, Chain, FIN,
++                                 MachinePointerInfo::getFixedStack(LastFI),
++                                 false, false, false, 0));
++  }
++  Cpu0FI->setLastInArgFI(LastFI);
++  // All stores are grouped in one node to allow the matching between
++  // the size of Ins and InVals. This only happens when on varg functions
++  if (!OutChains.empty()) {
++    OutChains.push_back(Chain);
++    Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
++                        &OutChains[0], OutChains.size());
++  }
+   return Chain;
+ }
+ 
+diff -Naur 7/1/Cpu0/Cpu0InstrFormats.td 8/2/Cpu0/Cpu0InstrFormats.td
+--- 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrFormats.td	2013-01-10 18:32:51.000000000 +0800
+@@ -71,6 +71,13 @@
+   field bits<32> SoftFail = 0;
+ }
+ 
++// Cpu0 Pseudo Instructions Format
++class Cpu0Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>:
++      Cpu0Inst<outs, ins, asmstr, pattern, IIPseudo, Pseudo> {
++  let isCodeGenOnly = 1;
++  let isPseudo = 1;
++}
++
+ //===----------------------------------------------------------------------===//
+ // Format A instruction class in Cpu0 : <|opcode|ra|rb|rc|cx|>
+ //===----------------------------------------------------------------------===//
+diff -Naur 7/1/Cpu0/Cpu0InstrInfo.cpp 8/2/Cpu0/Cpu0InstrInfo.cpp
+--- 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -13,6 +13,7 @@
+ 
+ #include "Cpu0InstrInfo.h"
+ #include "Cpu0TargetMachine.h"
++#include "Cpu0MachineFunction.h"
+ #include "llvm/CodeGen/MachineInstrBuilder.h"
+ #define GET_INSTRINFO_CTOR
+ #include "Cpu0GenInstrInfo.inc"
+@@ -64,6 +65,34 @@
+     MIB.addReg(SrcReg, getKillRegState(KillSrc));
+ }
+ 
++static MachineMemOperand* GetMemOperand(MachineBasicBlock &MBB, int FI,
++                                        unsigned Flag) {
++  MachineFunction &MF = *MBB.getParent();
++  MachineFrameInfo &MFI = *MF.getFrameInfo();
++  unsigned Align = MFI.getObjectAlignment(FI);
++
++  return MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(FI), Flag,
++                                 MFI.getObjectSize(FI), Align);
++}
++
++void Cpu0InstrInfo::
++loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
++                     unsigned DestReg, int FI,
++                     const TargetRegisterClass *RC,
++                     const TargetRegisterInfo *TRI) const
++{
++  DebugLoc DL;
++  if (I != MBB.end()) DL = I->getDebugLoc();
++  MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOLoad);
++  unsigned Opc = 0;
++
++  if (RC == Cpu0::CPURegsRegisterClass)
++    Opc = Cpu0::LD;
++  assert(Opc && "Register class not handled!");
++  BuildMI(MBB, I, DL, get(Opc), DestReg).addFrameIndex(FI).addImm(0)
++    .addMemOperand(MMO);
++}
++
+ MachineInstr*
+ Cpu0InstrInfo::emitFrameIndexDebugValue(MachineFunction &MF, int FrameIx,
+                                         uint64_t Offset, const MDNode *MDPtr,
+diff -Naur 7/1/Cpu0/Cpu0InstrInfo.h 8/2/Cpu0/Cpu0InstrInfo.h
+--- 7/1/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:32:51.000000000 +0800
+@@ -42,6 +42,12 @@
+                            bool KillSrc) const;
+ 
+ public:
++  virtual void loadRegFromStackSlot(MachineBasicBlock &MBB,
++                                    MachineBasicBlock::iterator MBBI,
++                                    unsigned DestReg, int FrameIndex,
++                                    const TargetRegisterClass *RC,
++                                    const TargetRegisterInfo *TRI) const;
++
+   virtual MachineInstr* emitFrameIndexDebugValue(MachineFunction &MF,
+                                                  int FrameIx, uint64_t Offset,
+                                                  const MDNode *MDPtr,
+diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
+--- 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -27,6 +27,13 @@
+                                          [SDTCisInt<0>,
+                                           SDTCisSameAs<0, 1>]>;
+ 
++def SDT_Cpu0JmpLink      : SDTypeProfile<0, 1, [SDTCisVT<0, iPTR>]>;
++
++// Call
++def Cpu0JmpLink : SDNode<"Cpu0ISD::JmpLink",SDT_Cpu0JmpLink,
++                         [SDNPHasChain, SDNPOutGlue, SDNPOptInGlue,
++                          SDNPVariadic]>;
++
+ // Hi and Lo nodes are used to handle global addresses. Used on
+ // Cpu0ISelLowering to lower stuff like GlobalAddress, ExternalSymbol
+ // static model. (nothing to do with Cpu0 Registers Hi and Lo)
+@@ -54,12 +61,20 @@
+ // Cpu0 Operand, Complex Patterns and Transformations Definitions.
+ //===----------------------------------------------------------------------===//
+ // Instruction operand types
++def jmptarget   : Operand<OtherVT> {
++  let EncoderMethod = "getJumpTargetOpValue";
++}
++
+ def brtarget    : Operand<OtherVT> {
+   let EncoderMethod = "getBranchTargetOpValue";
+   let OperandType = "OPERAND_PCREL";
+   let DecoderMethod = "DecodeBranchTarget";
+ }
+ 
++def calltarget  : Operand<iPTR> {
++  let EncoderMethod = "getJumpTargetOpValue";
++}
++
+ // Signed Operand
+ def simm16      : Operand<i32> {
+   let DecoderMethod= "DecodeSimm16";
+@@ -263,6 +278,25 @@
+   let hasDelaySlot = 0;
+ }
+ 
++// Jump and Link (Call)
++let isCall=1, hasDelaySlot=0 in {
++  class JumpLink<bits<8> op, string instr_asm>:
++    FJ<op, (outs), (ins calltarget:$target, variable_ops),
++       !strconcat(instr_asm, "\t$target"), [(Cpu0JmpLink imm:$target)],
++       IIBranch> {
++       let DecoderMethod = "DecodeJumpTarget";
++       }
++
++  class JumpLinkReg<bits<8> op, string instr_asm,
++                    RegisterClass RC>:
++    FA<op, (outs), (ins RC:$rb, variable_ops),
++       !strconcat(instr_asm, "\t$rb"), [(Cpu0JmpLink RC:$rb)], IIBranch> {
++    let rc = 0;
++    let ra = 14;
++    let shamt = 0;
++  }
++}
++
+ // Mul, Div
+ class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
+            RegisterClass RC, list<Register> DefRegs>:
+@@ -369,16 +403,21 @@
+ def JGE     : CBranch<0x25, "jge", CPURegs>;
+ def JMP     : UncondBranch<0x26, "jmp">;
+ 
++/// Jump and Branch Instructions
++def SWI  : JumpLink<0x2A, "swi">;
++def JSUB : JumpLink<0x2B, "jsub">;
+ 
+ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
+-    isBarrier=1, hasCtrlDep=1 in
++    isBarrier=1, hasCtrlDep=1, addr=0 in
+   def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
+                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
+ 
++def JALR : JumpLinkReg<0x2D, "jalr", CPURegs>;
++
+ /// No operation
+ let addr=0 in
+   def NOP   : FJ<0, (outs), (ins), "nop", [], IIAlu>;
+-  
++
+ // FrameIndexes are legalized when they are operands from load/store
+ // instructions. The same not happens for stack address copies, so an
+ // add op with mem ComplexPattern is used and the stack address copy
+@@ -400,6 +439,9 @@
+           (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 
+               imm:$imm)))>;
+ 
++def : Pat<(Cpu0JmpLink (i32 tglobaladdr:$dst)),
++          (JSUB tglobaladdr:$dst)>;
++
+ // hi/lo relocs
+ def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (ADDiu ZERO, tglobaladdr:$in), 16)>;
+ // Expect cpu0 add LUi support, like Mips
+diff -Naur 7/1/Cpu0/Cpu0MCInstLower.cpp 8/2/Cpu0/Cpu0MCInstLower.cpp
+--- 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -48,6 +48,7 @@
+ //  format=false (global var in .sdata).
+   case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break;
+ 
++  case Cpu0II::MO_GOT_CALL:  Kind = MCSymbolRefExpr::VK_Cpu0_GOT_CALL; break;
+   case Cpu0II::MO_GOT16:     Kind = MCSymbolRefExpr::VK_Cpu0_GOT16; break;
+   case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break;
+ // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static (global 
+diff -Naur 7/1/Cpu0/Cpu0MachineFunction.h 8/2/Cpu0/Cpu0MachineFunction.h
+--- 7/1/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
+@@ -30,19 +30,64 @@
+   /// use as the global base register. This is used for PIC in some PIC
+   /// relocation models.
+   unsigned GlobalBaseReg;
++  
++    /// VarArgsFrameIndex - FrameIndex for start of varargs area.
++  int VarArgsFrameIndex;
++
++  // Range of frame object indices.
++  // InArgFIRange: Range of indices of all frame objects created during call to
++  //               LowerFormalArguments.
++  // OutArgFIRange: Range of indices of all frame objects created during call to
++  //                LowerCall except for the frame object for restoring $gp.
++  std::pair<int, int> InArgFIRange, OutArgFIRange;
+   int GPFI; // Index of the frame object for restoring $gp
++  mutable int DynAllocFI; // Frame index of dynamically allocated stack area.
+   unsigned MaxCallFrameSize;
+ 
+ public:
+   Cpu0FunctionInfo(MachineFunction& MF)
+-  : MF(MF), GlobalBaseReg(0), MaxCallFrameSize(0)
+-  {}
++  : MF(MF), GlobalBaseReg(0),
++    VarArgsFrameIndex(0), InArgFIRange(std::make_pair(-1, 0)),
++    OutArgFIRange(std::make_pair(-1, 0)), GPFI(0), DynAllocFI(0),
++    MaxCallFrameSize(0)
++    {}
++  
++  bool isInArgFI(int FI) const {
++    return FI <= InArgFIRange.first && FI >= InArgFIRange.second;
++  }
++  void setLastInArgFI(int FI) { InArgFIRange.second = FI; }
++
++  void extendOutArgFIRange(int FirstFI, int LastFI) {
++    if (!OutArgFIRange.second)
++      // this must be the first time this function was called.
++      OutArgFIRange.first = FirstFI;
++    OutArgFIRange.second = LastFI;
++  }
++
++  int getGPFI() const { return GPFI; }
++  void setGPFI(int FI) { GPFI = FI; }
++  bool needGPSaveRestore() const { return getGPFI(); }
++  bool isGPFI(int FI) const { return GPFI && GPFI == FI; }
++
++  // The first call to this function creates a frame object for dynamically
++  // allocated stack area.
++  int getDynAllocFI() const {
++    if (!DynAllocFI)
++      DynAllocFI = MF.getFrameInfo()->CreateFixedObject(4, 0, true);
++
++    return DynAllocFI;
++  }
++  bool isDynAllocFI(int FI) const { return DynAllocFI && DynAllocFI == FI; }
+ 
+   bool globalBaseRegFixed() const;
+   bool globalBaseRegSet() const;
+   unsigned getGlobalBaseReg();
+ 
++  int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
++  void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
++
+   unsigned getMaxCallFrameSize() const { return MaxCallFrameSize; }
++  void setMaxCallFrameSize(unsigned S) { MaxCallFrameSize = S; }
+ };
+ 
+ } // end of namespace llvm
+diff -Naur 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
+--- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -195,6 +195,9 @@
+   case MCSymbolRefExpr::VK_Cpu0_GPREL:
+     FixupKind = Cpu0::fixup_Cpu0_GPREL16;
+     break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:
++    FixupKind = Cpu0::fixup_Cpu0_CALL24;
++    break;
+   case MCSymbolRefExpr::VK_Cpu0_GOT16:
+     FixupKind = Cpu0::fixup_Cpu0_GOT_Global;
+     break;

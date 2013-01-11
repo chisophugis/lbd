@@ -1,0 +1,154 @@
+diff -Naur 4/4_2/Cpu0/Cpu0FrameLowering.cpp 4/5/Cpu0/Cpu0FrameLowering.cpp
+--- 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 4/5/Cpu0/Cpu0FrameLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -100,7 +100,7 @@
+   MachineBasicBlock::iterator MBBI = MBB.begin();
+   DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+   unsigned SP = Cpu0::SP;
+-  unsigned LDI = Cpu0::LDI;
++  unsigned ADDiu = Cpu0::ADDiu;
+   // First, compute final stack size.
+   unsigned StackAlign = getStackAlignment();
+   unsigned LocalVarAreaOffset = Cpu0FI->getMaxCallFrameSize();
+@@ -118,13 +118,8 @@
+   MachineLocation DstML, SrcML;
+ 
+   // Adjust stack.
+-  if (isInt<16>(-StackSize)) {
+-    // ldi fp, (-stacksize)
+-    // add sp, sp, fp
+-    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP).
+-        addImm(-StackSize);
+-    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
+-  }
++  if (isInt<16>(-StackSize)) // addiu sp, sp, (-stacksize)
++    BuildMI(MBB, MBBI, dl, TII.get(ADDiu), SP).addReg(SP).addImm(-StackSize);
+   else { // Expand immediate that doesn't fit in 16-bit.
+ 	assert("No expandLargeImm(SP, -StackSize, false, TII, MBB, MBBI, dl);");
+ //    expandLargeImm(SP, -StackSize, false, TII, MBB, MBBI, dl);
+@@ -174,7 +169,7 @@
+     *static_cast<const Cpu0InstrInfo*>(MF.getTarget().getInstrInfo());
+   DebugLoc dl = MBBI->getDebugLoc();
+   unsigned SP = Cpu0::SP;
+-  unsigned LDI = Cpu0::LDI;
++  unsigned ADDiu = Cpu0::ADDiu;
+ 
+   // Get the number of bytes from FrameInfo
+   uint64_t StackSize = MFI->getStackSize();
+@@ -183,13 +178,8 @@
+     return;
+ 
+   // Adjust stack.
+-  if (isInt<16>(StackSize)) {
+-    // ldi fp, (stacksize)
+-    // add sp, sp, fp
+-    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP).
+-        addImm(StackSize);
+-    BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
+-  }
++  if (isInt<16>(StackSize)) // addiu sp, sp, (stacksize)
++    BuildMI(MBB, MBBI, dl, TII.get(ADDiu), SP).addReg(SP).addImm(StackSize);
+   else // Expand immediate that doesn't fit in 16-bit.
+ 	assert("No expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);");
+ //    expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);
+diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
+--- 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 4/5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -45,6 +45,12 @@
+   let EncoderMethod = "getMemEncoding";
+ }
+ 
++def mem_ea : Operand<i32> {
++  let PrintMethod = "printMemOperandEA";
++  let MIOperandInfo = (ops CPURegs, simm16);
++  let EncoderMethod = "getMemEncoding";
++}
++
+ // Node immediate fits as 16-bit sign extended on target immediate.
+ // e.g. addi, andi
+ def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+@@ -182,6 +188,10 @@
+   def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>;
+ }
+ 
++class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
++  FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
++     instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
++
+ //===----------------------------------------------------------------------===//
+ // Instruction definition
+ //===----------------------------------------------------------------------===//
+@@ -196,9 +206,9 @@
+ defm ST     : StoreM32<0x01, "st",  store_a>;
+ 
+ /// Arithmetic Instructions (ALU Immediate)
+-def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
++//def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+ // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+-//def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
++def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+ 
+ /// Arithmetic Instructions (3-Operand, R-Type)
+ def CMP		: CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
+@@ -225,6 +235,14 @@
+   def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
+                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
+ 
++// FrameIndexes are legalized when they are operands from load/store
++// instructions. The same not happens for stack address copies, so an
++// add op with mem ComplexPattern is used and the stack address copy
++// can be matched. It's similar to Sparc LEA_ADDRi
++def LEA_ADDiu : EffectiveAddress<"addiu\t$ra, $addr", CPURegs, mem_ea> {
++  let isCodeGenOnly = 1;
++}
++
+ //===----------------------------------------------------------------------===//
+ //  Arbitrary patterns that map to one or more instructions
+ //===----------------------------------------------------------------------===//
+@@ -232,15 +250,15 @@
+ // Small immediates
+ 
+ def : Pat<(i32 immSExt16:$in),
+-          (LDI ZERO, imm:$in)>;
++          (ADDiu ZERO, imm:$in)>;
+ 
+ def : Pat<(not CPURegs:$in),
+-          (XOR CPURegs:$in, (LDI ZERO, 1))>;
++          (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
+ 
+ // setcc patterns
+ multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
+   def : Pat<(seteq RC:$lhs, RC:$rhs),
+-            (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
++            (XOROp (XOROp RC:$lhs, RC:$rhs), (ADDiu ZERO, 1))>;
+ }
+ 
+ defm : SeteqPats<CPURegs, XOR>;
+diff -Naur 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
+--- 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -110,3 +110,13 @@
+   O << ")";
+ }
+ 
++void Cpu0InstPrinter::
++printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O) {
++  // when using stack locations for not load/store instructions
++  // print the same way as all normal 3 operand instructions.
++  printOperand(MI, opNum, O);
++  O << ", ";
++  printOperand(MI, opNum+1, O);
++  return;
++}
++
+diff -Naur 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.h 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.h
+--- 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.h	2013-01-10 18:32:51.000000000 +0800
++++ 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.h	2013-01-10 18:32:51.000000000 +0800
+@@ -39,6 +39,7 @@
+   void printOperand(const MCInst *MI, unsigned OpNo, raw_ostream &O);
+   void printUnsignedImm(const MCInst *MI, int opNum, raw_ostream &O);
+   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &O);
++  void printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O);
+ };
+ } // end namespace llvm
+ 

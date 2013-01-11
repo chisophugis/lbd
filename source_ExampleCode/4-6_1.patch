@@ -1,0 +1,41 @@
+diff -Naur 4/5/Cpu0/Cpu0InstrInfo.td 4/6_1/Cpu0/Cpu0InstrInfo.td
+--- 4/5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 4/6_1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -51,6 +51,16 @@
+   let EncoderMethod = "getMemEncoding";
+ }
+ 
++// Transformation Function - get the lower 16 bits.
++def LO16 : SDNodeXForm<imm, [{
++  return getImm(N, N->getZExtValue() & 0xFFFF);
++}]>;
++
++// Transformation Function - get the higher 16 bits.
++def HI16 : SDNodeXForm<imm, [{
++  return getImm(N, (N->getZExtValue() >> 16) & 0xFFFF);
++}]>;
++
+ // Node immediate fits as 16-bit sign extended on target immediate.
+ // e.g. addi, andi
+ def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+@@ -220,6 +230,8 @@
+ def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
+ def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
+ def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
++def SMMUL   : ArithLogicR<0x50, "smmul", mulhs, IIImul, CPURegs, 1>;
++def UMMUL   : ArithLogicR<0x51, "ummul", mulhu, IIImul, CPURegs, 1>;
+ 
+ /// Shift Instructions
+ // work, sra for ashr llvm IR instruction
+@@ -251,6 +263,11 @@
+ 
+ def : Pat<(i32 immSExt16:$in),
+           (ADDiu ZERO, imm:$in)>;
++          
++// Arbitrary immediates
++def : Pat<(i32 imm:$imm),
++          (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 imm:$imm)))>;
++
+ 
+ def : Pat<(not CPURegs:$in),
+           (XOR CPURegs:$in, (ADDiu ZERO, 1))>;

@@ -1,0 +1,53 @@
+diff -Naur 4/2/Cpu0/Cpu0InstrInfo.td 4/4/Cpu0/Cpu0InstrInfo.td
+--- 4/2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 4/4/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -196,7 +196,7 @@
+ defm ST     : StoreM32<0x01, "st",  store_a>;
+ 
+ /// Arithmetic Instructions (ALU Immediate)
+-def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
++//def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+ // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+ def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+ 
+@@ -206,17 +206,18 @@
+ def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
+ def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
+ def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
++def UDIV    : ArithLogicR<0x17, "udiv", udiv, IIIdiv, CPURegs, 1>;
+ def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
+ def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
+ def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
+ 
+ /// Shift Instructions
++// work, sra for ashr llvm IR instruction
++def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
+ def ROL     : shift_rotate_imm32<0x1C, 0x01, "rol", rotl>;
+ def ROR     : shift_rotate_imm32<0x1D, 0x01, "ror", rotr>;
+ def SHL     : shift_rotate_imm32<0x1E, 0x00, "shl", shl>;
+-// work, it's for ashr llvm IR instruction
+-//def SHR     : shift_rotate_imm32<0x1F, 0x00, "sra", sra>;
+-// work, it's for lshr llvm IR instruction
++// work, srl for lshr llvm IR instruction
+ def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>;
+ 
+ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
+@@ -234,13 +235,13 @@
+           (ADDiu ZERO, imm:$in)>;
+ 
+ def : Pat<(not CPURegs:$in),
+-          (XOR CPURegs:$in, (LDI ZERO, 1))>;
++          (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
+ 
+ // setcc patterns
+-multiclass SeteqPats<RegisterClass RC, Instruction XOROp,
+-                     Register ZEROReg> {
++multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
+   def : Pat<(seteq RC:$lhs, RC:$rhs),
+-            (XOROp (XOROp RC:$lhs, RC:$rhs), (LDI ZERO, 1))>;
++            (XOROp (XOROp RC:$lhs, RC:$rhs), (ADDiu ZERO, 1))>;
+ }
+ 
+-defm : SeteqPats<CPURegs, XOR, ZERO>;
++defm : SeteqPats<CPURegs, XOR>;
++

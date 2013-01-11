@@ -1,0 +1,927 @@
+diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
+--- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+@@ -38,6 +38,12 @@
+                            [SDNPOutGlue]>;
+ 
+ //===----------------------------------------------------------------------===//
++// Cpu0 Instruction Predicate Definitions.
++//===----------------------------------------------------------------------===//
++def RelocPIC    :     Predicate<"TM.getRelocationModel() == Reloc::PIC_">,
++                      AssemblerPredicate<"FeatureCpu032">;
++
++//===----------------------------------------------------------------------===//
+ // Cpu0 Operand, Complex Patterns and Transformations Definitions.
+ //===----------------------------------------------------------------------===//
+ 
+@@ -311,6 +317,10 @@
+   def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
+                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
+ 
++/// No operation
++let addr=0 in
++  def NOP   : FJ<0, (outs), (ins), "nop", [], IIAlu>;
++  
+ // FrameIndexes are legalized when they are operands from load/store
+ // instructions. The same not happens for stack address copies, so an
+ // add op with mem ComplexPattern is used and the stack address copy
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists.txt
+--- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+@@ -1,7 +1,10 @@
+ # MCTargetDesc/CMakeLists.txt
+ add_llvm_library(LLVMCpu0Desc
++  Cpu0AsmBackend.cpp
+   Cpu0MCAsmInfo.cpp
++  Cpu0MCCodeEmitter.cpp
+   Cpu0MCTargetDesc.cpp
++  Cpu0ELFObjectWriter.cpp
+   )
+ 
+ add_dependencies(LLVMCpu0Desc Cpu0CommonTableGen)
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,215 @@
++//===-- Cpu0ASMBackend.cpp - Cpu0 Asm Backend  ----------------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements the Cpu0AsmBackend and Cpu0ELFObjectWriter classes.
++//
++//===----------------------------------------------------------------------===//
++//
++
++#include "Cpu0FixupKinds.h"
++#include "MCTargetDesc/Cpu0MCTargetDesc.h"
++#include "llvm/MC/MCAsmBackend.h"
++#include "llvm/MC/MCAssembler.h"
++#include "llvm/MC/MCDirectives.h"
++#include "llvm/MC/MCELFObjectWriter.h"
++#include "llvm/MC/MCFixupKindInfo.h"
++#include "llvm/MC/MCObjectWriter.h"
++#include "llvm/MC/MCSubtargetInfo.h"
++#include "llvm/Support/ErrorHandling.h"
++#include "llvm/Support/raw_ostream.h"
++
++using namespace llvm;
++
++// Prepare value for the target space for it
++static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
++
++  // Add/subtract and shift
++  switch (Kind) {
++  default:
++    return 0;
++  case FK_GPRel_4:
++  case FK_Data_4:
++  case Cpu0::fixup_Cpu0_LO16:
++    break;
++  case Cpu0::fixup_Cpu0_PC24:
++    // So far we are only using this type for branches.
++    // For branches we start 1 instruction after the branch
++    // so the displacement will be one instruction size less.
++    Value -= 4;
++    break;
++  case Cpu0::fixup_Cpu0_24:
++    // So far we are only using this type for jumps.
++    break;
++  case Cpu0::fixup_Cpu0_HI16:
++  case Cpu0::fixup_Cpu0_GOT_Local:
++    // Get the higher 16-bits. Also add 1 if bit 15 is 1.
++    Value = ((Value + 0x8000) >> 16) & 0xffff;
++    break;
++  }
++
++  return Value;
++}
++
++namespace {
++class Cpu0AsmBackend : public MCAsmBackend {
++  Triple::OSType OSType;
++  bool IsLittle; // Big or little endian
++
++public:
++  Cpu0AsmBackend(const Target &T,  Triple::OSType _OSType,
++                 bool _isLittle)
++    :MCAsmBackend(), OSType(_OSType), IsLittle(_isLittle) {}
++
++  MCObjectWriter *createObjectWriter(raw_ostream &OS) const {
++    return createCpu0ELFObjectWriter(OS, OSType, IsLittle);
++  }
++
++  /// ApplyFixup - Apply the \arg Value for given \arg Fixup into the provided
++  /// data fragment, at the offset specified by the fixup and following the
++  /// fixup kind as appropriate.
++  void applyFixup(const MCFixup &Fixup, char *Data, unsigned DataSize,
++                  uint64_t Value) const {
++    MCFixupKind Kind = Fixup.getKind();
++    Value = adjustFixupValue((unsigned)Kind, Value);
++
++    if (!Value)
++      return; // Doesn't change encoding.
++
++    // Where do we start in the object
++    unsigned Offset = Fixup.getOffset();
++    // Number of bytes we need to fixup
++    unsigned NumBytes = (getFixupKindInfo(Kind).TargetSize + 7) / 8;
++    // Used to point to big endian bytes
++    unsigned FullSize;
++
++    switch ((unsigned)Kind) {
++    case Cpu0::fixup_Cpu0_16:
++      FullSize = 2;
++      break;
++    default:
++      FullSize = 4;
++      break;
++    }
++
++    // Grab current value, if any, from bits.
++    uint64_t CurVal = 0;
++
++    for (unsigned i = 0; i != NumBytes; ++i) {
++      unsigned Idx = IsLittle ? i : (FullSize - 1 - i);
++      CurVal |= (uint64_t)((uint8_t)Data[Offset + Idx]) << (i*8);
++    }
++
++    uint64_t Mask = ((uint64_t)(-1) >> (64 - getFixupKindInfo(Kind).TargetSize));
++    CurVal |= Value & Mask;
++
++    // Write out the fixed up bytes back to the code/data bits.
++    for (unsigned i = 0; i != NumBytes; ++i) {
++      unsigned Idx = IsLittle ? i : (FullSize - 1 - i);
++      Data[Offset + Idx] = (uint8_t)((CurVal >> (i*8)) & 0xff);
++    }
++  }
++
++  unsigned getNumFixupKinds() const { return Cpu0::NumTargetFixupKinds; }
++
++  const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const {
++    const static MCFixupKindInfo Infos[Cpu0::NumTargetFixupKinds] = {
++      // This table *must* be in same the order of fixup_* kinds in
++      // Cpu0FixupKinds.h.
++      //
++      // name                    offset  bits  flags
++      { "fixup_Cpu0_16",           0,     16,   0 },
++      { "fixup_Cpu0_32",           0,     32,   0 },
++      { "fixup_Cpu0_REL32",        0,     32,   0 },
++      { "fixup_Cpu0_24",           0,     24,   0 },
++      { "fixup_Cpu0_HI16",         0,     16,   0 },
++      { "fixup_Cpu0_LO16",         0,     16,   0 },
++      { "fixup_Cpu0_GPREL16",      0,     16,   0 },
++      { "fixup_Cpu0_LITERAL",      0,     16,   0 },
++      { "fixup_Cpu0_GOT_Global",   0,     16,   0 },
++      { "fixup_Cpu0_GOT_Local",    0,     16,   0 },
++      { "fixup_Cpu0_PC24",         0,     24,  MCFixupKindInfo::FKF_IsPCRel },
++      { "fixup_Cpu0_CALL24",       0,     24,   0 },
++      { "fixup_Cpu0_GPREL32",      0,     32,   0 },
++      { "fixup_Cpu0_SHIFT5",       6,      5,   0 },
++      { "fixup_Cpu0_SHIFT6",       6,      5,   0 },
++      { "fixup_Cpu0_64",           0,     64,   0 },
++      { "fixup_Cpu0_TLSGD",        0,     16,   0 },
++      { "fixup_Cpu0_GOTTPREL",     0,     16,   0 },
++      { "fixup_Cpu0_TPREL_HI",     0,     16,   0 },
++      { "fixup_Cpu0_TPREL_LO",     0,     16,   0 },
++      { "fixup_Cpu0_TLSLDM",       0,     16,   0 },
++      { "fixup_Cpu0_DTPREL_HI",    0,     16,   0 },
++      { "fixup_Cpu0_DTPREL_LO",    0,     16,   0 },
++      { "fixup_Cpu0_Branch_PCRel", 0,     16,  MCFixupKindInfo::FKF_IsPCRel }
++    };
++
++    if (Kind < FirstTargetFixupKind)
++      return MCAsmBackend::getFixupKindInfo(Kind);
++
++    assert(unsigned(Kind - FirstTargetFixupKind) < getNumFixupKinds() &&
++           "Invalid kind!");
++    return Infos[Kind - FirstTargetFixupKind];
++  }
++
++  /// @name Target Relaxation Interfaces
++  /// @{
++
++  /// MayNeedRelaxation - Check whether the given instruction may need
++  /// relaxation.
++  ///
++  /// \param Inst - The instruction to test.
++  bool mayNeedRelaxation(const MCInst &Inst) const {
++    return false;
++  }
++
++  /// fixupNeedsRelaxation - Target specific predicate for whether a given
++  /// fixup requires the associated instruction to be relaxed.
++  bool fixupNeedsRelaxation(const MCFixup &Fixup,
++                            uint64_t Value,
++                            const MCInstFragment *DF,
++                            const MCAsmLayout &Layout) const {
++    // FIXME.
++    assert(0 && "RelaxInstruction() unimplemented");
++    return false;
++  }
++
++  /// RelaxInstruction - Relax the instruction in the given fragment
++  /// to the next wider instruction.
++  ///
++  /// \param Inst - The instruction to relax, which may be the same
++  /// as the output.
++  /// \parm Res [output] - On return, the relaxed instruction.
++  void relaxInstruction(const MCInst &Inst, MCInst &Res) const {
++  }
++
++  /// @}
++
++  /// WriteNopData - Write an (optimal) nop sequence of Count bytes
++  /// to the given output. If the target cannot generate such a sequence,
++  /// it should return an error.
++  ///
++  /// \return - True on success.
++  bool writeNopData(uint64_t Count, MCObjectWriter *OW) const {
++    return true;
++  }
++}; // class Cpu0AsmBackend
++
++} // namespace
++
++// MCAsmBackend
++MCAsmBackend *llvm::createCpu0AsmBackendEL32(const Target &T, StringRef TT) {
++  return new Cpu0AsmBackend(T, Triple(TT).getOS(),
++                            /*IsLittle*/true);
++}
++
++MCAsmBackend *llvm::createCpu0AsmBackendEB32(const Target &T, StringRef TT) {
++  return new Cpu0AsmBackend(T, Triple(TT).getOS(),
++                            /*IsLittle*/false);
++}
++
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-10 18:32:51.000000000 +0800
+@@ -27,6 +27,61 @@
+ ///
+ namespace Cpu0II {
+   /// Target Operand Flag enum.
++  enum TOF {
++    //===------------------------------------------------------------------===//
++    // Cpu0 Specific MachineOperand flags.
++
++    MO_NO_FLAG,
++
++    /// MO_GOT16 - Represents the offset into the global offset table at which
++    /// the address the relocation entry symbol resides during execution.
++    MO_GOT16,
++    MO_GOT,
++
++    /// MO_GOT_CALL - Represents the offset into the global offset table at
++    /// which the address of a call site relocation entry symbol resides
++    /// during execution. This is different from the above since this flag
++    /// can only be present in call instructions.
++    MO_GOT_CALL,
++
++    /// MO_GPREL - Represents the offset from the current gp value to be used
++    /// for the relocatable object file being produced.
++    MO_GPREL,
++
++    /// MO_ABS_HI/LO - Represents the hi or low part of an absolute symbol
++    /// address.
++    MO_ABS_HI,
++    MO_ABS_LO,
++
++    /// MO_TLSGD - Represents the offset into the global offset table at which
++    // the module ID and TSL block offset reside during execution (General
++    // Dynamic TLS).
++    MO_TLSGD,
++
++    /// MO_TLSLDM - Represents the offset into the global offset table at which
++    // the module ID and TSL block offset reside during execution (Local
++    // Dynamic TLS).
++    MO_TLSLDM,
++    MO_DTPREL_HI,
++    MO_DTPREL_LO,
++
++    /// MO_GOTTPREL - Represents the offset from the thread pointer (Initial
++    // Exec TLS).
++    MO_GOTTPREL,
++
++    /// MO_TPREL_HI/LO - Represents the hi and low part of the offset from
++    // the thread pointer (Local Exec TLS).
++    MO_TPREL_HI,
++    MO_TPREL_LO,
++
++    // N32/64 Flags.
++    MO_GPOFF_HI,
++    MO_GPOFF_LO,
++    MO_GOT_DISP,
++    MO_GOT_PAGE,
++    MO_GOT_OFST
++  };
++
+   enum {
+     //===------------------------------------------------------------------===//
+     // Instruction encodings.  These are the standard/most common forms for
+@@ -96,6 +151,33 @@
+   }
+ }
+ 
++inline static std::pair<const MCSymbolRefExpr*, int64_t>
++Cpu0GetSymAndOffset(const MCFixup &Fixup) {
++  MCFixupKind FixupKind = Fixup.getKind();
++
++  if ((FixupKind < FirstTargetFixupKind) ||
++      (FixupKind >= MCFixupKind(Cpu0::LastTargetFixupKind)))
++    return std::make_pair((const MCSymbolRefExpr*)0, (int64_t)0);
++
++  const MCExpr *Expr = Fixup.getValue();
++  MCExpr::ExprKind Kind = Expr->getKind();
++
++  if (Kind == MCExpr::Binary) {
++    const MCBinaryExpr *BE = static_cast<const MCBinaryExpr*>(Expr);
++    const MCExpr *LHS = BE->getLHS();
++    const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(BE->getRHS());
++
++    if ((LHS->getKind() != MCExpr::SymbolRef) || !CE)
++      return std::make_pair((const MCSymbolRefExpr*)0, (int64_t)0);
++
++    return std::make_pair(cast<MCSymbolRefExpr>(LHS), CE->getValue());
++  }
++
++  if (Kind != MCExpr::SymbolRef)
++    return std::make_pair((const MCSymbolRefExpr*)0, (int64_t)0);
++
++  return std::make_pair(cast<MCSymbolRefExpr>(Expr), 0);
++}
+ }
+ 
+ #endif
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,245 @@
++//===-- Cpu0ELFObjectWriter.cpp - Cpu0 ELF Writer -------------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "MCTargetDesc/Cpu0BaseInfo.h"
++#include "MCTargetDesc/Cpu0FixupKinds.h"
++#include "MCTargetDesc/Cpu0MCTargetDesc.h"
++#include "llvm/MC/MCAssembler.h"
++#include "llvm/MC/MCELFObjectWriter.h"
++#include "llvm/MC/MCExpr.h"
++#include "llvm/MC/MCSection.h"
++#include "llvm/MC/MCValue.h"
++#include "llvm/Support/ErrorHandling.h"
++#include <list>
++
++using namespace llvm;
++
++namespace {
++  struct RelEntry {
++    RelEntry(const ELFRelocationEntry &R, const MCSymbol *S, int64_t O) :
++      Reloc(R), Sym(S), Offset(O) {}
++    ELFRelocationEntry Reloc;
++    const MCSymbol *Sym;
++    int64_t Offset;
++  };
++
++  typedef std::list<RelEntry> RelLs;
++  typedef RelLs::iterator RelLsIter;
++
++  class Cpu0ELFObjectWriter : public MCELFObjectTargetWriter {
++  public:
++    Cpu0ELFObjectWriter(uint8_t OSABI);
++
++    virtual ~Cpu0ELFObjectWriter();
++
++    virtual unsigned GetRelocType(const MCValue &Target, const MCFixup &Fixup,
++                                  bool IsPCRel, bool IsRelocWithSymbol,
++                                  int64_t Addend) const;
++    virtual unsigned getEFlags() const;
++    virtual const MCSymbol *ExplicitRelSym(const MCAssembler &Asm,
++                                           const MCValue &Target,
++                                           const MCFragment &F,
++                                           const MCFixup &Fixup,
++                                           bool IsPCRel) const;
++    virtual void sortRelocs(const MCAssembler &Asm,
++                            std::vector<ELFRelocationEntry> &Relocs);
++  };
++}
++
++Cpu0ELFObjectWriter::Cpu0ELFObjectWriter(uint8_t OSABI)
++  : MCELFObjectTargetWriter(/*_is64Bit=false*/ false, OSABI, ELF::EM_CPU0,
++                            /*HasRelocationAddend*/ false) {}
++
++Cpu0ELFObjectWriter::~Cpu0ELFObjectWriter() {}
++
++// FIXME: get the real EABI Version from the Subtarget class.
++unsigned Cpu0ELFObjectWriter::getEFlags() const {
++
++  // FIXME: We can't tell if we are PIC (dynamic) or CPIC (static)
++  unsigned Flag = ELF::EF_CPU0_NOREORDER;
++
++  Flag |= ELF::EF_CPU0_ARCH_32R2;
++  return Flag;
++}
++
++const MCSymbol *Cpu0ELFObjectWriter::ExplicitRelSym(const MCAssembler &Asm,
++                                                    const MCValue &Target,
++                                                    const MCFragment &F,
++                                                    const MCFixup &Fixup,
++                                                    bool IsPCRel) const {
++  assert(Target.getSymA() && "SymA cannot be 0.");
++  const MCSymbol &Sym = Target.getSymA()->getSymbol().AliasedSymbol();
++
++  if (Sym.getSection().getKind().isMergeableCString() ||
++      Sym.getSection().getKind().isMergeableConst())
++    return &Sym;
++
++  return NULL;
++}
++
++unsigned Cpu0ELFObjectWriter::GetRelocType(const MCValue &Target,
++                                           const MCFixup &Fixup,
++                                           bool IsPCRel,
++                                           bool IsRelocWithSymbol,
++                                           int64_t Addend) const {
++  // determine the type of the relocation
++  unsigned Type = (unsigned)ELF::R_CPU0_NONE;
++  unsigned Kind = (unsigned)Fixup.getKind();
++
++  switch (Kind) {
++  default:
++    llvm_unreachable("invalid fixup kind!");
++  case FK_Data_4:
++    Type = ELF::R_CPU0_32;
++    break;
++  case FK_GPRel_4:
++    Type = ELF::R_CPU0_GPREL32;
++    break;
++  case Cpu0::fixup_Cpu0_GPREL16:
++    Type = ELF::R_CPU0_GPREL16;
++    break;
++  case Cpu0::fixup_Cpu0_24:
++    Type = ELF::R_CPU0_24;
++    break;
++  case Cpu0::fixup_Cpu0_CALL24:
++    Type = ELF::R_CPU0_CALL24;
++    break;
++  case Cpu0::fixup_Cpu0_GOT_Global:
++  case Cpu0::fixup_Cpu0_GOT_Local:
++    Type = ELF::R_CPU0_GOT16;
++    break;
++  case Cpu0::fixup_Cpu0_HI16:
++    Type = ELF::R_CPU0_HI16;
++    break;
++  case Cpu0::fixup_Cpu0_LO16:
++    Type = ELF::R_CPU0_LO16;
++    break;
++  case Cpu0::fixup_Cpu0_TLSGD:
++    Type = ELF::R_CPU0_TLS_GD;
++    break;
++  case Cpu0::fixup_Cpu0_GOTTPREL:
++    Type = ELF::R_CPU0_TLS_GOTTPREL;
++    break;
++  case Cpu0::fixup_Cpu0_TPREL_HI:
++    Type = ELF::R_CPU0_TLS_TPREL_HI16;
++    break;
++  case Cpu0::fixup_Cpu0_TPREL_LO:
++    Type = ELF::R_CPU0_TLS_TPREL_LO16;
++    break;
++  case Cpu0::fixup_Cpu0_TLSLDM:
++    Type = ELF::R_CPU0_TLS_LDM;
++    break;
++  case Cpu0::fixup_Cpu0_DTPREL_HI:
++    Type = ELF::R_CPU0_TLS_DTPREL_HI16;
++    break;
++  case Cpu0::fixup_Cpu0_DTPREL_LO:
++    Type = ELF::R_CPU0_TLS_DTPREL_LO16;
++    break;
++  case Cpu0::fixup_Cpu0_Branch_PCRel:
++  case Cpu0::fixup_Cpu0_PC24:
++    Type = ELF::R_CPU0_PC24;
++    break;
++  }
++
++  return Type;
++}
++
++// Return true if R is either a GOT16 against a local symbol or HI16.
++static bool NeedsMatchingLo(const MCAssembler &Asm, const RelEntry &R) {
++  if (!R.Sym)
++    return false;
++
++  MCSymbolData &SD = Asm.getSymbolData(R.Sym->AliasedSymbol());
++
++  return ((R.Reloc.Type == ELF::R_CPU0_GOT16) && !SD.isExternal()) ||
++    (R.Reloc.Type == ELF::R_CPU0_HI16);
++}
++
++static bool HasMatchingLo(const MCAssembler &Asm, RelLsIter I, RelLsIter Last) {
++  if (I == Last)
++    return false;
++
++  RelLsIter Hi = I++;
++
++  return (I->Reloc.Type == ELF::R_CPU0_LO16) && (Hi->Sym == I->Sym) &&
++    (Hi->Offset == I->Offset);
++}
++
++static bool HasSameSymbol(const RelEntry &R0, const RelEntry &R1) {
++  return R0.Sym == R1.Sym;
++}
++
++static int CompareOffset(const RelEntry &R0, const RelEntry &R1) {
++  return (R0.Offset > R1.Offset) ? 1 : ((R0.Offset == R1.Offset) ? 0 : -1);
++}
++
++void Cpu0ELFObjectWriter::sortRelocs(const MCAssembler &Asm,
++                                     std::vector<ELFRelocationEntry> &Relocs) {
++  // Call the defualt function first. Relocations are sorted in descending
++  // order of r_offset.
++  MCELFObjectTargetWriter::sortRelocs(Asm, Relocs);
++  
++  RelLs RelocLs;
++  std::vector<RelLsIter> Unmatched;
++
++  // Fill RelocLs. Traverse Relocs backwards so that relocations in RelocLs
++  // are in ascending order of r_offset.
++  for (std::vector<ELFRelocationEntry>::reverse_iterator R = Relocs.rbegin();
++       R != Relocs.rend(); ++R) {
++     std::pair<const MCSymbolRefExpr*, int64_t> P =
++       Cpu0GetSymAndOffset(*R->Fixup);
++     RelocLs.push_back(RelEntry(*R, P.first ? &P.first->getSymbol() : 0,
++                                P.second));
++  }
++
++  // Get list of unmatched HI16 and GOT16.
++  for (RelLsIter R = RelocLs.begin(); R != RelocLs.end(); ++R)
++    if (NeedsMatchingLo(Asm, *R) && !HasMatchingLo(Asm, R, --RelocLs.end()))
++      Unmatched.push_back(R);
++
++  // Insert unmatched HI16 and GOT16 immediately before their matching LO16.
++  for (std::vector<RelLsIter>::iterator U = Unmatched.begin();
++       U != Unmatched.end(); ++U) {
++    RelLsIter LoPos = RelocLs.end(), HiPos = *U;
++    bool MatchedLo = false;
++
++    for (RelLsIter R = RelocLs.begin(); R != RelocLs.end(); ++R) {
++      if ((R->Reloc.Type == ELF::R_CPU0_LO16) && HasSameSymbol(*HiPos, *R) &&
++          (CompareOffset(*R, *HiPos) >= 0) &&
++          ((LoPos == RelocLs.end()) || ((CompareOffset(*R, *LoPos) < 0)) ||
++           (!MatchedLo && !CompareOffset(*R, *LoPos))))
++        LoPos = R;
++
++      MatchedLo = NeedsMatchingLo(Asm, *R) &&
++        HasMatchingLo(Asm, R, --RelocLs.end());
++    }
++
++    // If a matching LoPos was found, move HiPos and insert it before LoPos.
++    // Make the offsets of HiPos and LoPos match.
++    if (LoPos != RelocLs.end()) {
++      HiPos->Offset = LoPos->Offset;
++      RelocLs.insert(LoPos, *HiPos);
++      RelocLs.erase(HiPos);
++    }
++  }
++
++  // Put the sorted list back in reverse order.
++  assert(Relocs.size() == RelocLs.size());
++  unsigned I = RelocLs.size();
++
++  for (RelLsIter R = RelocLs.begin(); R != RelocLs.end(); ++R)
++    Relocs[--I] = R->Reloc;
++}
++
++MCObjectWriter *llvm::createCpu0ELFObjectWriter(raw_ostream &OS,
++                                                uint8_t OSABI,
++                                                bool IsLittleEndian) {
++  MCELFObjectTargetWriter *MOTW = new Cpu0ELFObjectWriter(OSABI);
++  return createELFObjectWriter(MOTW, OS, IsLittleEndian);
++}
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-10 18:32:51.000000000 +0800
+@@ -26,6 +26,76 @@
+     // Branch fixups resulting in R_CPU0_16.
+     fixup_Cpu0_16 = FirstTargetFixupKind,
+ 
++    // Pure 32 bit data fixup resulting in - R_CPU0_32.
++    fixup_Cpu0_32,
++
++    // Full 32 bit data relative data fixup resulting in - R_CPU0_REL32.
++    fixup_Cpu0_REL32,
++
++    // Jump 24 bit fixup resulting in - R_CPU0_24.
++    fixup_Cpu0_24,
++
++    // Pure upper 16 bit fixup resulting in - R_CPU0_HI16.
++    fixup_Cpu0_HI16,
++
++    // Pure lower 16 bit fixup resulting in - R_CPU0_LO16.
++    fixup_Cpu0_LO16,
++
++    // 16 bit fixup for GP offest resulting in - R_CPU0_GPREL16.
++    fixup_Cpu0_GPREL16,
++
++    // 16 bit literal fixup resulting in - R_CPU0_LITERAL.
++    fixup_Cpu0_LITERAL,
++
++    // Global symbol fixup resulting in - R_CPU0_GOT16.
++    fixup_Cpu0_GOT_Global,
++
++    // Local symbol fixup resulting in - R_CPU0_GOT16.
++    fixup_Cpu0_GOT_Local,
++
++    // PC relative branch fixup resulting in - R_CPU0_PC24.
++    // cpu0 PC24, e.g. jeq
++    fixup_Cpu0_PC24,
++
++    // resulting in - R_CPU0_CALL24.
++    fixup_Cpu0_CALL24,
++
++    // resulting in - R_CPU0_GPREL32.
++    fixup_Cpu0_GPREL32,
++
++    // resulting in - R_CPU0_SHIFT5.
++    fixup_Cpu0_SHIFT5,
++
++    // resulting in - R_CPU0_SHIFT6.
++    fixup_Cpu0_SHIFT6,
++
++    // Pure 64 bit data fixup resulting in - R_CPU0_64.
++    fixup_Cpu0_64,
++
++    // resulting in - R_CPU0_TLS_GD.
++    fixup_Cpu0_TLSGD,
++
++    // resulting in - R_CPU0_TLS_GOTTPREL.
++    fixup_Cpu0_GOTTPREL,
++
++    // resulting in - R_CPU0_TLS_TPREL_HI16.
++    fixup_Cpu0_TPREL_HI,
++
++    // resulting in - R_CPU0_TLS_TPREL_LO16.
++    fixup_Cpu0_TPREL_LO,
++
++    // resulting in - R_CPU0_TLS_LDM.
++    fixup_Cpu0_TLSLDM,
++
++    // resulting in - R_CPU0_TLS_DTPREL_HI16.
++    fixup_Cpu0_DTPREL_HI,
++
++    // resulting in - R_CPU0_TLS_DTPREL_LO16.
++    fixup_Cpu0_DTPREL_LO,
++
++    // PC relative branch fixup resulting in - R_CPU0_PC16
++    fixup_Cpu0_Branch_PCRel,
++
+     // Marker
+     LastTargetFixupKind,
+     NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind
+@@ -35,4 +105,3 @@
+ 
+ 
+ #endif // LLVM_CPU0_CPU0FIXUPKINDS_H
+-
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -0,0 +1,164 @@
++//===-- Cpu0MCCodeEmitter.cpp - Convert Cpu0 Code to Machine Code ---------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements the Cpu0MCCodeEmitter class.
++//
++//===----------------------------------------------------------------------===//
++//
++#define DEBUG_TYPE "mccodeemitter"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
++#include "MCTargetDesc/Cpu0FixupKinds.h"
++#include "MCTargetDesc/Cpu0MCTargetDesc.h"
++#include "llvm/ADT/APFloat.h"
++#include "llvm/ADT/Statistic.h"
++#include "llvm/MC/MCCodeEmitter.h"
++#include "llvm/MC/MCExpr.h"
++#include "llvm/MC/MCInst.h"
++#include "llvm/MC/MCInstrInfo.h"
++#include "llvm/MC/MCRegisterInfo.h"
++#include "llvm/MC/MCSubtargetInfo.h"
++#include "llvm/Support/raw_ostream.h"
++
++using namespace llvm;
++
++namespace {
++class Cpu0MCCodeEmitter : public MCCodeEmitter {
++  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  void operator=(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  const MCInstrInfo &MCII;
++  const MCSubtargetInfo &STI;
++  MCContext &Ctx;
++  bool IsLittleEndian;
++
++public:
++  Cpu0MCCodeEmitter(const MCInstrInfo &mcii, const MCSubtargetInfo &sti,
++                    MCContext &ctx, bool IsLittle) :
++            MCII(mcii), STI(sti) , Ctx(ctx), IsLittleEndian(IsLittle) {}
++
++  ~Cpu0MCCodeEmitter() {}
++
++  void EmitByte(unsigned char C, raw_ostream &OS) const {
++    OS << (char)C;
++  }
++
++  void EmitInstruction(uint64_t Val, unsigned Size, raw_ostream &OS) const {
++    // Output the instruction encoding in little endian byte order.
++    for (unsigned i = 0; i < Size; ++i) {
++      unsigned Shift = IsLittleEndian ? i * 8 : (Size - 1 - i) * 8;
++      EmitByte((Val >> Shift) & 0xff, OS);
++    }
++  }
++
++  void EncodeInstruction(const MCInst &MI, raw_ostream &OS,
++                         SmallVectorImpl<MCFixup> &Fixups) const;
++  // getBinaryCodeForInstr - TableGen'erated function for getting the
++  // binary encoding for an instruction.
++  uint64_t getBinaryCodeForInstr(const MCInst &MI,
++                                 SmallVectorImpl<MCFixup> &Fixups) const;
++   // getMachineOpValue - Return binary encoding of operand. If the machin
++   // operand requires relocation, record the relocation and return zero.
++  unsigned getMachineOpValue(const MCInst &MI,const MCOperand &MO,
++                             SmallVectorImpl<MCFixup> &Fixups) const;
++
++  unsigned getMemEncoding(const MCInst &MI, unsigned OpNo,
++                          SmallVectorImpl<MCFixup> &Fixups) const;
++}; // class Cpu0MCCodeEmitter
++}  // namespace
++
++MCCodeEmitter *llvm::createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                               const MCSubtargetInfo &STI,
++                                               MCContext &Ctx)
++{
++  return new Cpu0MCCodeEmitter(MCII, STI, Ctx, false);
++}
++
++MCCodeEmitter *llvm::createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                               const MCSubtargetInfo &STI,
++                                               MCContext &Ctx)
++{
++  return new Cpu0MCCodeEmitter(MCII, STI, Ctx, true);
++}
++
++/// EncodeInstruction - Emit the instruction.
++/// Size the instruction (currently only 4 bytes
++void Cpu0MCCodeEmitter::
++EncodeInstruction(const MCInst &MI, raw_ostream &OS,
++                  SmallVectorImpl<MCFixup> &Fixups) const
++{
++  uint32_t Binary = getBinaryCodeForInstr(MI, Fixups);
++
++  // Check for unimplemented opcodes.
++  // Unfortunately in CPU0 both NOT and SLL will come in with Binary == 0
++  // so we have to special check for them.
++  unsigned Opcode = MI.getOpcode();
++  if ((Opcode != Cpu0::NOP) && (Opcode != Cpu0::SHL) && !Binary)
++    llvm_unreachable("unimplemented opcode in EncodeInstruction()");
++
++  const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
++  uint64_t TSFlags = Desc.TSFlags;
++
++  // Pseudo instructions don't get encoded and shouldn't be here
++  // in the first place!
++  if ((TSFlags & Cpu0II::FormMask) == Cpu0II::Pseudo)
++    llvm_unreachable("Pseudo opcode found in EncodeInstruction()");
++
++  // For now all instructions are 4 bytes
++  int Size = 4; // FIXME: Have Desc.getSize() return the correct value!
++
++  EmitInstruction(Binary, Size, OS);
++}
++
++/// getMachineOpValue - Return binary encoding of operand. If the machine
++/// operand requires relocation, record the relocation and return zero.
++unsigned Cpu0MCCodeEmitter::
++getMachineOpValue(const MCInst &MI, const MCOperand &MO,
++                  SmallVectorImpl<MCFixup> &Fixups) const {
++  if (MO.isReg()) {
++    unsigned Reg = MO.getReg();
++    unsigned RegNo = getCpu0RegisterNumbering(Reg);
++    return RegNo;
++  } else if (MO.isImm()) {
++    return static_cast<unsigned>(MO.getImm());
++  } else if (MO.isFPImm()) {
++    return static_cast<unsigned>(APFloat(MO.getFPImm())
++        .bitcastToAPInt().getHiBits(32).getLimitedValue());
++  } 
++
++  // MO must be an Expr.
++  assert(MO.isExpr());
++
++  const MCExpr *Expr = MO.getExpr();
++  MCExpr::ExprKind Kind = Expr->getKind();
++
++  if (Kind == MCExpr::Binary) {
++    Expr = static_cast<const MCBinaryExpr*>(Expr)->getLHS();
++    Kind = Expr->getKind();
++  }
++
++  assert (Kind == MCExpr::SymbolRef);
++
++  // All of the information is in the fixup.
++  return 0;
++}
++
++/// getMemEncoding - Return binary encoding of memory related operand.
++/// If the offset operand requires relocation, record the relocation.
++unsigned
++Cpu0MCCodeEmitter::getMemEncoding(const MCInst &MI, unsigned OpNo,
++                                  SmallVectorImpl<MCFixup> &Fixups) const {
++  // Base register is encoded in bits 20-16, offset is encoded in bits 15-0.
++  assert(MI.getOperand(OpNo).isReg());
++  unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo),Fixups) << 16;
++  unsigned OffBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups);
++
++  return (OffBits & 0xFFFF) | RegBits;
++}
++
++#include "Cpu0GenMCCodeEmitter.inc"
++
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-10 18:32:51.000000000 +0800
+@@ -115,6 +115,17 @@
+   return new Cpu0InstPrinter(MAI, MII, MRI);
+ }
+ 
++static MCStreamer *createMCStreamer(const Target &T, StringRef TT,
++                                    MCContext &Ctx, MCAsmBackend &MAB,
++                                    raw_ostream &_OS,
++                                    MCCodeEmitter *_Emitter,
++                                    bool RelaxAll,
++                                    bool NoExecStack) {
++  Triple TheTriple(TT);
++
++  return createELFStreamer(Ctx, MAB, _OS, _Emitter, RelaxAll, NoExecStack);
++}
++
+ extern "C" void LLVMInitializeCpu0TargetMC() {
+   // Register the MC asm info.
+   RegisterMCAsmInfoFn X(TheCpu0Target, createCpu0MCAsmInfo);
+@@ -133,6 +144,21 @@
+   TargetRegistry::RegisterMCRegInfo(TheCpu0Target, createCpu0MCRegisterInfo);
+   TargetRegistry::RegisterMCRegInfo(TheCpu0elTarget, createCpu0MCRegisterInfo);
+ 
++  // Register the MC Code Emitter
++  TargetRegistry::RegisterMCCodeEmitter(TheCpu0Target,
++                                        createCpu0MCCodeEmitterEB);
++  TargetRegistry::RegisterMCCodeEmitter(TheCpu0elTarget,
++                                        createCpu0MCCodeEmitterEL);
++
++  // Register the object streamer.
++  TargetRegistry::RegisterMCObjectStreamer(TheCpu0Target, createMCStreamer);
++  TargetRegistry::RegisterMCObjectStreamer(TheCpu0elTarget, createMCStreamer);
++
++  // Register the asm backend.
++  TargetRegistry::RegisterMCAsmBackend(TheCpu0Target,
++                                       createCpu0AsmBackendEB32);
++  TargetRegistry::RegisterMCAsmBackend(TheCpu0elTarget,
++                                       createCpu0AsmBackendEL32);
+   // Register the MC subtarget info.
+   TargetRegistry::RegisterMCSubtargetInfo(TheCpu0Target,
+                                           createCpu0MCSubtargetInfo);
+diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-10 18:32:51.000000000 +0800
+@@ -30,8 +30,19 @@
+ extern Target TheCpu0Target;
+ extern Target TheCpu0elTarget;
+ 
++MCCodeEmitter *createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                         const MCSubtargetInfo &STI,
++                                         MCContext &Ctx);
++MCCodeEmitter *createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                         const MCSubtargetInfo &STI,
++                                         MCContext &Ctx);
++
+ MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT);
+ MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT);
++
++MCObjectWriter *createCpu0ELFObjectWriter(raw_ostream &OS,
++                                          uint8_t OSABI,
++                                          bool IsLittleEndian);
+ } // End llvm namespace
+ 
+ // Defines symbolic names for Cpu0 registers.  This defines a mapping from
