@@ -174,6 +174,10 @@ We comment the "Change Reason" in the following code. You can get the
 Verify the Cpu0 for 3.2
 -----------------------
 
+3.2_src_files_modify include the LLVM 3.2 original files and those files 
+modified for Cpu0 backend support. 
+Please update the LLVM 3.2 as Appendix A indicate (just copy 
+3.2_src_files_modify/src_files_modify/src to your LLVM 3.2 source directory). 
 9/1/Cpu0 is the code for LLVM version 3.2. 
 File ch_all.cpp include the all C/C++ operators, global variable, struct, 
 array, control statement and function call test. 
