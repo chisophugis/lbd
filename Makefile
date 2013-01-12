@@ -169,7 +169,7 @@ gh-pages:
 	mv -fv build/epub/WriteAnLLVMBackendTutorialForCpu0.epub "./WriteAnLLVMBackendTutorialForCpu0.epub"
 	rm -rf $(GH_PAGES_SOURCES) build LLVMBackendTutorialExampleCode
 	git add -A
-	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; rm -f LLVMBackendTutorialExampleCode.tar.gz ; git checkout master ; rm -f LLVMBackendTutorialExampleCode.tar.gz
+	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master ; rm -f LLVMBackendTutorialExampleCode.tar.gz
 
 genexample:
 	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
