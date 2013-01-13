@@ -1,3 +1,5 @@
+.. _sec-porting32:
+
 Porting to LLVM 3.2
 ===================
 
@@ -8,6 +10,9 @@ You can check these changes by compare tools.
 In addition to highlight these changes, this chapter also explains the Mips 
 backend changes in 3.2.
 
+.. todo:: The changes made to port from LLVM 3.1->3.2 should be reflected throughout 
+		  the rest of the book. We should assume the reader is using the current release
+		  of LLVM when working with this book.
 
 API changes in LLVM 3.2
 -----------------------

@@ -1,5 +1,7 @@
-Other instructions
-===================
+.. _sec-addingmoresupport:
+
+Adding arithmetic and local pointer support
+===========================================
 
 This chapter add more cpu0 arithmetic instructions support first.
 The logic operation **“not”** support and translation in 

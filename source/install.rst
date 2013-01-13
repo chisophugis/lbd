@@ -1,3 +1,5 @@
+.. _sec-appendix-installing:
+
 Appendix A: Getting Started: Installing LLVM and the Cpu0 example code
 ======================================================================
 

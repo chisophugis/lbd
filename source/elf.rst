@@ -1,5 +1,7 @@
-ELF
-====
+.. _sec-elf:
+
+ELF Support
+===========
 
 Cpu0 backend generated the ELF format of obj. 
 The ELF (Executable and Linkable Format) is a common standard file format for 

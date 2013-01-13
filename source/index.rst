@@ -3,6 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. warning::
+   This is a work in progress. If you would like to contribution, please push updates and patches to the main github project available at http://github.com/Jonathan2251/lbd for review.
+
 Table of Contents
 =================
 
@@ -34,7 +37,7 @@ http://jonathan2251.github.com/lbd/LLVMBackendTutorialExampleCode.tar.gz
 Alternate formats
 -----------------
 
-The book is also available in: 
+The book is also available in the following formats: 
 
 .. raw:: html
 

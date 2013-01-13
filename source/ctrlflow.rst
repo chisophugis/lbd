@@ -1,4 +1,6 @@
-Control flow statement
+.. _sec-controlflow:
+
+Control flow statements
 =======================
 
 This chapter illustrates the corresponding IR for control flow statements, like 

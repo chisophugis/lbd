@@ -58,45 +58,6 @@ Licensing
 Preface
 -------
 
-.. start of original text (commented out, feel free to erase)
-	LLVM has a well structure for writing a back end. It provide a good frame work to add 
-	a new back end for a new CPU instruction set. However, it is harder in reading than 
-	front end documents in spite of back end has well documentation on it's web site. 
-	The point is LLVM front end documents include the tutorials. Allow user writing a 
-	front end compiler by following tutorial step by step, begin from simple and expand to
-	complex more and more.
-
-.. Let's omit this paragraph.
-	Knowledge is needed by a software engineer for his work. In computer industry, quick 
-	to learn is valuable. So, I write this document following the front end style. Start 
-	from scratch, then add more and more code in each chapter to expand it's function.
-
-	For simple, I write a back end named Cpu0 which is a simple RISC CPU designed for 
-	teaching purpose. Please refer to http://ccckmit.wikidot.com/ocs:cpu0 for it's 
-	instruction set. I put the cpu0 example code for this book in 
-	https://www.dropbox.com/sh/2pkh1fewlq2zag9/r9n4gnqPm7.
-
-	I reference llvm 3.1 Mips back end codes to write the cpu0 example code because I know
-	Mips well more than other CPU. And since cpu0 has not defined it's Application Binary 
-	Interface (ABI), I borrow the ABI from the MIPS architecture.
-	
-	Readers should know C++ well since LLVM is designed in C++, and is another state of 
-	the art example using the C++ OOP beautiful structure in compiler designed field in 
-	addition to QT in UI application. So, if you are a C++ advocate, maybe you will 
-	appreciate it, and give you a reason by real example to against people's wrong 
-	challenge that C++ OOP is not suit for system program like OS or compiler design.
-
-	I will introduce the related compiler knowledges on demand. So, you don't need to have 
-	the deep compiler knowledge for reading this book, concept is enough. But it will 
-	offset your debug time if you have the knowledge well.
-
-.. Hopefully once we're done editing, this won't be necessary :)
-	Say sorry in advance for my English. I am a Chinese from Taiwan. It's very different 
-	between English and Chinese.
-.. end original text
-	
-.. start of edited text
-
 The LLVM Compiler Infrastructure provides a versatile structure for creating new
 backends. Creating a new backend should not be too difficult once you 
 familiarize yourself with this structure. However, the available backend 
@@ -148,85 +109,73 @@ these documents to get a deeper understanding of what the tutorial is teaching:
 `Mips ABI document <http://www.linux-mips.org/pub/linux/mips/doc/ABI/mipsabi.pdf>`_
 
 
-Outline of chapters
----------------------
+Outline of Sections
+-------------------
 
-Chapter of Cpu0 Instruction and LLVM Target Description:
+:ref:`sec-llvmstructure`:
 
-Introduce Cpu0 and LLVM architecture, Target Description td, cmake and 
-LLVMBuild files, Target Registration. And shows how to start a backend and 
-build it through our example code Cpu0. 
-Around 750 lines of source code are added by the end of this chapter.
+This section introduces the Cpu0 architecture, a high-level view of LLVM, and how Cpu0 
+will be targeted in in an LLVM backend. This section will run you through the initial 
+steps of building the backend, including initial work on the target description (td), 
+setting up cmake and LLVMBuild files, and target registration. Around 750 lines of source 
+code are added by the end of this section.
 
+:ref:`sec-backendstructure`:
 
-Chapter of Back end Structure:
+This section highlights the structure of an LLVM backend using by UML graphs, and we 
+continue to build the Cpu0 backend. Around 2300 lines of source code are added in this 
+section, most of which is common from one LLVM backends to another, regardless of the 
+target architecture. By the end of this section, the Cpu0 LLVM backend will support 
+three instructions to generate some initial assembly output. 
 
-Introduce the backend structure by UML graph, and continue to add code in each 
-section. 
-Around 2300 lines of source code added in this chapter. 
-These 2300 lines of source code is common in backend design. 
-Many code are same from backend to backend except the backend name. 
-At end of this chapter, an LLVM backend structure for cpu0 is created with 
-three instructions support to generate the assembly output file. 
+:ref:`sec-addingmoresupport`:
 
+Over ten C operators and their corresponding LLVM IR instructions are introduced in this 
+section. Around 345 lines of source code, mostly in .td Target Description files, are 
+added. With these 345 lines, the backend can now translate the **+, -, \*, /, &, |, ^, 
+<<, >>, !** and **%** C operators into the appropriate Cpu0 assembly code. Use of the 
+``llc`` debug option and of **Graphviz** as a debug tool are introduced in this section.
 
-Chapter of Other instructions:
+:ref:`sec-genobjfiles`:
 
-Over ten of C operators and their corresponding LLVM IR instructions 
-introduced in this chapter. Around 345 lines of source code (most are in 
-.td Target Description file) are added. With these 345 lines, it can translate 
-**+, -, \*, /, &, |, ^, <<, >>, !** and **%** into assembly code. 
-The ``llc`` debug option and debug tool **Graphviz** which supported by LLVM 
-introduced in this chapter.
+Object file generation support for the Cpu0 backend is added in this section, as the 
+Target Registration structure is introduced. With 700 lines of additional code, 
+the Cpu0 backend can now generate big and little endian object files.
 
+:ref:`sec-globalvars`:
 
-Chapter of Generate obj file:
+Global variable, struct and array support are added in this section. 
+About 300 lines of source code are added to do this. The Cpu0 supports PIC and static 
+addressing mode, both of which area explained as they are added in this section.
 
-Add the obj file format generated support in cpu0 backend, and introduce the 
-cpu0 backend Target Registration structure. 
-The Registration structure is common in backend design. 
-With these 700 lines of code added, cpu0 can handle big and little endian 
-obj file generated.
+:ref:`sec-controlflow`:
 
+Support for the **if, else, while, for, goto** flow control statements are 
+added in this section. Around 150 lines of source code added.
 
-Chapter of Global variable, struct and array:
+:ref:`sec-funccall`:
 
-Global variable, struct and array support added in this chapter. 
-Over 300 lines of source code needed in global variable access while 345 lines 
-needed for ten of operators in chapter of Other instructions. 
-The cpu0 support PIC and static addressing mode. These two modes are explained 
-in this chapter.
+This section details the implementation of function calls in the Cpu0 backend. The stack 
+frame, handling incoming & outgoing arguments, and their corresponding standard LLVM 
+functions are introduced in this chapter. Over 700 lines of source code are added in 
+this section.
 
+:ref:`sec-elf`:
 
-Chapter of Control flow statement:
+This section details Cpu0 support for the well-known ELF object file format. The ELF 
+format and binutils tools are not a part of LLVM, but are introduced.  This section 
+details how to use this ELF tool to verify and analyze the object files created by the 
+Cpu0 backend.
 
-The **if, else, while, for, goto** flow control statements support is 
-added in this chapter.
-Around 150 lines of source code added in this chapter.
+:ref:`sec-porting32`:
 
+Introduces the changes of the LLVM APIs used by Cpu0 and Mips when updating this guide 
+from LLVM 3.1 to 3.2.  
 
-Chapter of Function call:
+:ref:`sec-appendix-installing`:
 
-The stack frame, incoming & outgoing arguments, and LLVM corresponding handle 
-functions introduced in this chapter.
-Over 700 lines of source code added in this chapter.
-
-
-Chapter of ELF:
-
-Like many backend. Cpu0 support ELF obj format generated. The ELF format and 
-binutils tools (not a part of LLVM) introduced and demonstrate the backend 
-designers how to use this ELF tool to verify and analysis the backend obj.  
-
-Chapter of Porting to LLVM 3.2:
-
-Introduce the changes of API used by Cpu0 and Mips changes in this version.  
-
-
-Chapter of Appendix A:
-
-Include the LLVM source code, development tools installation, and environment 
-setting on iMac and Linux platform.
+Details how to set up the LLVM source code, development tools, and environment
+setting for Mac OS X and Linux platforms.
 
 
 

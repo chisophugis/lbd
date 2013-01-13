@@ -1,5 +1,7 @@
-Global variable, struct and array
-==================================
+.. _sec-globalvars:
+
+Global variables, structs and arrays
+====================================
 
 In the previous two chapters, we only access the local variables. 
 This chapter will deal global variable access translation. 

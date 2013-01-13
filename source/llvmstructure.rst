@@ -1,3 +1,5 @@
+.. _sec-llvmstructure:
+
 Cpu0 Instruction and LLVM Target Description
 ============================================
 

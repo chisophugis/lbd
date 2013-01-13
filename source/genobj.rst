@@ -1,5 +1,7 @@
-Generate obj file
-===================
+.. _sec-genobjfiles:
+
+Generating object files
+=======================
 
 The previous chapters only introduce the assembly code generated. 
 This chapter will introduce you the obj support first, and display the obj by 

@@ -1,4 +1,6 @@
-Back end structure
+.. _sec-backendstructure:
+
+Backend structure
 ==================
 
 This chapter introduce the back end class inherit tree and class members first. 
