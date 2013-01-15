@@ -524,7 +524,7 @@ _EXAMPLES=ON -DLLVM_BUILD_EXAMPLES=ON -G "Unix Makefiles" ../src/``, as follows.
   -- Found Subversion: /usr/bin/svn (found version "1.7.6") 
   -- Configuring done
   -- Generating done
-  -- Build files have been written to: /usr/local/llvm/3.1/cmake_release_build
+  -- Build files have been written to: /usr/local/llvm/release/cmake_release_build
 
 After cmake, run command ``make``, then you can get clang, llc, llvm-as, ..., 
 in cmake_release_build/bin/ after a few tens minutes of build. Next, edit 
@@ -658,9 +658,9 @@ command ``make`` in cpu0 example code build.
   [Gamma@localhost Target]$ cd ../..
   [Gamma@localhost src]$ rm -rf tools/clang
 
-Now, go into directory 3.1.test/cpu0/1, create directory cmake_debug_build and 
+Now, go into directory llvm/test/, create directory cmake_debug_build and 
 do cmake 
-like build the 3.1 release, but we do Debug build and use clang as our compiler 
+like build the llvm/release, but we do Debug build and use clang as our compiler 
 instead, 
 as follows,
 
