@@ -17,6 +17,20 @@ Anoushe Jamshidi
 	ajamshidi@gmail.com
 
 
+Contributors
+------------
+
+Chen Wei-Ren, chenwj@iis.sinica.edu.tw>, in text format.
+
+
+Thanks
+------
+
+Very thank Sean, silvas@purdue.edu, for his help in this book and 
+encouragement. 
+With his help, we can finish this book and put on web with sphinx tool. 
+
+
 Revision history
 ----------------
 
