@@ -1,7 +1,7 @@
 // clang -c ch_mips_llvm3.2_globalvar_changes.cpp -emit-llvm -o ch_mips_llvm3.2_globalvar_changes.bc
-// /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch_mips_llvm3.2_globalvar_changes.bc -o ch_mips_llvm3.2_globalvar_changes.cpu0.s
-// /Users/Jonathan/llvm/3.1/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch_mips_llvm3.2_globalvar_changes.bc -o ch_mips_llvm3.2_globalvar_changes.mips.3.1.s
-// /Users/Jonathan/llvm/3.2/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch_mips_llvm3.2_globalvar_changes.bc -o ch_mips_llvm3.2_globalvar_changes.mips.3.2.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch_mips_llvm3.2_globalvar_changes.bc -o ch_mips_llvm3.2_globalvar_changes.cpu0.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch_mips_llvm3.2_globalvar_changes.bc -o ch_mips_llvm3.2_globalvar_changes.mips.3.1.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch_mips_llvm3.2_globalvar_changes.bc -o ch_mips_llvm3.2_globalvar_changes.mips.3.2.s
 
 int gI = 100;
 

@@ -1,5 +1,5 @@
 // clang -c ch_test_8_2.cpp -emit-llvm -o ch_test_8_2.bc
-// /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm -view-isel-dags ch_test_8_2.bc -o ch_test_8_2.cpu0.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm -view-isel-dags ch_test_8_2.bc -o ch_test_8_2.cpu0.s
 
 struct date {
 	char year;

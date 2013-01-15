@@ -1,5 +1,5 @@
 // clang -c ch7_1_1.cpp -emit-llvm -o ch7_1_1.bc
-// /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=cpu0 -view-isel-dags -relocation-model=pic -filetype=asm ch7_1_1.bc -o ch7_1_1.cpu0.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -view-isel-dags -relocation-model=pic -filetype=asm ch7_1_1.bc -o ch7_1_1.cpu0.s
 
 int main()
 {
