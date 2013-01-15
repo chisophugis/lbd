@@ -364,12 +364,32 @@ order.
 Mips backend changes in 3.2
 ---------------------------
 
-In 3.1, Mips use .cpload and .cprestore pseudo assembly code. 
+In 3.1, Mips use **".cpload"** and **".cprestore"** pseudo assembly code. 
 It removes these pseudo assembly code in 3.2.
 This change is good for spim (mips assembly code simulator) which run for 
 Mips assembly code. According the theory of "System Software", some pseudo 
 assembly code (especially for those not in standard) cannot be translated by  
-assembler. It will break out assembly code simulator.
+assembler. It will break down in assembly code simulator. 
+Run ch_mips_llvm3.2_globalvar_changes.cpp with llvm 3.1 and 3.2 for mips, you 
+will find the **".cprestore"** is removed directly since 3.2 use other register 
+in other the called function (like use $1 in f() and the remove **.gprestore** 
+in sum_i()).
+**".cpload"** is replaced with instructions as follows,
 
-To be continue...
+.. code-block:: bash
+
+  // llvm 3.1 mips
+    .cpload $25
+  
+  // llvm 3.2 mips
+    lui $2, %hi(_gp_disp)
+    addiu $2, $2, %lo(_gp_disp)
+    ...
+    addu  $gp, $2, $25
+
+Reference [#]_ for **".cpload"**, **".cprestore"** and **"_gp_disp"**.
+
+
+
+.. [#] http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
 
