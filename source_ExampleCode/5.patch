@@ -1,6 +1,520 @@
+diff -Naur 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig 5/Cpu0/Cpu0AsmPrinter.cpp.orig
+--- 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig	1970-01-01 08:00:00.000000000 +0800
++++ 5/Cpu0/Cpu0AsmPrinter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -0,0 +1,253 @@
++//===-- Cpu0AsmPrinter.cpp - Cpu0 LLVM Assembly Printer -------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file contains a printer that converts from our internal representation
++// of machine-dependent LLVM code to GAS-format CPU0 assembly language.
++//
++//===----------------------------------------------------------------------===//
++
++#define DEBUG_TYPE "cpu0-asm-printer"
++#include "Cpu0AsmPrinter.h"
++#include "Cpu0.h"
++#include "Cpu0InstrInfo.h"
++#include "InstPrinter/Cpu0InstPrinter.h"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
++#include "llvm/ADT/SmallString.h"
++#include "llvm/ADT/StringExtras.h"
++#include "llvm/ADT/Twine.h"
++#include "llvm/BasicBlock.h"
++#include "llvm/Instructions.h"
++#include "llvm/CodeGen/MachineFunctionPass.h"
++#include "llvm/CodeGen/MachineConstantPool.h"
++#include "llvm/CodeGen/MachineFrameInfo.h"
++#include "llvm/CodeGen/MachineInstr.h"
++#include "llvm/CodeGen/MachineMemOperand.h"
++#include "llvm/Instructions.h"
++#include "llvm/MC/MCStreamer.h"
++#include "llvm/MC/MCAsmInfo.h"
++#include "llvm/MC/MCInst.h"
++#include "llvm/MC/MCSymbol.h"
++#include "llvm/Support/TargetRegistry.h"
++#include "llvm/Support/raw_ostream.h"
++#include "llvm/Target/Mangler.h"
++#include "llvm/Target/TargetLoweringObjectFile.h"
++#include "llvm/Target/TargetOptions.h"
++
++using namespace llvm;
++
++bool Cpu0AsmPrinter::runOnMachineFunction(MachineFunction &MF) {
++  Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
++  AsmPrinter::runOnMachineFunction(MF);
++  return true;
++}
++
++//- EmitInstruction() must exists or will have run time error.
++void Cpu0AsmPrinter::EmitInstruction(const MachineInstr *MI) {
++  if (MI->isDebugValue()) {
++    SmallString<128> Str;
++    raw_svector_ostream OS(Str);
++
++    PrintDebugValueComment(MI, OS);
++    return;
++  }
++
++  MCInst TmpInst0;
++  MCInstLowering.Lower(MI, TmpInst0);
++  OutStreamer.EmitInstruction(TmpInst0);
++}
++
++//===----------------------------------------------------------------------===//
++//
++//  Cpu0 Asm Directives
++//
++//  -- Frame directive "frame Stackpointer, Stacksize, RARegister"
++//  Describe the stack frame.
++//
++//  -- Mask directives "(f)mask  bitmask, offset"
++//  Tells the assembler which registers are saved and where.
++//  bitmask - contain a little endian bitset indicating which registers are
++//            saved on function prologue (e.g. with a 0x80000000 mask, the
++//            assembler knows the register 31 (RA) is saved at prologue.
++//  offset  - the position before stack pointer subtraction indicating where
++//            the first saved register on prologue is located. (e.g. with a
++//
++//  Consider the following function prologue:
++//
++//    .frame  $fp,48,$ra
++//    .mask   0xc0000000,-8
++//       addiu $sp, $sp, -48
++//       st $ra, 40($sp)
++//       st $fp, 36($sp)
++//
++//    With a 0xc0000000 mask, the assembler knows the register 31 (RA) and
++//    30 (FP) are saved at prologue. As the save order on prologue is from
++//    left to right, RA is saved first. A -8 offset means that after the
++//    stack pointer subtration, the first register in the mask (RA) will be
++//    saved at address 48-8=40.
++//
++//===----------------------------------------------------------------------===//
++
++//===----------------------------------------------------------------------===//
++// Mask directives
++//===----------------------------------------------------------------------===//
++//	.frame	$sp,8,$lr
++//->	.mask 	0x00000000,0
++//	.set	noreorder
++//	.set	nomacro
++
++// Create a bitmask with all callee saved registers for CPU or Floating Point
++// registers. For CPU registers consider RA, GP and FP for saving if necessary.
++void Cpu0AsmPrinter::printSavedRegsBitmask(raw_ostream &O) {
++  // CPU and FPU Saved Registers Bitmasks
++  unsigned CPUBitmask = 0;
++  int CPUTopSavedRegOff;
++
++  // Set the CPU and FPU Bitmasks
++  const MachineFrameInfo *MFI = MF->getFrameInfo();
++  const std::vector<CalleeSavedInfo> &CSI = MFI->getCalleeSavedInfo();
++  // size of stack area to which FP callee-saved regs are saved.
++  unsigned CPURegSize = Cpu0::CPURegsRegClass.getSize();
++  unsigned i = 0, e = CSI.size();
++
++  // Set CPU Bitmask.
++  for (; i != e; ++i) {
++    unsigned Reg = CSI[i].getReg();
++    unsigned RegNum = getCpu0RegisterNumbering(Reg);
++    CPUBitmask |= (1 << RegNum);
++  }
++
++  CPUTopSavedRegOff = CPUBitmask ? -CPURegSize : 0;
++
++  // Print CPUBitmask
++  O << "\t.mask \t"; printHex32(CPUBitmask, O);
++  O << ',' << CPUTopSavedRegOff << '\n';
++}
++
++// Print a 32 bit hex number with all numbers.
++void Cpu0AsmPrinter::printHex32(unsigned Value, raw_ostream &O) {
++  O << "0x";
++  for (int i = 7; i >= 0; i--)
++    O.write_hex((Value & (0xF << (i*4))) >> (i*4));
++}
++
++//===----------------------------------------------------------------------===//
++// Frame and Set directives
++//===----------------------------------------------------------------------===//
++//->	.frame	$sp,8,$lr
++//	.mask 	0x00000000,0
++//	.set	noreorder
++//	.set	nomacro
++/// Frame Directive
++void Cpu0AsmPrinter::emitFrameDirective() {
++  const TargetRegisterInfo &RI = *TM.getRegisterInfo();
++
++  unsigned stackReg  = RI.getFrameRegister(*MF);
++  unsigned returnReg = RI.getRARegister();
++  unsigned stackSize = MF->getFrameInfo()->getStackSize();
++
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText("\t.frame\t$" +
++           StringRef(Cpu0InstPrinter::getRegisterName(stackReg)).lower() +
++           "," + Twine(stackSize) + ",$" +
++           StringRef(Cpu0InstPrinter::getRegisterName(returnReg)).lower());
++}
++
++/// Emit Set directives.
++const char *Cpu0AsmPrinter::getCurrentABIString() const {
++  switch (Subtarget->getTargetABI()) {
++  case Cpu0Subtarget::O32:  return "abi32";
++  default: llvm_unreachable("Unknown Cpu0 ABI");;
++  }
++}
++
++//		.type	main,@function
++//->		.ent	main                    # @main
++//	main:
++void Cpu0AsmPrinter::EmitFunctionEntryLabel() {
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText("\t.ent\t" + Twine(CurrentFnSym->getName()));
++  OutStreamer.EmitLabel(CurrentFnSym);
++}
++
++
++//	.frame	$sp,8,$pc
++//	.mask 	0x00000000,0
++//->	.set	noreorder
++//->	.set	nomacro
++/// EmitFunctionBodyStart - Targets can override this to emit stuff before
++/// the first basic block in the function.
++void Cpu0AsmPrinter::EmitFunctionBodyStart() {
++  MCInstLowering.Initialize(Mang, &MF->getContext());
++
++  emitFrameDirective();
++
++  if (OutStreamer.hasRawTextSupport()) {
++    SmallString<128> Str;
++    raw_svector_ostream OS(Str);
++    printSavedRegsBitmask(OS);
++    OutStreamer.EmitRawText(OS.str());
++
++    OutStreamer.EmitRawText(StringRef("\t.set\tnoreorder"));
++
++    OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
++  }
++}
++
++//->	.set	macro
++//->	.set	reorder
++//->	.end	main
++/// EmitFunctionBodyEnd - Targets can override this to emit stuff after
++/// the last basic block in the function.
++void Cpu0AsmPrinter::EmitFunctionBodyEnd() {
++  // There are instruction for this macros, but they must
++  // always be at the function end, and we can't emit and
++  // break with BB logic.
++  if (OutStreamer.hasRawTextSupport()) {
++    OutStreamer.EmitRawText(StringRef("\t.set\tmacro"));
++    OutStreamer.EmitRawText(StringRef("\t.set\treorder"));
++    OutStreamer.EmitRawText("\t.end\t" + Twine(CurrentFnSym->getName()));
++  }
++}
++
++//	.section .mdebug.abi32
++//	.previous
++void Cpu0AsmPrinter::EmitStartOfAsmFile(Module &M) {
++  // FIXME: Use SwitchSection.
++
++  // Tell the assembler which ABI we are using
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText("\t.section .mdebug." +
++                            Twine(getCurrentABIString()));
++
++  // return to previous section
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText(StringRef("\t.previous"));
++}
++
++MachineLocation
++Cpu0AsmPrinter::getDebugValueLocation(const MachineInstr *MI) const {
++  // Handles frame addresses emitted in Cpu0InstrInfo::emitFrameIndexDebugValue.
++  assert(MI->getNumOperands() == 4 && "Invalid no. of machine operands!");
++  assert(MI->getOperand(0).isReg() && MI->getOperand(1).isImm() &&
++         "Unexpected MachineOperand types");
++  return MachineLocation(MI->getOperand(0).getReg(),
++                         MI->getOperand(1).getImm());
++}
++
++void Cpu0AsmPrinter::PrintDebugValueComment(const MachineInstr *MI,
++                                           raw_ostream &OS) {
++  // TODO: implement
++  OS << "PrintDebugValueComment()";
++}
++
++// Force static initialization.
++extern "C" void LLVMInitializeCpu0AsmPrinter() {
++  RegisterAsmPrinter<Cpu0AsmPrinter> X(TheCpu0Target);
++  RegisterAsmPrinter<Cpu0AsmPrinter> Y(TheCpu0elTarget);
++}
+diff -Naur 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig.orig 5/Cpu0/Cpu0AsmPrinter.cpp.orig.orig
+--- 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig.orig	1970-01-01 08:00:00.000000000 +0800
++++ 5/Cpu0/Cpu0AsmPrinter.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -0,0 +1,253 @@
++//===-- Cpu0AsmPrinter.cpp - Cpu0 LLVM Assembly Printer -------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file contains a printer that converts from our internal representation
++// of machine-dependent LLVM code to GAS-format CPU0 assembly language.
++//
++//===----------------------------------------------------------------------===//
++
++#define DEBUG_TYPE "cpu0-asm-printer"
++#include "Cpu0AsmPrinter.h"
++#include "Cpu0.h"
++#include "Cpu0InstrInfo.h"
++#include "InstPrinter/Cpu0InstPrinter.h"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
++#include "llvm/ADT/SmallString.h"
++#include "llvm/ADT/StringExtras.h"
++#include "llvm/ADT/Twine.h"
++#include "llvm/BasicBlock.h"
++#include "llvm/Instructions.h"
++#include "llvm/CodeGen/MachineFunctionPass.h"
++#include "llvm/CodeGen/MachineConstantPool.h"
++#include "llvm/CodeGen/MachineFrameInfo.h"
++#include "llvm/CodeGen/MachineInstr.h"
++#include "llvm/CodeGen/MachineMemOperand.h"
++#include "llvm/Instructions.h"
++#include "llvm/MC/MCStreamer.h"
++#include "llvm/MC/MCAsmInfo.h"
++#include "llvm/MC/MCInst.h"
++#include "llvm/MC/MCSymbol.h"
++#include "llvm/Support/TargetRegistry.h"
++#include "llvm/Support/raw_ostream.h"
++#include "llvm/Target/Mangler.h"
++#include "llvm/Target/TargetLoweringObjectFile.h"
++#include "llvm/Target/TargetOptions.h"
++
++using namespace llvm;
++
++bool Cpu0AsmPrinter::runOnMachineFunction(MachineFunction &MF) {
++  Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
++  AsmPrinter::runOnMachineFunction(MF);
++  return true;
++}
++
++//- EmitInstruction() must exists or will have run time error.
++void Cpu0AsmPrinter::EmitInstruction(const MachineInstr *MI) {
++  if (MI->isDebugValue()) {
++    SmallString<128> Str;
++    raw_svector_ostream OS(Str);
++
++    PrintDebugValueComment(MI, OS);
++    return;
++  }
++
++  MCInst TmpInst0;
++  MCInstLowering.Lower(MI, TmpInst0);
++  OutStreamer.EmitInstruction(TmpInst0);
++}
++
++//===----------------------------------------------------------------------===//
++//
++//  Cpu0 Asm Directives
++//
++//  -- Frame directive "frame Stackpointer, Stacksize, RARegister"
++//  Describe the stack frame.
++//
++//  -- Mask directives "(f)mask  bitmask, offset"
++//  Tells the assembler which registers are saved and where.
++//  bitmask - contain a little endian bitset indicating which registers are
++//            saved on function prologue (e.g. with a 0x80000000 mask, the
++//            assembler knows the register 31 (RA) is saved at prologue.
++//  offset  - the position before stack pointer subtraction indicating where
++//            the first saved register on prologue is located. (e.g. with a
++//
++//  Consider the following function prologue:
++//
++//    .frame  $fp,48,$ra
++//    .mask   0xc0000000,-8
++//       addiu $sp, $sp, -48
++//       st $ra, 40($sp)
++//       st $fp, 36($sp)
++//
++//    With a 0xc0000000 mask, the assembler knows the register 31 (RA) and
++//    30 (FP) are saved at prologue. As the save order on prologue is from
++//    left to right, RA is saved first. A -8 offset means that after the
++//    stack pointer subtration, the first register in the mask (RA) will be
++//    saved at address 48-8=40.
++//
++//===----------------------------------------------------------------------===//
++
++//===----------------------------------------------------------------------===//
++// Mask directives
++//===----------------------------------------------------------------------===//
++//	.frame	$sp,8,$lr
++//->	.mask 	0x00000000,0
++//	.set	noreorder
++//	.set	nomacro
++
++// Create a bitmask with all callee saved registers for CPU or Floating Point
++// registers. For CPU registers consider RA, GP and FP for saving if necessary.
++void Cpu0AsmPrinter::printSavedRegsBitmask(raw_ostream &O) {
++  // CPU and FPU Saved Registers Bitmasks
++  unsigned CPUBitmask = 0;
++  int CPUTopSavedRegOff;
++
++  // Set the CPU and FPU Bitmasks
++  const MachineFrameInfo *MFI = MF->getFrameInfo();
++  const std::vector<CalleeSavedInfo> &CSI = MFI->getCalleeSavedInfo();
++  // size of stack area to which FP callee-saved regs are saved.
++  unsigned CPURegSize = Cpu0::CPURegsRegClass.getSize();
++  unsigned i = 0, e = CSI.size();
++
++  // Set CPU Bitmask.
++  for (; i != e; ++i) {
++    unsigned Reg = CSI[i].getReg();
++    unsigned RegNum = getCpu0RegisterNumbering(Reg);
++    CPUBitmask |= (1 << RegNum);
++  }
++
++  CPUTopSavedRegOff = CPUBitmask ? -CPURegSize : 0;
++
++  // Print CPUBitmask
++  O << "\t.mask \t"; printHex32(CPUBitmask, O);
++  O << ',' << CPUTopSavedRegOff << '\n';
++}
++
++// Print a 32 bit hex number with all numbers.
++void Cpu0AsmPrinter::printHex32(unsigned Value, raw_ostream &O) {
++  O << "0x";
++  for (int i = 7; i >= 0; i--)
++    O.write_hex((Value & (0xF << (i*4))) >> (i*4));
++}
++
++//===----------------------------------------------------------------------===//
++// Frame and Set directives
++//===----------------------------------------------------------------------===//
++//->	.frame	$sp,8,$lr
++//	.mask 	0x00000000,0
++//	.set	noreorder
++//	.set	nomacro
++/// Frame Directive
++void Cpu0AsmPrinter::emitFrameDirective() {
++  const TargetRegisterInfo &RI = *TM.getRegisterInfo();
++
++  unsigned stackReg  = RI.getFrameRegister(*MF);
++  unsigned returnReg = RI.getRARegister();
++  unsigned stackSize = MF->getFrameInfo()->getStackSize();
++
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText("\t.frame\t$" +
++           StringRef(Cpu0InstPrinter::getRegisterName(stackReg)).lower() +
++           "," + Twine(stackSize) + ",$" +
++           StringRef(Cpu0InstPrinter::getRegisterName(returnReg)).lower());
++}
++
++/// Emit Set directives.
++const char *Cpu0AsmPrinter::getCurrentABIString() const {
++  switch (Subtarget->getTargetABI()) {
++  case Cpu0Subtarget::O32:  return "abi32";
++  default: llvm_unreachable("Unknown Cpu0 ABI");;
++  }
++}
++
++//		.type	main,@function
++//->		.ent	main                    # @main
++//	main:
++void Cpu0AsmPrinter::EmitFunctionEntryLabel() {
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText("\t.ent\t" + Twine(CurrentFnSym->getName()));
++  OutStreamer.EmitLabel(CurrentFnSym);
++}
++
++
++//	.frame	$sp,8,$pc
++//	.mask 	0x00000000,0
++//->	.set	noreorder
++//->	.set	nomacro
++/// EmitFunctionBodyStart - Targets can override this to emit stuff before
++/// the first basic block in the function.
++void Cpu0AsmPrinter::EmitFunctionBodyStart() {
++  MCInstLowering.Initialize(Mang, &MF->getContext());
++
++  emitFrameDirective();
++
++  if (OutStreamer.hasRawTextSupport()) {
++    SmallString<128> Str;
++    raw_svector_ostream OS(Str);
++    printSavedRegsBitmask(OS);
++    OutStreamer.EmitRawText(OS.str());
++
++    OutStreamer.EmitRawText(StringRef("\t.set\tnoreorder"));
++
++    OutStreamer.EmitRawText(StringRef("\t.set\tnomacro"));
++  }
++}
++
++//->	.set	macro
++//->	.set	reorder
++//->	.end	main
++/// EmitFunctionBodyEnd - Targets can override this to emit stuff after
++/// the last basic block in the function.
++void Cpu0AsmPrinter::EmitFunctionBodyEnd() {
++  // There are instruction for this macros, but they must
++  // always be at the function end, and we can't emit and
++  // break with BB logic.
++  if (OutStreamer.hasRawTextSupport()) {
++    OutStreamer.EmitRawText(StringRef("\t.set\tmacro"));
++    OutStreamer.EmitRawText(StringRef("\t.set\treorder"));
++    OutStreamer.EmitRawText("\t.end\t" + Twine(CurrentFnSym->getName()));
++  }
++}
++
++//	.section .mdebug.abi32
++//	.previous
++void Cpu0AsmPrinter::EmitStartOfAsmFile(Module &M) {
++  // FIXME: Use SwitchSection.
++
++  // Tell the assembler which ABI we are using
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText("\t.section .mdebug." +
++                            Twine(getCurrentABIString()));
++
++  // return to previous section
++  if (OutStreamer.hasRawTextSupport())
++    OutStreamer.EmitRawText(StringRef("\t.previous"));
++}
++
++MachineLocation
++Cpu0AsmPrinter::getDebugValueLocation(const MachineInstr *MI) const {
++  // Handles frame addresses emitted in Cpu0InstrInfo::emitFrameIndexDebugValue.
++  assert(MI->getNumOperands() == 4 && "Invalid no. of machine operands!");
++  assert(MI->getOperand(0).isReg() && MI->getOperand(1).isImm() &&
++         "Unexpected MachineOperand types");
++  return MachineLocation(MI->getOperand(0).getReg(),
++                         MI->getOperand(1).getImm());
++}
++
++void Cpu0AsmPrinter::PrintDebugValueComment(const MachineInstr *MI,
++                                           raw_ostream &OS) {
++  // TODO: implement
++  OS << "PrintDebugValueComment()";
++}
++
++// Force static initialization.
++extern "C" void LLVMInitializeCpu0AsmPrinter() {
++  RegisterAsmPrinter<Cpu0AsmPrinter> X(TheCpu0Target);
++  RegisterAsmPrinter<Cpu0AsmPrinter> Y(TheCpu0elTarget);
++}
 diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
---- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
 @@ -38,6 +38,12 @@
                             [SDNPOutGlue]>;
  
@@ -26,8 +540,8 @@ diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
  // instructions. The same not happens for stack address copies, so an
  // add op with mem ComplexPattern is used and the stack address copy
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists.txt
---- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-15 15:37:36.000000000 +0800
 @@ -1,7 +1,10 @@
  # MCTargetDesc/CMakeLists.txt
  add_llvm_library(LLVMCpu0Desc
@@ -41,8 +555,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists
  add_dependencies(LLVMCpu0Desc Cpu0CommonTableGen)
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -0,0 +1,215 @@
++++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -0,0 +1,224 @@
 +//===-- Cpu0ASMBackend.cpp - Cpu0 Asm Backend  ----------------------------===//
 +//
 +//                     The LLVM Compiler Infrastructure
@@ -112,7 +626,14 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0As
 +    :MCAsmBackend(), OSType(_OSType), IsLittle(_isLittle) {}
 +
 +  MCObjectWriter *createObjectWriter(raw_ostream &OS) const {
-+    return createCpu0ELFObjectWriter(OS, OSType, IsLittle);
++  // Change Reason:
++  // Reduce the exposure of Triple::OSType in the ELF object writer. This will
++  //  avoid including ADT/Triple.h in many places when the target specific bits 
++  //  are moved.
++    return createCpu0ELFObjectWriter(OS,
++      MCELFObjectTargetWriter::getOSABI(OSType), IsLittle);
++  // Even though, the old function still work on LLVM version 3.2
++  //    return createCpu0ELFObjectWriter(OS, OSType, IsLittle);
 +  }
 +
 +  /// ApplyFixup - Apply the \arg Value for given \arg Fixup into the provided
@@ -248,19 +769,21 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0As
 +} // namespace
 +
 +// MCAsmBackend
-+MCAsmBackend *llvm::createCpu0AsmBackendEL32(const Target &T, StringRef TT) {
++MCAsmBackend *llvm::createCpu0AsmBackendEL32(const Target &T, StringRef TT,
++                                             StringRef CPU) {
 +  return new Cpu0AsmBackend(T, Triple(TT).getOS(),
 +                            /*IsLittle*/true);
 +}
 +
-+MCAsmBackend *llvm::createCpu0AsmBackendEB32(const Target &T, StringRef TT) {
++MCAsmBackend *llvm::createCpu0AsmBackendEB32(const Target &T, StringRef TT,
++                                             StringRef CPU) {
 +  return new Cpu0AsmBackend(T, Triple(TT).getOS(),
 +                            /*IsLittle*/false);
 +}
 +
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-15 15:37:36.000000000 +0800
 @@ -27,6 +27,61 @@
  ///
  namespace Cpu0II {
@@ -359,7 +882,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseIn
  #endif
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -0,0 +1,245 @@
 +//===-- Cpu0ELFObjectWriter.cpp - Cpu0 ELF Writer -------------------------===//
 +//
@@ -607,8 +1130,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/C
 +  return createELFObjectWriter(MOTW, OS, IsLittleEndian);
 +}
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-15 15:37:36.000000000 +0800
 @@ -26,6 +26,76 @@
      // Branch fixups resulting in R_CPU0_16.
      fixup_Cpu0_16 = FirstTargetFixupKind,
@@ -693,8 +1216,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0Fixu
 -
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -0,0 +1,164 @@
++++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -0,0 +1,178 @@
 +//===-- Cpu0MCCodeEmitter.cpp - Convert Cpu0 Code to Machine Code ---------===//
 +//
 +//                     The LLVM Compiler Infrastructure
@@ -726,8 +1249,20 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +
 +namespace {
 +class Cpu0MCCodeEmitter : public MCCodeEmitter {
-+  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
-+  void operator=(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  // #define LLVM_DELETED_FUNCTION
++  //  LLVM_DELETED_FUNCTION - Expands to = delete if the compiler supports it. 
++  //  Use to mark functions as uncallable. Member functions with this should be 
++  //  declared private so that some behavior is kept in C++03 mode.
++  //  class DontCopy { private: DontCopy(const DontCopy&) LLVM_DELETED_FUNCTION;
++  //  DontCopy &operator =(const DontCopy&) LLVM_DELETED_FUNCTION; public: ... };
++  //  Definition at line 79 of file Compiler.h.
++
++  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &) LLVM_DELETED_FUNCTION;
++  void operator=(const Cpu0MCCodeEmitter &) LLVM_DELETED_FUNCTION;
++  // Even though, the old function still work on LLVM version 3.2
++  //  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  //  void operator=(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++
 +  const MCInstrInfo &MCII;
 +  const MCSubtargetInfo &STI;
 +  MCContext &Ctx;
@@ -769,6 +1304,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +}  // namespace
 +
 +MCCodeEmitter *llvm::createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                               const MCRegisterInfo &MRI,
 +                                               const MCSubtargetInfo &STI,
 +                                               MCContext &Ctx)
 +{
@@ -776,6 +1312,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +}
 +
 +MCCodeEmitter *llvm::createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                               const MCRegisterInfo &MRI,
 +                                               const MCSubtargetInfo &STI,
 +                                               MCContext &Ctx)
 +{
@@ -860,8 +1397,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +#include "Cpu0GenMCCodeEmitter.inc"
 +
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -115,6 +115,17 @@
    return new Cpu0InstPrinter(MAI, MII, MRI);
  }
@@ -903,21 +1440,35 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0
    TargetRegistry::RegisterMCSubtargetInfo(TheCpu0Target,
                                            createCpu0MCSubtargetInfo);
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-10 18:32:51.000000000 +0800
-@@ -30,8 +30,19 @@
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-15 15:37:36.000000000 +0800
+@@ -22,6 +22,7 @@
+ class MCContext;
+ class MCInstrInfo;
+ class MCObjectWriter;
++class MCRegisterInfo;
+ class MCSubtargetInfo;
+ class StringRef;
+ class Target;
+@@ -30,8 +31,23 @@
  extern Target TheCpu0Target;
  extern Target TheCpu0elTarget;
  
+-MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT);
+-MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT);
 +MCCodeEmitter *createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                         const MCRegisterInfo &MRI,
 +                                         const MCSubtargetInfo &STI,
 +                                         MCContext &Ctx);
 +MCCodeEmitter *createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                         const MCRegisterInfo &MRI,
 +                                         const MCSubtargetInfo &STI,
 +                                         MCContext &Ctx);
 +
- MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT);
- MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT);
++MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT,
++                                       StringRef CPU);
++MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT,
++                                       StringRef CPU);
 +
 +MCObjectWriter *createCpu0ELFObjectWriter(raw_ostream &OS,
 +                                          uint8_t OSABI,

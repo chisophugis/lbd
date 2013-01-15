@@ -1,6 +1,6 @@
 diff -Naur 5/Cpu0/CMakeLists.txt 6/1/Cpu0/CMakeLists.txt
---- 5/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/CMakeLists.txt	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/CMakeLists.txt	2013-01-15 15:37:36.000000000 +0800
 @@ -29,9 +29,11 @@
    Cpu0ISelLowering.cpp
    Cpu0FrameLowering.cpp
@@ -14,9 +14,9 @@ diff -Naur 5/Cpu0/CMakeLists.txt 6/1/Cpu0/CMakeLists.txt
    )
  
 diff -Naur 5/Cpu0/Cpu0AsmPrinter.cpp 6/1/Cpu0/Cpu0AsmPrinter.cpp
---- 5/Cpu0/Cpu0AsmPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0AsmPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -188,6 +188,9 @@
+--- 5/Cpu0/Cpu0AsmPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0AsmPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -186,6 +186,9 @@
    MCInstLowering.Initialize(Mang, &MF->getContext());
  
    emitFrameDirective();
@@ -26,7 +26,7 @@ diff -Naur 5/Cpu0/Cpu0AsmPrinter.cpp 6/1/Cpu0/Cpu0AsmPrinter.cpp
  
    if (OutStreamer.hasRawTextSupport()) {
      SmallString<128> Str;
-@@ -197,6 +200,13 @@
+@@ -195,6 +198,13 @@
  
      OutStreamer.EmitRawText(StringRef("\t.set\tnoreorder"));
  
@@ -41,8 +41,8 @@ diff -Naur 5/Cpu0/Cpu0AsmPrinter.cpp 6/1/Cpu0/Cpu0AsmPrinter.cpp
    }
  }
 diff -Naur 5/Cpu0/Cpu0ISelDAGToDAG.cpp 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp
---- 5/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -13,6 +13,7 @@
  
  #define DEBUG_TYPE "cpu0-isel"
@@ -111,8 +111,8 @@ diff -Naur 5/Cpu0/Cpu0ISelDAGToDAG.cpp 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp
      const ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Node);
      unsigned Size = CN->getValueSizeInBits(0);
 diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
---- 5/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -14,9 +14,11 @@
  
  #define DEBUG_TYPE "cpu0-lower"
@@ -126,7 +126,7 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
  #include "llvm/DerivedTypes.h"
  #include "llvm/Function.h"
  #include "llvm/GlobalVariable.h"
-@@ -35,14 +37,33 @@
+@@ -35,14 +37,36 @@
  
  using namespace llvm;
  
@@ -137,10 +137,13 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
 +
 +const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
 +  switch (Opcode) {
++  case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
 +  case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
 +  case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
 +  case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
 +  case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
++  case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
++  case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
 +  case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
 +  default:                         return NULL;
 +  }
@@ -153,16 +156,15 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
      Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
  
    // Set up the register classes
-   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
--  
-+
+   addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
+ 
 +  // Cpu0 Custom Operations
 +  setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
 +
    setOperationAction(ISD::SDIV, MVT::i32, Expand);
    setOperationAction(ISD::SREM, MVT::i32, Expand);
    setOperationAction(ISD::UDIV, MVT::i32, Expand);
-@@ -112,6 +133,71 @@
+@@ -112,6 +136,71 @@
    return SDValue();
  }
  
@@ -234,9 +236,285 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
  #include "Cpu0GenCallingConv.inc"
  
  /// LowerFormalArguments - transform physical registers into virtual registers
+diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp.orig 6/1/Cpu0/Cpu0ISelLowering.cpp.orig
+--- 5/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -43,6 +43,14 @@
+   // Set up the register classes
+   addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
+ 
++  setOperationAction(ISD::SDIV, MVT::i32, Expand);
++  setOperationAction(ISD::SREM, MVT::i32, Expand);
++  setOperationAction(ISD::UDIV, MVT::i32, Expand);
++  setOperationAction(ISD::UREM, MVT::i32, Expand);
++
++  setTargetDAGCombine(ISD::SDIVREM);
++  setTargetDAGCombine(ISD::UDIVREM);
++
+ //- Set .align 2
+ // It will emit .align 2 later
+   setMinFunctionAlignment(2);
+@@ -52,6 +60,110 @@
+   computeRegisterProperties();
+ }
+ 
++static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
++                                    TargetLowering::DAGCombinerInfo &DCI,
++                                    const Cpu0Subtarget* Subtarget) {
++  if (DCI.isBeforeLegalizeOps())
++    return SDValue();
++
++  EVT Ty = N->getValueType(0);
++  unsigned LO = Cpu0::LO;
++  unsigned HI = Cpu0::HI;
++  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
++                                                  Cpu0ISD::DivRemU;
++  DebugLoc dl = N->getDebugLoc();
++
++  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
++                               N->getOperand(0), N->getOperand(1));
++  SDValue InChain = DAG.getEntryNode();
++  SDValue InGlue = DivRem;
++
++  // insert MFLO
++  if (N->hasAnyUseOfValue(0)) {
++    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
++                                            InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
++    InChain = CopyFromLo.getValue(1);
++    InGlue = CopyFromLo.getValue(2);
++  }
++
++  // insert MFHI
++  if (N->hasAnyUseOfValue(1)) {
++    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
++                                            HI, Ty, InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
++  }
++
++  return SDValue();
++}
++
++SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
++  const {
++  SelectionDAG &DAG = DCI.DAG;
++  unsigned opc = N->getOpcode();
++
++  switch (opc) {
++  default: break;
++  case ISD::SDIVREM:
++  case ISD::UDIVREM:
++    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
++  }
++
++  return SDValue();
++}
++
++static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
++                                    TargetLowering::DAGCombinerInfo &DCI,
++                                    const Cpu0Subtarget* Subtarget) {
++  if (DCI.isBeforeLegalizeOps())
++    return SDValue();
++
++  EVT Ty = N->getValueType(0);
++  unsigned LO = Cpu0::LO;
++  unsigned HI = Cpu0::HI;
++  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
++                                                  Cpu0ISD::DivRemU;
++  DebugLoc dl = N->getDebugLoc();
++
++  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
++                               N->getOperand(0), N->getOperand(1));
++  SDValue InChain = DAG.getEntryNode();
++  SDValue InGlue = DivRem;
++
++  // insert MFLO
++  if (N->hasAnyUseOfValue(0)) {
++    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
++                                            InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
++    InChain = CopyFromLo.getValue(1);
++    InGlue = CopyFromLo.getValue(2);
++  }
++
++  // insert MFHI
++  if (N->hasAnyUseOfValue(1)) {
++    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
++                                            HI, Ty, InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
++  }
++
++  return SDValue();
++}
++
++SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
++  const {
++  SelectionDAG &DAG = DCI.DAG;
++  unsigned opc = N->getOpcode();
++
++  switch (opc) {
++  default: break;
++  case ISD::SDIVREM:
++  case ISD::UDIVREM:
++    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
++  }
++
++  return SDValue();
++}
++
+ #include "Cpu0GenCallingConv.inc"
+ 
+ /// LowerFormalArguments - transform physical registers into virtual registers
+diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp.orig.orig 6/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig
+--- 5/Cpu0/Cpu0ISelLowering.cpp.orig.orig	1970-01-01 08:00:00.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -0,0 +1,143 @@
++//===-- Cpu0ISelLowering.cpp - Cpu0 DAG Lowering Implementation -----------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file defines the interfaces that Cpu0 uses to lower LLVM code into a
++// selection DAG.
++//
++//===----------------------------------------------------------------------===//
++
++#define DEBUG_TYPE "cpu0-lower"
++#include "Cpu0ISelLowering.h"
++#include "Cpu0TargetMachine.h"
++#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
++#include "Cpu0Subtarget.h"
++#include "llvm/DerivedTypes.h"
++#include "llvm/Function.h"
++#include "llvm/GlobalVariable.h"
++#include "llvm/Intrinsics.h"
++#include "llvm/CallingConv.h"
++#include "llvm/CodeGen/CallingConvLower.h"
++#include "llvm/CodeGen/MachineFrameInfo.h"
++#include "llvm/CodeGen/MachineFunction.h"
++#include "llvm/CodeGen/MachineInstrBuilder.h"
++#include "llvm/CodeGen/MachineRegisterInfo.h"
++#include "llvm/CodeGen/SelectionDAGISel.h"
++#include "llvm/CodeGen/ValueTypes.h"
++#include "llvm/Support/Debug.h"
++#include "llvm/Support/ErrorHandling.h"
++#include "llvm/Support/raw_ostream.h"
++
++using namespace llvm;
++
++Cpu0TargetLowering::
++Cpu0TargetLowering(Cpu0TargetMachine &TM)
++  : TargetLowering(TM, new TargetLoweringObjectFileELF()),
++    Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
++
++  // Set up the register classes
++  addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
++
++  setOperationAction(ISD::SDIV, MVT::i32, Expand);
++  setOperationAction(ISD::SREM, MVT::i32, Expand);
++  setOperationAction(ISD::UDIV, MVT::i32, Expand);
++  setOperationAction(ISD::UREM, MVT::i32, Expand);
++
++  setTargetDAGCombine(ISD::SDIVREM);
++  setTargetDAGCombine(ISD::UDIVREM);
++
++//- Set .align 2
++// It will emit .align 2 later
++  setMinFunctionAlignment(2);
++
++// must, computeRegisterProperties - Once all of the register classes are 
++//  added, this allows us to compute derived properties we expose.
++  computeRegisterProperties();
++}
++
++static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
++                                    TargetLowering::DAGCombinerInfo &DCI,
++                                    const Cpu0Subtarget* Subtarget) {
++  if (DCI.isBeforeLegalizeOps())
++    return SDValue();
++
++  EVT Ty = N->getValueType(0);
++  unsigned LO = Cpu0::LO;
++  unsigned HI = Cpu0::HI;
++  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
++                                                  Cpu0ISD::DivRemU;
++  DebugLoc dl = N->getDebugLoc();
++
++  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
++                               N->getOperand(0), N->getOperand(1));
++  SDValue InChain = DAG.getEntryNode();
++  SDValue InGlue = DivRem;
++
++  // insert MFLO
++  if (N->hasAnyUseOfValue(0)) {
++    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
++                                            InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
++    InChain = CopyFromLo.getValue(1);
++    InGlue = CopyFromLo.getValue(2);
++  }
++
++  // insert MFHI
++  if (N->hasAnyUseOfValue(1)) {
++    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
++                                            HI, Ty, InGlue);
++    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
++  }
++
++  return SDValue();
++}
++
++SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
++  const {
++  SelectionDAG &DAG = DCI.DAG;
++  unsigned opc = N->getOpcode();
++
++  switch (opc) {
++  default: break;
++  case ISD::SDIVREM:
++  case ISD::UDIVREM:
++    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
++  }
++
++  return SDValue();
++}
++
++#include "Cpu0GenCallingConv.inc"
++
++/// LowerFormalArguments - transform physical registers into virtual registers
++/// and generate load operations for arguments places on the stack.
++SDValue
++Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
++                                         CallingConv::ID CallConv,
++                                         bool isVarArg,
++                                      const SmallVectorImpl<ISD::InputArg> &Ins,
++                                         DebugLoc dl, SelectionDAG &DAG,
++                                         SmallVectorImpl<SDValue> &InVals)
++                                          const {
++  return Chain;
++}
++
++//===----------------------------------------------------------------------===//
++//               Return Value Calling Convention Implementation
++//===----------------------------------------------------------------------===//
++
++SDValue
++Cpu0TargetLowering::LowerReturn(SDValue Chain,
++                                CallingConv::ID CallConv, bool isVarArg,
++                                const SmallVectorImpl<ISD::OutputArg> &Outs,
++                                const SmallVectorImpl<SDValue> &OutVals,
++                                DebugLoc dl, SelectionDAG &DAG) const {
++
++    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
++                       Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
++}
 diff -Naur 5/Cpu0/Cpu0ISelLowering.h 6/1/Cpu0/Cpu0ISelLowering.h
---- 5/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
 @@ -25,10 +25,32 @@
      enum NodeType {
        // Start the numbering from where ISD NodeType finishes.
@@ -296,8 +574,8 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.h 6/1/Cpu0/Cpu0ISelLowering.h
      virtual SDValue
        LowerFormalArguments(SDValue Chain,
 diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
---- 5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
 @@ -27,6 +27,13 @@
                                           [SDTCisInt<0>,
                                            SDTCisSameAs<0, 1>]>;
@@ -385,8 +663,8 @@ diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
  defm : SeteqPats<CPURegs, XOR>;
 -
 diff -Naur 5/Cpu0/Cpu0MCInstLower.cpp 6/1/Cpu0/Cpu0MCInstLower.cpp
---- 5/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -42,6 +42,16 @@
  
    switch(MO.getTargetFlags()) {
@@ -415,7 +693,7 @@ diff -Naur 5/Cpu0/Cpu0MCInstLower.cpp 6/1/Cpu0/Cpu0MCInstLower.cpp
   }
 diff -Naur 5/Cpu0/Cpu0MachineFunction.cpp 6/1/Cpu0/Cpu0MachineFunction.cpp
 --- 5/Cpu0/Cpu0MachineFunction.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 6/1/Cpu0/Cpu0MachineFunction.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0MachineFunction.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -0,0 +1,44 @@
 +//===-- Cpu0MachineFunctionInfo.cpp - Private data used for Cpu0 ----------===//
 +//
@@ -455,15 +733,15 @@ diff -Naur 5/Cpu0/Cpu0MachineFunction.cpp 6/1/Cpu0/Cpu0MachineFunction.cpp
 +    return GlobalBaseReg = Cpu0::GP;
 +
 +  const TargetRegisterClass *RC;
-+  RC = Cpu0::CPURegsRegisterClass;
++  RC = (const TargetRegisterClass*)&Cpu0::CPURegsRegClass;
 +
 +  return GlobalBaseReg = MF.getRegInfo().createVirtualRegister(RC);
 +}
 +
 +void Cpu0FunctionInfo::anchor() { }
 diff -Naur 5/Cpu0/Cpu0MachineFunction.h 6/1/Cpu0/Cpu0MachineFunction.h
---- 5/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0MachineFunction.h	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0MachineFunction.h	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0MachineFunction.h	2013-01-15 15:37:36.000000000 +0800
 @@ -23,14 +23,25 @@
  /// Cpu0FunctionInfo - This class is derived from MachineFunction private
  /// Cpu0 target-specific information for each MachineFunction.
@@ -492,8 +770,8 @@ diff -Naur 5/Cpu0/Cpu0MachineFunction.h 6/1/Cpu0/Cpu0MachineFunction.h
  };
  
 diff -Naur 5/Cpu0/Cpu0RegisterInfo.cpp 6/1/Cpu0/Cpu0RegisterInfo.cpp
---- 5/Cpu0/Cpu0RegisterInfo.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0RegisterInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0RegisterInfo.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0RegisterInfo.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -78,6 +78,11 @@
    for (unsigned I = 0; I < array_lengthof(ReservedCPURegs); ++I)
      Reserved.set(ReservedCPURegs[I]);
@@ -507,8 +785,8 @@ diff -Naur 5/Cpu0/Cpu0RegisterInfo.cpp 6/1/Cpu0/Cpu0RegisterInfo.cpp
  }
  
 diff -Naur 5/Cpu0/Cpu0Subtarget.cpp 6/1/Cpu0/Cpu0Subtarget.cpp
---- 5/Cpu0/Cpu0Subtarget.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0Subtarget.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0Subtarget.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0Subtarget.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -14,6 +14,7 @@
  #include "Cpu0Subtarget.h"
  #include "Cpu0.h"
@@ -536,8 +814,8 @@ diff -Naur 5/Cpu0/Cpu0Subtarget.cpp 6/1/Cpu0/Cpu0Subtarget.cpp
    std::string CPUName = CPU;
    if (CPUName.empty())
 diff -Naur 5/Cpu0/Cpu0Subtarget.h 6/1/Cpu0/Cpu0Subtarget.h
---- 5/Cpu0/Cpu0Subtarget.h	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/Cpu0Subtarget.h	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/Cpu0Subtarget.h	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/Cpu0Subtarget.h	2013-01-15 15:37:36.000000000 +0800
 @@ -47,6 +47,9 @@
    // IsLittle - The target is Little Endian
    bool IsLittle;
@@ -558,7 +836,7 @@ diff -Naur 5/Cpu0/Cpu0Subtarget.h 6/1/Cpu0/Cpu0Subtarget.h
  
 diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
 --- 5/Cpu0/Cpu0TargetObjectFile.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 6/1/Cpu0/Cpu0TargetObjectFile.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0TargetObjectFile.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -0,0 +1,102 @@
 +//===-- Cpu0TargetObjectFile.cpp - Cpu0 Object Files ----------------------===//
 +//
@@ -573,9 +851,9 @@ diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
 +#include "Cpu0Subtarget.h"
 +#include "llvm/DerivedTypes.h"
 +#include "llvm/GlobalVariable.h"
++#include "llvm/DataLayout.h"
 +#include "llvm/MC/MCContext.h"
 +#include "llvm/MC/MCSectionELF.h"
-+#include "llvm/Target/TargetData.h"
 +#include "llvm/Target/TargetMachine.h"
 +#include "llvm/Support/CommandLine.h"
 +#include "llvm/Support/ELF.h"
@@ -642,7 +920,7 @@ diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
 +    return false;
 +
 +  Type *Ty = GV->getType()->getElementType();
-+  return IsInSmallSection(TM.getTargetData()->getTypeAllocSize(Ty));
++  return IsInSmallSection(TM.getDataLayout()->getTypeAllocSize(Ty));
 +}
 +
 +
@@ -664,7 +942,7 @@ diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
 +}
 diff -Naur 5/Cpu0/Cpu0TargetObjectFile.h 6/1/Cpu0/Cpu0TargetObjectFile.h
 --- 5/Cpu0/Cpu0TargetObjectFile.h	1970-01-01 08:00:00.000000000 +0800
-+++ 6/1/Cpu0/Cpu0TargetObjectFile.h	2013-01-10 18:32:51.000000000 +0800
++++ 6/1/Cpu0/Cpu0TargetObjectFile.h	2013-01-15 15:37:36.000000000 +0800
 @@ -0,0 +1,41 @@
 +//===-- llvm/Target/Cpu0TargetObjectFile.h - Cpu0 Object Info ---*- C++ -*-===//
 +//
@@ -708,8 +986,8 @@ diff -Naur 5/Cpu0/Cpu0TargetObjectFile.h 6/1/Cpu0/Cpu0TargetObjectFile.h
 +
 +#endif
 diff -Naur 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -56,6 +56,12 @@
    switch (Kind) {
    default:                                 llvm_unreachable("Invalid kind!");
@@ -724,9 +1002,9 @@ diff -Naur 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 6/1/Cpu0/InstPrinter/Cpu0InstP
  
    OS << SRE->getSymbol();
 diff -Naur 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -143,6 +143,30 @@
+--- 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -157,6 +157,30 @@
  
    assert (Kind == MCExpr::SymbolRef);
  
@@ -757,3 +1035,185 @@ diff -Naur 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 6/1/Cpu0/MCTargetDesc/Cpu0M
    // All of the information is in the fixup.
    return 0;
  }
+diff -Naur 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig
+--- 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	1970-01-01 08:00:00.000000000 +0800
++++ 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -0,0 +1,178 @@
++//===-- Cpu0MCCodeEmitter.cpp - Convert Cpu0 Code to Machine Code ---------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements the Cpu0MCCodeEmitter class.
++//
++//===----------------------------------------------------------------------===//
++//
++#define DEBUG_TYPE "mccodeemitter"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
++#include "MCTargetDesc/Cpu0FixupKinds.h"
++#include "MCTargetDesc/Cpu0MCTargetDesc.h"
++#include "llvm/ADT/APFloat.h"
++#include "llvm/ADT/Statistic.h"
++#include "llvm/MC/MCCodeEmitter.h"
++#include "llvm/MC/MCExpr.h"
++#include "llvm/MC/MCInst.h"
++#include "llvm/MC/MCInstrInfo.h"
++#include "llvm/MC/MCRegisterInfo.h"
++#include "llvm/MC/MCSubtargetInfo.h"
++#include "llvm/Support/raw_ostream.h"
++
++using namespace llvm;
++
++namespace {
++class Cpu0MCCodeEmitter : public MCCodeEmitter {
++  // #define LLVM_DELETED_FUNCTION
++  //  LLVM_DELETED_FUNCTION - Expands to = delete if the compiler supports it. 
++  //  Use to mark functions as uncallable. Member functions with this should be 
++  //  declared private so that some behavior is kept in C++03 mode.
++  //  class DontCopy { private: DontCopy(const DontCopy&) LLVM_DELETED_FUNCTION;
++  //  DontCopy &operator =(const DontCopy&) LLVM_DELETED_FUNCTION; public: ... };
++  //  Definition at line 79 of file Compiler.h.
++
++  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &) LLVM_DELETED_FUNCTION;
++  void operator=(const Cpu0MCCodeEmitter &) LLVM_DELETED_FUNCTION;
++  // Even though, the old function still work on LLVM version 3.2
++  //  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  //  void operator=(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++
++  const MCInstrInfo &MCII;
++  const MCSubtargetInfo &STI;
++  MCContext &Ctx;
++  bool IsLittleEndian;
++
++public:
++  Cpu0MCCodeEmitter(const MCInstrInfo &mcii, const MCSubtargetInfo &sti,
++                    MCContext &ctx, bool IsLittle) :
++            MCII(mcii), STI(sti) , Ctx(ctx), IsLittleEndian(IsLittle) {}
++
++  ~Cpu0MCCodeEmitter() {}
++
++  void EmitByte(unsigned char C, raw_ostream &OS) const {
++    OS << (char)C;
++  }
++
++  void EmitInstruction(uint64_t Val, unsigned Size, raw_ostream &OS) const {
++    // Output the instruction encoding in little endian byte order.
++    for (unsigned i = 0; i < Size; ++i) {
++      unsigned Shift = IsLittleEndian ? i * 8 : (Size - 1 - i) * 8;
++      EmitByte((Val >> Shift) & 0xff, OS);
++    }
++  }
++
++  void EncodeInstruction(const MCInst &MI, raw_ostream &OS,
++                         SmallVectorImpl<MCFixup> &Fixups) const;
++  // getBinaryCodeForInstr - TableGen'erated function for getting the
++  // binary encoding for an instruction.
++  uint64_t getBinaryCodeForInstr(const MCInst &MI,
++                                 SmallVectorImpl<MCFixup> &Fixups) const;
++   // getMachineOpValue - Return binary encoding of operand. If the machin
++   // operand requires relocation, record the relocation and return zero.
++  unsigned getMachineOpValue(const MCInst &MI,const MCOperand &MO,
++                             SmallVectorImpl<MCFixup> &Fixups) const;
++
++  unsigned getMemEncoding(const MCInst &MI, unsigned OpNo,
++                          SmallVectorImpl<MCFixup> &Fixups) const;
++}; // class Cpu0MCCodeEmitter
++}  // namespace
++
++MCCodeEmitter *llvm::createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                               const MCRegisterInfo &MRI,
++                                               const MCSubtargetInfo &STI,
++                                               MCContext &Ctx)
++{
++  return new Cpu0MCCodeEmitter(MCII, STI, Ctx, false);
++}
++
++MCCodeEmitter *llvm::createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                               const MCRegisterInfo &MRI,
++                                               const MCSubtargetInfo &STI,
++                                               MCContext &Ctx)
++{
++  return new Cpu0MCCodeEmitter(MCII, STI, Ctx, true);
++}
++
++/// EncodeInstruction - Emit the instruction.
++/// Size the instruction (currently only 4 bytes
++void Cpu0MCCodeEmitter::
++EncodeInstruction(const MCInst &MI, raw_ostream &OS,
++                  SmallVectorImpl<MCFixup> &Fixups) const
++{
++  uint32_t Binary = getBinaryCodeForInstr(MI, Fixups);
++
++  // Check for unimplemented opcodes.
++  // Unfortunately in CPU0 both NOT and SLL will come in with Binary == 0
++  // so we have to special check for them.
++  unsigned Opcode = MI.getOpcode();
++  if ((Opcode != Cpu0::NOP) && (Opcode != Cpu0::SHL) && !Binary)
++    llvm_unreachable("unimplemented opcode in EncodeInstruction()");
++
++  const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
++  uint64_t TSFlags = Desc.TSFlags;
++
++  // Pseudo instructions don't get encoded and shouldn't be here
++  // in the first place!
++  if ((TSFlags & Cpu0II::FormMask) == Cpu0II::Pseudo)
++    llvm_unreachable("Pseudo opcode found in EncodeInstruction()");
++
++  // For now all instructions are 4 bytes
++  int Size = 4; // FIXME: Have Desc.getSize() return the correct value!
++
++  EmitInstruction(Binary, Size, OS);
++}
++
++/// getMachineOpValue - Return binary encoding of operand. If the machine
++/// operand requires relocation, record the relocation and return zero.
++unsigned Cpu0MCCodeEmitter::
++getMachineOpValue(const MCInst &MI, const MCOperand &MO,
++                  SmallVectorImpl<MCFixup> &Fixups) const {
++  if (MO.isReg()) {
++    unsigned Reg = MO.getReg();
++    unsigned RegNo = getCpu0RegisterNumbering(Reg);
++    return RegNo;
++  } else if (MO.isImm()) {
++    return static_cast<unsigned>(MO.getImm());
++  } else if (MO.isFPImm()) {
++    return static_cast<unsigned>(APFloat(MO.getFPImm())
++        .bitcastToAPInt().getHiBits(32).getLimitedValue());
++  } 
++
++  // MO must be an Expr.
++  assert(MO.isExpr());
++
++  const MCExpr *Expr = MO.getExpr();
++  MCExpr::ExprKind Kind = Expr->getKind();
++
++  if (Kind == MCExpr::Binary) {
++    Expr = static_cast<const MCBinaryExpr*>(Expr)->getLHS();
++    Kind = Expr->getKind();
++  }
++
++  assert (Kind == MCExpr::SymbolRef);
++
++  // All of the information is in the fixup.
++  return 0;
++}
++
++/// getMemEncoding - Return binary encoding of memory related operand.
++/// If the offset operand requires relocation, record the relocation.
++unsigned
++Cpu0MCCodeEmitter::getMemEncoding(const MCInst &MI, unsigned OpNo,
++                                  SmallVectorImpl<MCFixup> &Fixups) const {
++  // Base register is encoded in bits 20-16, offset is encoded in bits 15-0.
++  assert(MI.getOperand(OpNo).isReg());
++  unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo),Fixups) << 16;
++  unsigned OffBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups);
++
++  return (OffBits & 0xFFFF) | RegBits;
++}
++
++#include "Cpu0GenMCCodeEmitter.inc"
++

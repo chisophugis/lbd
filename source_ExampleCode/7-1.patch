@@ -1,17 +1,9 @@
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
---- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -44,6 +44,7 @@
- 
- const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
-   switch (Opcode) {
-+  case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
-   case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
-   case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
-   case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
-@@ -61,17 +62,27 @@
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -64,14 +64,24 @@
    // Set up the register classes
-   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
+   addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
  
 +  // Used by legalize types to correctly generate the setcc result.
 +  // Without this, every float setcc comes with a AND/OR with the result,
@@ -34,12 +26,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
 +
    setTargetDAGCombine(ISD::SDIVREM);
    setTargetDAGCombine(ISD::UDIVREM);
--  
-+
- //- Set .align 2
- // It will emit .align 2 later
-   setMinFunctionAlignment(2);
-@@ -138,6 +149,7 @@
+ 
+@@ -141,6 +151,7 @@
  {
    switch (Op.getOpcode())
    {
@@ -47,7 +35,7 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
      case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
    }
    return SDValue();
-@@ -150,6 +162,11 @@
+@@ -153,6 +164,11 @@
  //===----------------------------------------------------------------------===//
  //  Misc Lower Operation implementation
  //===----------------------------------------------------------------------===//
@@ -59,7 +47,7 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
  
  SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
                                                 SelectionDAG &DAG) const {
-@@ -200,6 +217,18 @@
+@@ -203,6 +219,18 @@
  
  #include "Cpu0GenCallingConv.inc"
  
@@ -78,14 +66,118 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
  /// LowerFormalArguments - transform physical registers into virtual registers
  /// and generate load operations for arguments places on the stack.
  SDValue
-@@ -233,3 +262,4 @@
+@@ -236,3 +264,4 @@
    // The Mips target isn't yet aware of offsets.
    return false;
  }
 +
+diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp.orig 7/1/Cpu0/Cpu0ISelLowering.cpp.orig
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -201,71 +201,6 @@
+   return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
+ }
+ 
+-SDValue Cpu0TargetLowering::
+-LowerOperation(SDValue Op, SelectionDAG &DAG) const
+-{
+-  switch (Op.getOpcode())
+-  {
+-    case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
+-  }
+-  return SDValue();
+-}
+-
+-//===----------------------------------------------------------------------===//
+-//  Lower helper functions
+-//===----------------------------------------------------------------------===//
+-
+-//===----------------------------------------------------------------------===//
+-//  Misc Lower Operation implementation
+-//===----------------------------------------------------------------------===//
+-
+-SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
+-                                               SelectionDAG &DAG) const {
+-  // FIXME there isn't actually debug info here
+-  DebugLoc dl = Op.getDebugLoc();
+-  const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
+-
+-  if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
+-    SDVTList VTs = DAG.getVTList(MVT::i32);
+-
+-    Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
+-
+-    // %gp_rel relocation
+-    if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
+-      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+-                                              Cpu0II::MO_GPREL);
+-      SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
+-      SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
+-      return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
+-    }
+-    // %hi/%lo relocation
+-    SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+-                                              Cpu0II::MO_ABS_HI);
+-    SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+-                                              Cpu0II::MO_ABS_LO);
+-    SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
+-    SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
+-    return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
+-  }
+-
+-  EVT ValTy = Op.getValueType();
+-  bool HasGotOfst = (GV->hasInternalLinkage() ||
+-                     (GV->hasLocalLinkage() && !isa<Function>(GV)));
+-  unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
+-  SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
+-  GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
+-  SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
+-                                MachinePointerInfo(), false, false, false, 0);
+-  // On functions and global targets not internal linked only
+-  // a load from got/GP is necessary for PIC to work.
+-  if (!HasGotOfst)
+-    return ResNode;
+-  SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
+-                                                        Cpu0II::MO_ABS_LO);
+-  SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
+-  return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
+-}
+-
+ #include "Cpu0GenCallingConv.inc"
+ 
+ /// LowerFormalArguments - transform physical registers into virtual registers
+@@ -295,3 +230,15 @@
+     return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+                        Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
+ }
++
++bool
++Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
++  // The Mips target isn't yet aware of offsets.
++  return false;
++}
++
++bool
++Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
++  // The Mips target isn't yet aware of offsets.
++  return false;
++}
+diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -230,3 +230,9 @@
+     return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+                        Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
+ }
++
++bool
++Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
++  // The Mips target isn't yet aware of offsets.
++  return false;
++}
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
---- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
 @@ -77,6 +77,7 @@
      const Cpu0Subtarget *Subtarget;
  
@@ -112,8 +204,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
  	//- must be exist without function all
      virtual SDValue
 diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
---- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-15 15:37:36.000000000 +0800
 @@ -110,6 +110,17 @@
    let Inst{15-0}  = imm16;
  }
@@ -133,8 +225,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
  // Format J instruction class in Cpu0 : <|opcode|address|>
  //===----------------------------------------------------------------------===//
 diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
---- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
 @@ -53,6 +53,12 @@
  //===----------------------------------------------------------------------===//
  // Cpu0 Operand, Complex Patterns and Transformations Definitions.
@@ -235,8 +327,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
  multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
    def : Pat<(seteq RC:$lhs, RC:$rhs),
 diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
---- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -42,6 +42,8 @@
  
    switch(MO.getTargetFlags()) {
@@ -268,8 +360,8 @@ diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
    case MachineOperand::MO_RegisterMask:
      break;
 diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -58,6 +58,7 @@
    case MCSymbolRefExpr::VK_None:           break;
  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
@@ -279,9 +371,9 @@ diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0Ins
    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -57,10 +57,24 @@
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -69,10 +69,24 @@
  
    void EncodeInstruction(const MCInst &MI, raw_ostream &OS,
                           SmallVectorImpl<MCFixup> &Fixups) const;
@@ -306,7 +398,7 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu
     // getMachineOpValue - Return binary encoding of operand. If the machin
     // operand requires relocation, record the relocation and return zero.
    unsigned getMachineOpValue(const MCInst &MI,const MCOperand &MO,
-@@ -114,6 +128,38 @@
+@@ -128,6 +142,38 @@
    EmitInstruction(Binary, Size, OS);
  }
  
@@ -345,3 +437,37 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu
  /// getMachineOpValue - Return binary encoding of operand. If the machine
  /// operand requires relocation, record the relocation and return zero.
  unsigned Cpu0MCCodeEmitter::
+diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -157,6 +157,30 @@
+ 
+   assert (Kind == MCExpr::SymbolRef);
+ 
++  Cpu0::Fixups FixupKind = Cpu0::Fixups(0);
++
++  switch(cast<MCSymbolRefExpr>(Expr)->getKind()) {
++  case MCSymbolRefExpr::VK_Cpu0_GPREL:
++    FixupKind = Cpu0::fixup_Cpu0_GPREL16;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT16:
++    FixupKind = Cpu0::fixup_Cpu0_GOT_Global;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_GOT:
++    FixupKind = Cpu0::fixup_Cpu0_GOT_Local;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_ABS_HI:
++    FixupKind = Cpu0::fixup_Cpu0_HI16;
++    break;
++  case MCSymbolRefExpr::VK_Cpu0_ABS_LO:
++    FixupKind = Cpu0::fixup_Cpu0_LO16;
++    break;
++  default:
++    break;
++  } // switch
++
++  Fixups.push_back(MCFixup::Create(0, MO.getExpr(), MCFixupKind(FixupKind)));
++
+   // All of the information is in the fixup.
+   return 0;
+ }

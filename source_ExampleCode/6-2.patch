@@ -1,6 +1,6 @@
 diff -Naur 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp 6/2/Cpu0/Cpu0ISelDAGToDAG.cpp
---- 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/2/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-15 15:37:36.000000000 +0800
 @@ -152,6 +152,23 @@
          Addr.getOpcode() == ISD::TargetGlobalAddress))
        return false;
@@ -26,9 +26,9 @@ diff -Naur 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp 6/2/Cpu0/Cpu0ISelDAGToDAG.cpp
    Base   = Addr;
    Offset = CurDAG->getTargetConstant(0, ValTy);
 diff -Naur 6/1/Cpu0/Cpu0ISelLowering.cpp 6/2/Cpu0/Cpu0ISelLowering.cpp
---- 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -227,3 +227,9 @@
+--- 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -230,3 +230,9 @@
      return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
                         Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
  }
@@ -38,9 +38,362 @@ diff -Naur 6/1/Cpu0/Cpu0ISelLowering.cpp 6/2/Cpu0/Cpu0ISelLowering.cpp
 +  // The Mips target isn't yet aware of offsets.
 +  return false;
 +}
+diff -Naur 6/1/Cpu0/Cpu0ISelLowering.cpp.orig 6/2/Cpu0/Cpu0ISelLowering.cpp.orig
+--- 6/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -14,9 +14,11 @@
+ 
+ #define DEBUG_TYPE "cpu0-lower"
+ #include "Cpu0ISelLowering.h"
++#include "Cpu0MachineFunction.h"
+ #include "Cpu0TargetMachine.h"
+-#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
++#include "Cpu0TargetObjectFile.h"
+ #include "Cpu0Subtarget.h"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
+ #include "llvm/DerivedTypes.h"
+ #include "llvm/Function.h"
+ #include "llvm/GlobalVariable.h"
+@@ -35,14 +37,36 @@
+ 
+ using namespace llvm;
+ 
++static SDValue GetGlobalReg(SelectionDAG &DAG, EVT Ty) {
++  Cpu0FunctionInfo *FI = DAG.getMachineFunction().getInfo<Cpu0FunctionInfo>();
++  return DAG.getRegister(FI->getGlobalBaseReg(), Ty);
++}
++
++const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
++  switch (Opcode) {
++  case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
++  case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
++  case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
++  case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
++  case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
++  case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
++  case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
++  case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
++  default:                         return NULL;
++  }
++}
++
+ Cpu0TargetLowering::
+ Cpu0TargetLowering(Cpu0TargetMachine &TM)
+-  : TargetLowering(TM, new TargetLoweringObjectFileELF()),
++  : TargetLowering(TM, new Cpu0TargetObjectFile()),
+     Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+ 
+   // Set up the register classes
+   addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
+ 
++  // Cpu0 Custom Operations
++  setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
++
+   setOperationAction(ISD::SDIV, MVT::i32, Expand);
+   setOperationAction(ISD::SREM, MVT::i32, Expand);
+   setOperationAction(ISD::UDIV, MVT::i32, Expand);
+@@ -112,56 +136,134 @@
+   return SDValue();
+ }
+ 
+-static SDValue PerformDivRemCombine(SDNode *N, SelectionDAG& DAG,
+-                                    TargetLowering::DAGCombinerInfo &DCI,
+-                                    const Cpu0Subtarget* Subtarget) {
+-  if (DCI.isBeforeLegalizeOps())
+-    return SDValue();
++SDValue Cpu0TargetLowering::
++LowerOperation(SDValue Op, SelectionDAG &DAG) const
++{
++  switch (Op.getOpcode())
++  {
++    case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
++  }
++  return SDValue();
++}
+ 
+-  EVT Ty = N->getValueType(0);
+-  unsigned LO = Cpu0::LO;
+-  unsigned HI = Cpu0::HI;
+-  unsigned opc = N->getOpcode() == ISD::SDIVREM ? Cpu0ISD::DivRem :
+-                                                  Cpu0ISD::DivRemU;
+-  DebugLoc dl = N->getDebugLoc();
++//===----------------------------------------------------------------------===//
++//  Lower helper functions
++//===----------------------------------------------------------------------===//
+ 
+-  SDValue DivRem = DAG.getNode(opc, dl, MVT::Glue,
+-                               N->getOperand(0), N->getOperand(1));
+-  SDValue InChain = DAG.getEntryNode();
+-  SDValue InGlue = DivRem;
++//===----------------------------------------------------------------------===//
++//  Misc Lower Operation implementation
++//===----------------------------------------------------------------------===//
+ 
+-  // insert MFLO
+-  if (N->hasAnyUseOfValue(0)) {
+-    SDValue CopyFromLo = DAG.getCopyFromReg(InChain, dl, LO, Ty,
+-                                            InGlue);
+-    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 0), CopyFromLo);
+-    InChain = CopyFromLo.getValue(1);
+-    InGlue = CopyFromLo.getValue(2);
++SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
++                                               SelectionDAG &DAG) const {
++  // FIXME there isn't actually debug info here
++  DebugLoc dl = Op.getDebugLoc();
++  const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
++
++  if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
++    SDVTList VTs = DAG.getVTList(MVT::i32);
++
++    Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
++
++    // %gp_rel relocation
++    if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
++      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_GPREL);
++      SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
++      SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
++      return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
++    }
++    // %hi/%lo relocation
++    SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_HI);
++    SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_LO);
++    SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
++    SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
++    return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
+   }
+ 
+-  // insert MFHI
+-  if (N->hasAnyUseOfValue(1)) {
+-    SDValue CopyFromHi = DAG.getCopyFromReg(InChain, dl,
+-                                            HI, Ty, InGlue);
+-    DAG.ReplaceAllUsesOfValueWith(SDValue(N, 1), CopyFromHi);
+-  }
++  EVT ValTy = Op.getValueType();
++  bool HasGotOfst = (GV->hasInternalLinkage() ||
++                     (GV->hasLocalLinkage() && !isa<Function>(GV)));
++  unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
++  SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
++  GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
++  SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
++                                MachinePointerInfo(), false, false, false, 0);
++  // On functions and global targets not internal linked only
++  // a load from got/GP is necessary for PIC to work.
++  if (!HasGotOfst)
++    return ResNode;
++  SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
++                                                        Cpu0II::MO_ABS_LO);
++  SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
++  return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
++}
+ 
++SDValue Cpu0TargetLowering::
++LowerOperation(SDValue Op, SelectionDAG &DAG) const
++{
++  switch (Op.getOpcode())
++  {
++    case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
++  }
+   return SDValue();
+ }
+ 
+-SDValue Cpu0TargetLowering::PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI)
+-  const {
+-  SelectionDAG &DAG = DCI.DAG;
+-  unsigned opc = N->getOpcode();
++//===----------------------------------------------------------------------===//
++//  Lower helper functions
++//===----------------------------------------------------------------------===//
+ 
+-  switch (opc) {
+-  default: break;
+-  case ISD::SDIVREM:
+-  case ISD::UDIVREM:
+-    return PerformDivRemCombine(N, DAG, DCI, Subtarget);
++//===----------------------------------------------------------------------===//
++//  Misc Lower Operation implementation
++//===----------------------------------------------------------------------===//
++
++SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
++                                               SelectionDAG &DAG) const {
++  // FIXME there isn't actually debug info here
++  DebugLoc dl = Op.getDebugLoc();
++  const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
++
++  if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
++    SDVTList VTs = DAG.getVTList(MVT::i32);
++
++    Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
++
++    // %gp_rel relocation
++    if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
++      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_GPREL);
++      SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
++      SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
++      return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
++    }
++    // %hi/%lo relocation
++    SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_HI);
++    SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_LO);
++    SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
++    SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
++    return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
+   }
+ 
+-  return SDValue();
++  EVT ValTy = Op.getValueType();
++  bool HasGotOfst = (GV->hasInternalLinkage() ||
++                     (GV->hasLocalLinkage() && !isa<Function>(GV)));
++  unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
++  SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
++  GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
++  SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
++                                MachinePointerInfo(), false, false, false, 0);
++  // On functions and global targets not internal linked only
++  // a load from got/GP is necessary for PIC to work.
++  if (!HasGotOfst)
++    return ResNode;
++  SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
++                                                        Cpu0II::MO_ABS_LO);
++  SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
++  return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
+ }
+ 
+ #include "Cpu0GenCallingConv.inc"
+diff -Naur 6/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig
+--- 6/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -14,9 +14,11 @@
+ 
+ #define DEBUG_TYPE "cpu0-lower"
+ #include "Cpu0ISelLowering.h"
++#include "Cpu0MachineFunction.h"
+ #include "Cpu0TargetMachine.h"
+-#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
++#include "Cpu0TargetObjectFile.h"
+ #include "Cpu0Subtarget.h"
++#include "MCTargetDesc/Cpu0BaseInfo.h"
+ #include "llvm/DerivedTypes.h"
+ #include "llvm/Function.h"
+ #include "llvm/GlobalVariable.h"
+@@ -35,14 +37,36 @@
+ 
+ using namespace llvm;
+ 
++static SDValue GetGlobalReg(SelectionDAG &DAG, EVT Ty) {
++  Cpu0FunctionInfo *FI = DAG.getMachineFunction().getInfo<Cpu0FunctionInfo>();
++  return DAG.getRegister(FI->getGlobalBaseReg(), Ty);
++}
++
++const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
++  switch (Opcode) {
++  case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
++  case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
++  case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
++  case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
++  case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
++  case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
++  case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
++  case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
++  default:                         return NULL;
++  }
++}
++
+ Cpu0TargetLowering::
+ Cpu0TargetLowering(Cpu0TargetMachine &TM)
+-  : TargetLowering(TM, new TargetLoweringObjectFileELF()),
++  : TargetLowering(TM, new Cpu0TargetObjectFile()),
+     Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+ 
+   // Set up the register classes
+   addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
+ 
++  // Cpu0 Custom Operations
++  setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
++
+   setOperationAction(ISD::SDIV, MVT::i32, Expand);
+   setOperationAction(ISD::SREM, MVT::i32, Expand);
+   setOperationAction(ISD::UDIV, MVT::i32, Expand);
+@@ -112,6 +136,71 @@
+   return SDValue();
+ }
+ 
++SDValue Cpu0TargetLowering::
++LowerOperation(SDValue Op, SelectionDAG &DAG) const
++{
++  switch (Op.getOpcode())
++  {
++    case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
++  }
++  return SDValue();
++}
++
++//===----------------------------------------------------------------------===//
++//  Lower helper functions
++//===----------------------------------------------------------------------===//
++
++//===----------------------------------------------------------------------===//
++//  Misc Lower Operation implementation
++//===----------------------------------------------------------------------===//
++
++SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
++                                               SelectionDAG &DAG) const {
++  // FIXME there isn't actually debug info here
++  DebugLoc dl = Op.getDebugLoc();
++  const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
++
++  if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
++    SDVTList VTs = DAG.getVTList(MVT::i32);
++
++    Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
++
++    // %gp_rel relocation
++    if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
++      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_GPREL);
++      SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
++      SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
++      return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
++    }
++    // %hi/%lo relocation
++    SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_HI);
++    SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
++                                              Cpu0II::MO_ABS_LO);
++    SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
++    SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
++    return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
++  }
++
++  EVT ValTy = Op.getValueType();
++  bool HasGotOfst = (GV->hasInternalLinkage() ||
++                     (GV->hasLocalLinkage() && !isa<Function>(GV)));
++  unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
++  SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
++  GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
++  SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
++                                MachinePointerInfo(), false, false, false, 0);
++  // On functions and global targets not internal linked only
++  // a load from got/GP is necessary for PIC to work.
++  if (!HasGotOfst)
++    return ResNode;
++  SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
++                                                        Cpu0II::MO_ABS_LO);
++  SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
++  return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
++}
++
+ #include "Cpu0GenCallingConv.inc"
+ 
+ /// LowerFormalArguments - transform physical registers into virtual registers
 diff -Naur 6/1/Cpu0/Cpu0ISelLowering.h 6/2/Cpu0/Cpu0ISelLowering.h
---- 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
-+++ 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+--- 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
++++ 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
 @@ -94,6 +94,8 @@
                    const SmallVectorImpl<ISD::OutputArg> &Outs,
                    const SmallVectorImpl<SDValue> &OutVals,

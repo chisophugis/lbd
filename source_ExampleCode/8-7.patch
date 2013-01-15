@@ -1,24 +1,17 @@
 diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
---- 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -49,6 +49,8 @@
-   case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
-   case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
-   case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
-+  case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
-+  case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
-   case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
-   default:                         return NULL;
-   }
-@@ -71,6 +73,7 @@
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
+@@ -73,7 +73,8 @@
    // Cpu0 Custom Operations
    setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
    setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
+-  
 +  setOperationAction(ISD::VASTART,            MVT::Other, Custom);
- 
++
    setOperationAction(ISD::SDIV, MVT::i32, Expand);
    setOperationAction(ISD::SREM, MVT::i32, Expand);
-@@ -80,6 +83,12 @@
+   setOperationAction(ISD::UDIV, MVT::i32, Expand);
+@@ -82,6 +83,12 @@
    // Operations not directly supported by Cpu0.
    setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
  
@@ -31,7 +24,7 @@ diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
    setTargetDAGCombine(ISD::SDIVREM);
    setTargetDAGCombine(ISD::UDIVREM);
  
-@@ -151,6 +160,7 @@
+@@ -153,6 +160,7 @@
    {
      case ISD::BRCOND:             return LowerBRCOND(Op, DAG);
      case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
@@ -39,7 +32,7 @@ diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
    }
    return SDValue();
  }
-@@ -215,6 +225,21 @@
+@@ -217,6 +225,21 @@
    return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
  }
  
@@ -61,9 +54,45 @@ diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
  #include "Cpu0GenCallingConv.inc"
  
  SDValue
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp.orig 8/7/Cpu0/Cpu0ISelLowering.cpp.orig
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -267,6 +267,8 @@
+     unsigned StackAlignment = TFL->getStackAlignment();
+     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
+                       StackAlignment * StackAlignment;
++    if (Cpu0FI->needGPSaveRestore())
++      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
+ 
+     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
+   }
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -267,6 +267,8 @@
+     unsigned StackAlignment = TFL->getStackAlignment();
+     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
+                       StackAlignment * StackAlignment;
++    if (Cpu0FI->needGPSaveRestore())
++      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
+ 
+     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
+   }
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 15:37:36.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 15:37:36.000000000 +0800
+@@ -267,6 +267,8 @@
+     unsigned StackAlignment = TFL->getStackAlignment();
+     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
+                       StackAlignment * StackAlignment;
++    if (Cpu0FI->needGPSaveRestore())
++      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
+ 
+     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
+   }
 diff -Naur 8/6/Cpu0/Cpu0ISelLowering.h 8/7/Cpu0/Cpu0ISelLowering.h
---- 8/6/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+--- 8/6/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
 @@ -86,6 +86,7 @@
      // Lower Operand specifics
      SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
