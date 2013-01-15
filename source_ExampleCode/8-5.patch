@@ -1,6 +1,6 @@
 diff -Naur 8/4/Cpu0/Cpu0InstrInfo.cpp 8/5/Cpu0/Cpu0InstrInfo.cpp
---- 8/4/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/5/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 8/4/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/5/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -21,7 +21,7 @@
  using namespace llvm;
  
@@ -11,8 +11,8 @@ diff -Naur 8/4/Cpu0/Cpu0InstrInfo.cpp 8/5/Cpu0/Cpu0InstrInfo.cpp
      RI(*TM.getSubtargetImpl(), *this) {}
  
 diff -Naur 8/4/Cpu0/Cpu0RegisterInfo.cpp 8/5/Cpu0/Cpu0RegisterInfo.cpp
---- 8/4/Cpu0/Cpu0RegisterInfo.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/5/Cpu0/Cpu0RegisterInfo.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 8/4/Cpu0/Cpu0RegisterInfo.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/5/Cpu0/Cpu0RegisterInfo.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -86,6 +86,15 @@
    return Reserved;
  }
@@ -30,8 +30,8 @@ diff -Naur 8/4/Cpu0/Cpu0RegisterInfo.cpp 8/5/Cpu0/Cpu0RegisterInfo.cpp
  // pure virtual method
  // FrameIndex represent objects inside a abstract stack.
 diff -Naur 8/4/Cpu0/Cpu0RegisterInfo.h 8/5/Cpu0/Cpu0RegisterInfo.h
---- 8/4/Cpu0/Cpu0RegisterInfo.h	2013-01-15 15:37:36.000000000 +0800
-+++ 8/5/Cpu0/Cpu0RegisterInfo.h	2013-01-15 15:37:36.000000000 +0800
+--- 8/4/Cpu0/Cpu0RegisterInfo.h	2013-01-15 16:52:19.000000000 +0800
++++ 8/5/Cpu0/Cpu0RegisterInfo.h	2013-01-15 16:52:19.000000000 +0800
 @@ -42,6 +42,10 @@
  // pure virtual method
    BitVector getReservedRegs(const MachineFunction &MF) const;

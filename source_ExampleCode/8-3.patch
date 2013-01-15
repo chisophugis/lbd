@@ -1,6 +1,6 @@
 diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp 8/3/Cpu0/Cpu0ISelLowering.cpp
---- 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -220,15 +220,235 @@
  #include "Cpu0GenCallingConv.inc"
  
@@ -246,8 +246,8 @@ diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp 8/3/Cpu0/Cpu0ISelLowering.cpp
  
  /// LowerFormalArguments - transform physical registers into virtual registers
 diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp.orig 8/3/Cpu0/Cpu0ISelLowering.cpp.orig
---- 8/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -164,11 +164,6 @@
  //===----------------------------------------------------------------------===//
  //  Misc Lower Operation implementation
@@ -363,8 +363,8 @@ diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp.orig 8/3/Cpu0/Cpu0ISelLowering.cpp.orig
  }
  
 diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig 8/3/Cpu0/Cpu0ISelLowering.cpp.orig.orig
---- 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -160,11 +160,6 @@
  //===----------------------------------------------------------------------===//
  //  Lower helper functions
@@ -456,8 +456,8 @@ diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig 8/3/Cpu0/Cpu0ISelLowering.cpp
  }
  
 diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig 8/3/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig
---- 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -241,6 +241,58 @@
                                           DebugLoc dl, SelectionDAG &DAG,
                                           SmallVectorImpl<SDValue> &InVals)
@@ -518,8 +518,8 @@ diff -Naur 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig 8/3/Cpu0/Cpu0ISelLowerin
  }
  
 diff -Naur 8/2/Cpu0/Cpu0ISelLowering.h 8/3/Cpu0/Cpu0ISelLowering.h
---- 8/2/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
 @@ -75,6 +75,13 @@
    private:
      // Subtarget Info
@@ -550,8 +550,8 @@ diff -Naur 8/2/Cpu0/Cpu0ISelLowering.h 8/3/Cpu0/Cpu0ISelLowering.h
  
  	//- must be exist without function all
 diff -Naur 8/2/Cpu0/Cpu0InstrInfo.cpp 8/3/Cpu0/Cpu0InstrInfo.cpp
---- 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -75,6 +75,25 @@
                                   MFI.getObjectSize(FI), Align);
  }
@@ -579,8 +579,8 @@ diff -Naur 8/2/Cpu0/Cpu0InstrInfo.cpp 8/3/Cpu0/Cpu0InstrInfo.cpp
  loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                       unsigned DestReg, int FI,
 diff -Naur 8/2/Cpu0/Cpu0InstrInfo.h 8/3/Cpu0/Cpu0InstrInfo.h
---- 8/2/Cpu0/Cpu0InstrInfo.h	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0InstrInfo.h	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0InstrInfo.h	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0InstrInfo.h	2013-01-15 16:52:19.000000000 +0800
 @@ -36,12 +36,18 @@
    ///
    virtual const Cpu0RegisterInfo &getRegisterInfo() const;
@@ -602,8 +602,8 @@ diff -Naur 8/2/Cpu0/Cpu0InstrInfo.h 8/3/Cpu0/Cpu0InstrInfo.h
                                      MachineBasicBlock::iterator MBBI,
                                      unsigned DestReg, int FrameIndex,
 diff -Naur 8/2/Cpu0/Cpu0InstrInfo.td 8/3/Cpu0/Cpu0InstrInfo.td
---- 8/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
-+++ 8/3/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
+--- 8/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
++++ 8/3/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
 @@ -29,6 +29,9 @@
  
  def SDT_Cpu0JmpLink      : SDTypeProfile<0, 1, [SDTCisVT<0, iPTR>]>;

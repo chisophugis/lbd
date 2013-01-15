@@ -1,6 +1,6 @@
 diff -Naur 7/1/Cpu0/Cpu0CallingConv.td 8/2/Cpu0/Cpu0CallingConv.td
---- 7/1/Cpu0/Cpu0CallingConv.td	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0CallingConv.td	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0CallingConv.td	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0CallingConv.td	2013-01-15 16:52:19.000000000 +0800
 @@ -13,6 +13,37 @@
  class CCIfSubtarget<string F, CCAction A>:
    CCIf<!strconcat("State.getTarget().getSubtarget<Cpu0Subtarget>().", F), A>;
@@ -40,8 +40,8 @@ diff -Naur 7/1/Cpu0/Cpu0CallingConv.td 8/2/Cpu0/Cpu0CallingConv.td
                                     (sequence "S%u", 2, 0))>;
  
 diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp 8/2/Cpu0/Cpu0ISelLowering.cpp
---- 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -241,6 +241,58 @@
                                           DebugLoc dl, SelectionDAG &DAG,
                                           SmallVectorImpl<SDValue> &InVals)
@@ -102,8 +102,8 @@ diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp 8/2/Cpu0/Cpu0ISelLowering.cpp
  }
  
 diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp.orig 8/2/Cpu0/Cpu0ISelLowering.cpp.orig
---- 7/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -64,14 +64,24 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -203,8 +203,8 @@ diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp.orig 8/2/Cpu0/Cpu0ISelLowering.cpp.orig
 -  return false;
 -}
 diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig
---- 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -64,14 +64,24 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -298,7 +298,7 @@ diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig 8/2/Cpu0/Cpu0ISelLowering.cpp
 +
 diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig
 --- 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	1970-01-01 08:00:00.000000000 +0800
-+++ 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 15:37:36.000000000 +0800
++++ 8/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -0,0 +1,267 @@
 +//===-- Cpu0ISelLowering.cpp - Cpu0 DAG Lowering Implementation -----------===//
 +//
@@ -568,8 +568,8 @@ diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig 8/2/Cpu0/Cpu0ISelLowerin
 +}
 +
 diff -Naur 7/1/Cpu0/Cpu0InstrFormats.td 8/2/Cpu0/Cpu0InstrFormats.td
---- 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrFormats.td	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrFormats.td	2013-01-15 16:52:19.000000000 +0800
 @@ -71,6 +71,13 @@
    field bits<32> SoftFail = 0;
  }
@@ -585,8 +585,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrFormats.td 8/2/Cpu0/Cpu0InstrFormats.td
  // Format A instruction class in Cpu0 : <|opcode|ra|rb|rc|cx|>
  //===----------------------------------------------------------------------===//
 diff -Naur 7/1/Cpu0/Cpu0InstrInfo.cpp 8/2/Cpu0/Cpu0InstrInfo.cpp
---- 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -13,6 +13,7 @@
  
  #include "Cpu0InstrInfo.h"
@@ -631,8 +631,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.cpp 8/2/Cpu0/Cpu0InstrInfo.cpp
  Cpu0InstrInfo::emitFrameIndexDebugValue(MachineFunction &MF, int FrameIx,
                                          uint64_t Offset, const MDNode *MDPtr,
 diff -Naur 7/1/Cpu0/Cpu0InstrInfo.h 8/2/Cpu0/Cpu0InstrInfo.h
---- 7/1/Cpu0/Cpu0InstrInfo.h	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrInfo.h	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrInfo.h	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.h	2013-01-15 16:52:19.000000000 +0800
 @@ -42,6 +42,12 @@
                             bool KillSrc) const;
  
@@ -647,8 +647,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.h 8/2/Cpu0/Cpu0InstrInfo.h
                                                   int FrameIx, uint64_t Offset,
                                                   const MDNode *MDPtr,
 diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
---- 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
 @@ -27,6 +27,13 @@
                                           [SDTCisInt<0>,
                                            SDTCisSameAs<0, 1>]>;
@@ -745,8 +745,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
  def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (ADDiu ZERO, tglobaladdr:$in), 16)>;
  // Expect cpu0 add LUi support, like Mips
 diff -Naur 7/1/Cpu0/Cpu0MCInstLower.cpp 8/2/Cpu0/Cpu0MCInstLower.cpp
---- 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -48,6 +48,7 @@
  //  format=false (global var in .sdata).
    case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break;
@@ -756,8 +756,8 @@ diff -Naur 7/1/Cpu0/Cpu0MCInstLower.cpp 8/2/Cpu0/Cpu0MCInstLower.cpp
    case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break;
  // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static (global 
 diff -Naur 7/1/Cpu0/Cpu0MachineFunction.h 8/2/Cpu0/Cpu0MachineFunction.h
---- 7/1/Cpu0/Cpu0MachineFunction.h	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/Cpu0MachineFunction.h	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/Cpu0MachineFunction.h	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/Cpu0MachineFunction.h	2013-01-15 16:52:19.000000000 +0800
 @@ -30,19 +30,64 @@
    /// use as the global base register. This is used for PIC in some PIC
    /// relocation models.
@@ -826,8 +826,8 @@ diff -Naur 7/1/Cpu0/Cpu0MachineFunction.h 8/2/Cpu0/Cpu0MachineFunction.h
  
  } // end of namespace llvm
 diff -Naur 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -209,6 +209,9 @@
    case MCSymbolRefExpr::VK_Cpu0_GPREL:
      FixupKind = Cpu0::fixup_Cpu0_GPREL16;
@@ -839,8 +839,8 @@ diff -Naur 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 8/2/Cpu0/MCTargetDesc/Cpu
      FixupKind = Cpu0::fixup_Cpu0_GOT_Global;
      break;
 diff -Naur 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig
---- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+--- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 16:52:19.000000000 +0800
++++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -69,10 +69,24 @@
  
    void EncodeInstruction(const MCInst &MI, raw_ostream &OS,

@@ -1,6 +1,6 @@
 diff -Naur 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig 5/Cpu0/Cpu0AsmPrinter.cpp.orig
 --- 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/Cpu0AsmPrinter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/Cpu0AsmPrinter.cpp.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -0,0 +1,253 @@
 +//===-- Cpu0AsmPrinter.cpp - Cpu0 LLVM Assembly Printer -------------------===//
 +//
@@ -257,7 +257,7 @@ diff -Naur 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig 5/Cpu0/Cpu0AsmPrinter.cpp.orig
 +}
 diff -Naur 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig.orig 5/Cpu0/Cpu0AsmPrinter.cpp.orig.orig
 --- 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig.orig	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/Cpu0AsmPrinter.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/Cpu0AsmPrinter.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -0,0 +1,253 @@
 +//===-- Cpu0AsmPrinter.cpp - Cpu0 LLVM Assembly Printer -------------------===//
 +//
@@ -513,8 +513,8 @@ diff -Naur 4/6_4/Cpu0/Cpu0AsmPrinter.cpp.orig.orig 5/Cpu0/Cpu0AsmPrinter.cpp.ori
 +  RegisterAsmPrinter<Cpu0AsmPrinter> Y(TheCpu0elTarget);
 +}
 diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
---- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
-+++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
+--- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
++++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
 @@ -38,6 +38,12 @@
                             [SDNPOutGlue]>;
  
@@ -540,8 +540,8 @@ diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
  // instructions. The same not happens for stack address copies, so an
  // add op with mem ComplexPattern is used and the stack address copy
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists.txt
---- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-15 15:37:36.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-15 15:37:36.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-15 16:52:19.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-15 16:52:19.000000000 +0800
 @@ -1,7 +1,10 @@
  # MCTargetDesc/CMakeLists.txt
  add_llvm_library(LLVMCpu0Desc
@@ -555,7 +555,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists
  add_dependencies(LLVMCpu0Desc Cpu0CommonTableGen)
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -0,0 +1,224 @@
 +//===-- Cpu0ASMBackend.cpp - Cpu0 Asm Backend  ----------------------------===//
 +//
@@ -782,8 +782,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0As
 +}
 +
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-15 15:37:36.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-15 15:37:36.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-15 16:52:19.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-15 16:52:19.000000000 +0800
 @@ -27,6 +27,61 @@
  ///
  namespace Cpu0II {
@@ -882,7 +882,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseIn
  #endif
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -0,0 +1,245 @@
 +//===-- Cpu0ELFObjectWriter.cpp - Cpu0 ELF Writer -------------------------===//
 +//
@@ -1130,8 +1130,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/C
 +  return createELFObjectWriter(MOTW, OS, IsLittleEndian);
 +}
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-15 15:37:36.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-15 15:37:36.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-15 16:52:19.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-15 16:52:19.000000000 +0800
 @@ -26,6 +26,76 @@
      // Branch fixups resulting in R_CPU0_16.
      fixup_Cpu0_16 = FirstTargetFixupKind,
@@ -1216,7 +1216,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0Fixu
 -
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -0,0 +1,178 @@
 +//===-- Cpu0MCCodeEmitter.cpp - Convert Cpu0 Code to Machine Code ---------===//
 +//
@@ -1397,8 +1397,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +#include "Cpu0GenMCCodeEmitter.inc"
 +
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -115,6 +115,17 @@
    return new Cpu0InstPrinter(MAI, MII, MRI);
  }
@@ -1440,8 +1440,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0
    TargetRegistry::RegisterMCSubtargetInfo(TheCpu0Target,
                                            createCpu0MCSubtargetInfo);
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-15 15:37:36.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-15 15:37:36.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-15 16:52:19.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-15 16:52:19.000000000 +0800
 @@ -22,6 +22,7 @@
  class MCContext;
  class MCInstrInfo;

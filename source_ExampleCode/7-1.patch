@@ -1,6 +1,6 @@
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
---- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -64,14 +64,24 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -72,8 +72,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
  }
 +
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp.orig 7/1/Cpu0/Cpu0ISelLowering.cpp.orig
---- 6/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -201,71 +201,6 @@
    return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
  }
@@ -163,8 +163,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp.orig 7/1/Cpu0/Cpu0ISelLowering.cpp.orig
 +  return false;
 +}
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig
---- 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -230,3 +230,9 @@
      return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
                         Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
@@ -176,8 +176,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp.orig.orig 7/1/Cpu0/Cpu0ISelLowering.cpp
 +  return false;
 +}
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
---- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
 @@ -77,6 +77,7 @@
      const Cpu0Subtarget *Subtarget;
  
@@ -204,8 +204,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
  	//- must be exist without function all
      virtual SDValue
 diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
---- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-15 16:52:19.000000000 +0800
 @@ -110,6 +110,17 @@
    let Inst{15-0}  = imm16;
  }
@@ -225,8 +225,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
  // Format J instruction class in Cpu0 : <|opcode|address|>
  //===----------------------------------------------------------------------===//
 diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
---- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
 @@ -53,6 +53,12 @@
  //===----------------------------------------------------------------------===//
  // Cpu0 Operand, Complex Patterns and Transformations Definitions.
@@ -327,8 +327,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
  multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
    def : Pat<(seteq RC:$lhs, RC:$rhs),
 diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
---- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -42,6 +42,8 @@
  
    switch(MO.getTargetFlags()) {
@@ -360,8 +360,8 @@ diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
    case MachineOperand::MO_RegisterMask:
      break;
 diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -58,6 +58,7 @@
    case MCSymbolRefExpr::VK_None:           break;
  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
@@ -371,8 +371,8 @@ diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0Ins
    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-15 16:52:19.000000000 +0800
 @@ -69,10 +69,24 @@
  
    void EncodeInstruction(const MCInst &MI, raw_ostream &OS,
@@ -438,8 +438,8 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu
  /// operand requires relocation, record the relocation and return zero.
  unsigned Cpu0MCCodeEmitter::
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig
---- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 15:37:36.000000000 +0800
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 16:52:19.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp.orig	2013-01-15 16:52:19.000000000 +0800
 @@ -157,6 +157,30 @@
  
    assert (Kind == MCExpr::SymbolRef);
