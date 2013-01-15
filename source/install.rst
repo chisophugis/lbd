@@ -339,7 +339,7 @@ debug as follows,
   118-165-65-128:InputFiles Jonathan$ pwd
   /Users/Jonathan/LLVMBackendTutorialExampleCode/InputFiles
   118-165-65-128:InputFiles Jonathan$ clang -c ch3.cpp -emit-llvm -o ch3.bc
-  118-165-65-128:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-65-128:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm 
   ch3.bc -o ch3.mips.s
   118-165-65-128:InputFiles Jonathan$ lldb -- /Users/Jonathan/llvm/test/
@@ -580,8 +580,8 @@ grep.
 Cpu0 to the directory by command ``cd lib/Target/`` and 
 ``cp -rf /home/Gamma/LLVMBackendTutorialExample/2/Cpu0 .``.
 
-5) Remove clang from 3.1.test/cpu0/1/src/tools/clang, and mkdir 
-3.1.test/cpu0/1/cmake_debug_build. Without this you will waste extra time for 
+5) Remove clang from test/src/tools/clang, and mkdir 
+test/cmake_debug_build. Without this you will waste extra time for 
 command ``make`` in cpu0 example code build.
 
 .. code-block:: bash
@@ -737,7 +737,7 @@ Then do make as follows,
   [Gamma@localhost InputFiles]$ pwd
   /home/Gamma/LLVMBackendTutorialExampleCode/InputFiles
   [Gamma@localhost InputFiles]$ clang -c ch3.cpp -emit-llvm -o ch3.bc
-  [Gamma@localhost InputFiles]$ gdb -args /usr/local/llvm/3.1.test/cpu0/1/
+  [Gamma@localhost InputFiles]$ gdb -args /usr/local/llvm/test/
   cmake_debug_build/bin/llc -march=cpu0 -relocation-model=pic -filetype=obj 
   ch3.bc -o ch3.cpu0.o
   GNU gdb (GDB) Fedora (7.4.50.20120120-50.fc17)

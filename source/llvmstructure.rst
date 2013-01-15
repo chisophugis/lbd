@@ -443,7 +443,7 @@ The llvm3.1 source code is put in /usr/local/llvm/3.1/src and have llvm3.1
 release-build in /usr/local/llvm/3.1/configure_release_build. 
 About how to build llvm, please refer [#]_. 
 We made a copy from /usr/local/llvm/3.1/src to 
-/usr/local/llvm/3.1.test/cpu0/1/src for working with my Cpu0 target back end. 
+/usr/local/llvm/test/src for working with my Cpu0 target back end. 
 Sub-directories src is for source code and cmake_debug_build is for debug 
 build directory.
 

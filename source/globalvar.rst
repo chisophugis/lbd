@@ -58,7 +58,7 @@ first, and explain the code changes after that.
     ret i32 %3
   }
   
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch6_1.bc -o ch6_1.cpu0.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_1.cpu0.s
@@ -119,7 +119,7 @@ We can also translate it with absolute address mode by following command,
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=asm 
   ch6_1.bc -o ch6_1.cpu0.static.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_1.cpu0.static.s 
@@ -141,7 +141,7 @@ In this mode, you can also translate code with the following command,
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -cpu0-islinux-f
   ormat=false -filetype=asm ch6_1.bc -o ch6_1.cpu0.islinux-format-false.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_1.cpu0.islinux-format-false.s 
@@ -656,7 +656,7 @@ follows,
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=asm 
   ch6_2.bc -o ch6_2.cpu0.static.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_2.cpu0.static.s 
@@ -727,7 +727,7 @@ Let use debug option in llc to see what's wrong,
 
 .. code-block:: bash
 
-    jonathantekiimac:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    jonathantekiimac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=static 
     -filetype=asm ch6_2.bc -o ch6_2.cpu0.static.s
     ...

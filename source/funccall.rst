@@ -70,7 +70,7 @@ Run ``llc -march=mips`` for ch8_1.bc, you will get the following result.
 .. code-block:: bash
 
     118-165-79-31:InputFiles Jonathan$ clang -c ch8_1.cpp -emit-llvm -o ch8_1.bc
-    118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm 
     ch8_1.bc -o ch8_1.mips.s
     118-165-79-31:InputFiles Jonathan$ cat ch8_1.mips.s
@@ -187,15 +187,15 @@ code 7/1/Cpu0 with ch8_1.cpp and see what happen.
 
 .. code-block:: bash
 
-  118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch8_1.bc -o ch8_1.cpu0.s
   Assertion failed: (InVals.size() == Ins.size() && "LowerFormalArguments didn't 
   emit the correct number of values!"), function LowerArguments, file /Users/
-  Jonathan/llvm/3.1.test/cpu0/1/src/lib/CodeGen/SelectionDAG/
+  Jonathan/llvm/test/src/lib/CodeGen/SelectionDAG/
   SelectionDAGBuilder.cpp, line 6671.
   Stack dump:
-  0.  Program arguments: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  0.  Program arguments: /Users/Jonathan/llvm/test/cmake_debug_build/
   bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
   ch8_1.cpu0.s 
   1.  Running pass 'Function Pass Manager' on module 'ch8_1.bc'.
@@ -546,15 +546,15 @@ in the following,
 
 .. code-block:: bash
 
-    118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
     ch8_1.bc -o ch8_1.cpu0.s
     Assertion failed: ((isTailCall || InVals.size() == Ins.size()) && 
     "LowerCall didn't emit the correct number of values!"), function LowerCallTo, 
-    file /Users/Jonathan/llvm/3.1.test/cpu0/1/src/lib/CodeGen/SelectionDAG/
+    file /Users/Jonathan/llvm/test/src/lib/CodeGen/SelectionDAG/
     SelectionDAGBuilder.cpp, line 6482.
     Stack dump:
-    0.  Program arguments: /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/
+    0.  Program arguments: /Users/Jonathan/llvm/test/cmake_debug_build/
     bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
     ch8_1.cpu0.s 
     1.  Running pass 'Function Pass Manager' on module 'ch8_1.bc'.
@@ -878,7 +878,7 @@ Now, let's run 8/3/Cpu0 with ch8_1.cpp to get result as follows,
 
 .. code-block:: bash
 
-    118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
     ch8_1.bc -o ch8_1.cpu0.s
     118-165-79-83:InputFiles Jonathan$ cat ch8_1.cpu0.s 
@@ -1037,7 +1037,7 @@ It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to
 
 .. code-block:: bash
 
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
   asm ch8_1.bc -o ch8_1.cpu0.s
   118-165-76-131:InputFiles Jonathan$ cat ch8_1.cpu0.s
@@ -1187,7 +1187,7 @@ Run 8/5/Cpu0 with ch8_1.cpp will get the following result.
 
 .. code-block:: bash
 
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype
   =asm ch8_1.bc -o ch8_1.cpu0.s
   118-165-76-131:InputFiles Jonathan$ cat ch8_1.cpu0.s
@@ -1775,7 +1775,7 @@ machine code as follows,
 
 .. code-block:: bash
 
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
   obj ch8_2.bc -o ch8_2.cpu0.o
   118-165-76-131:InputFiles Jonathan$ hexdump  ch8_2.cpu0.o
@@ -1814,7 +1814,7 @@ Run ``llc -static`` will call jsub instruction instead of jalr as follows,
 
 .. code-block:: bash
 
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=
   asm ch8_2.bc -o ch8_2.cpu0.s
   118-165-76-131:InputFiles Jonathan$ cat ch8_2.cpu0.s
@@ -1877,7 +1877,7 @@ Run 8/7/Cpu0 with ch8_3.cpp to get the following,
 
 .. code-block:: bash
 
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch8_3.bc -o ch8_3.cpu0.s
   118-165-76-131:InputFiles Jonathan$ cat ch8_3.cpu0.s
@@ -2230,7 +2230,7 @@ Following are the ch8_3_3.cpp, and lli, Intel native code run result.
   // clang -c ch8_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/
   Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/
   include/ -o ch8_3_3.bc
-  // /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc 
+  // /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc 
   ch8_3_3.bc -o ch8_3_3.s
   // clang++ ch8_3_3.s -o ch8_3_3.native
   // ./ch8_3_3.native
@@ -2282,7 +2282,7 @@ Following are the ch8_3_3.cpp, and lli, Intel native code run result.
   118-165-67-185:InputFiles Jonathan$ clang -c ch8_3_3.cpp -emit-llvm -I
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/
   Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch8_3_3.bc
-  118-165-67-185:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+  118-165-67-185:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc ch8_3_3.bc -o ch8_3_3.s
   118-165-67-185:InputFiles Jonathan$ clang++ ch8_3_3.s -o ch8_3_3.native
   118-165-67-185:InputFiles Jonathan$ ./ch8_3_3.native
@@ -2608,7 +2608,7 @@ It translate **“(b+1)%c”** into **“div $zero, $3, $2”** and **“mfhi $2
   118-165-70-242:InputFiles Jonathan$ clang -c ch4_6_2.cpp -I/Applications/
   Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
   MacOSX10.8.sdk/usr/include/ -emit-llvm -o ch4_6_2.bc
-  118-165-70-242:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake
+  118-165-70-242:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake
   _debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch4_6_2.bc -o ch4_6_2.cpu0.s
   118-165-70-242:InputFiles Jonathan$ cat ch4_6_2.cpu0.s 

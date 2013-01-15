@@ -88,7 +88,7 @@ Let's run 7/7/Cpu0 with ch6_1.cpp, and dump ELF header information by
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=obj ch6_1.bc -o ch6_1.cpu0.o
   
   [Gamma@localhost InputFiles]$ readelf -h ch6_1.cpu0.o 
@@ -114,7 +114,7 @@ Let's run 7/7/Cpu0 with ch6_1.cpp, and dump ELF header information by
     Section header string table index: 7
   [Gamma@localhost InputFiles]$ 
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=mips -relocation-model=pic -filetype=obj ch6_1.bc -o ch6_1.mips.o
   
   [Gamma@localhost InputFiles]$ readelf -h ch6_1.mips.o 
@@ -193,7 +193,7 @@ The cpu0 backend translate global variable as follows,
 .. code-block:: bash
 
   [Gamma@localhost InputFiles]$ clang -c ch6_1.cpp -emit-llvm -o ch6_1.bc
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch6_1.bc -o ch6_1.cpu0.s
   [Gamma@localhost InputFiles]$ cat ch6_1.cpu0.s 
     .section .mdebug.abi32
@@ -222,7 +222,7 @@ The cpu0 backend translate global variable as follows,
     .size gI, 4
   
   
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=obj ch6_1.bc -o ch6_1.cpu0.o
   [Gamma@localhost InputFiles]$ objdump -s ch6_1.cpu0.o
   
@@ -367,7 +367,7 @@ generated.
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=obj ch8_3_3.bc -o ch8_3__3.
   cpu0.o
   [Gamma@localhost InputFiles]$ readelf -tr ch8_3_3.cpu0.o 
@@ -429,7 +429,7 @@ generated.
    Offset     Info    Type            Sym.Value  Sym. Name
   0000001c  00000302 unrecognized: 2       00000000   .text
   00000034  00000302 unrecognized: 2       00000000   .text
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=mips -relocation-model=pic -filetype=obj ch8_3_3.bc -o ch8_3__3.
   mips.o
   [Gamma@localhost InputFiles]$ readelf -tr ch8_3_3.mips.o 

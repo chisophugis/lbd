@@ -64,7 +64,7 @@ follows,
 	  %5 = load i32* %c, align 4 
 	  ret i32 %5 
 	} 
-	[Gamma@localhost 3]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/
+	[Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
 	llc -march=cpu0 -relocation-model=pic -filetype=asm ch4_1_1.bc -o ch4_1_1.
 	cpu0.s 
 	LLVM ERROR: Cannot select: 0x30da480: i32 = add 0x30da280, 0x30da380 
@@ -277,7 +277,7 @@ as follows,
 
 .. code-block:: bash
 
-    118-165-16-22:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-16-22:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=pic 
     -filetype=asm ch4_3.bc -o ch4_3.cpu0.s
     ...
@@ -454,7 +454,7 @@ result with Graphviz as follows,
 
 .. code-block:: bash
 
-    118-165-12-177:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-12-177:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -view-dag-combine1-dags -march=cpu0 
     -relocation-model=pic -filetype=asm ch4_2.bc -o ch4_2.cpu0.s
     Writing '/tmp/llvm_84ibpm/dag.main.dot'...  done. 
@@ -547,7 +547,7 @@ instead of ldi, will get the result as follows,
 .. code-block:: bash
 
     118-165-13-40:InputFiles Jonathan$ clang -c ch4_4.cpp -emit-llvm -o ch4_4.bc
-    118-165-13-40:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-13-40:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
     ch4_4.bc -o ch4_4.cpu0.s
     118-165-13-40:InputFiles Jonathan$ cat ch4_4.cpu0.s
@@ -661,7 +661,7 @@ in cost compete to **“addiu”**, that's the benefit we mentioned in
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch4_4.bc -o ch4_4.cpu0.s
   118-165-66-82:InputFiles Jonathan$ cat ch4_4.cpu0.s 
@@ -770,7 +770,7 @@ will get result as follows,
 .. code-block:: bash
 
   118-165-66-82:InputFiles Jonathan$ clang -c ch4_5.cpp -emit-llvm -o ch4_5.bc
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch4_5.bc -o ch4_5.cpu0.s
   118-165-66-82:InputFiles Jonathan$ cat ch4_5.cpu0.s 
@@ -898,7 +898,7 @@ follows, will get the error message as follows and the llvm DAG of
 
 .. code-block:: bash
 
-    118-165-79-37:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-79-37:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -view-isel-dags -relocation-model=
     pic -filetype=asm ch4_6.bc -o ch4_6.cpu0.s
     ...
@@ -949,7 +949,7 @@ Follows is the result of run 4/6_1/Cpu0 with ch4_6.bc.
 
 .. code-block:: bash
 
-    118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+    118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
     debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
     ch4_6.bc -o ch4_6.cpu0.s
     118-165-71-252:InputFiles Jonathan$ cat ch4_6.cpu0.s 
@@ -1430,7 +1430,7 @@ like to verify it now.
 .. code-block:: bash
 
   118-165-77-79:InputFiles Jonathan$ clang -c ch4_1_2.cpp -emit-llvm -o ch4_1_2.bc
-  118-165-77-79:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-77-79:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch4_1_2.bc -o ch4_1_2.cpu0.s
   118-165-77-79:InputFiles Jonathan$ cat ch4_1_2.cpu0.s 

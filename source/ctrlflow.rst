@@ -377,7 +377,7 @@ by hexdump as follows,
 
 .. code-block:: bash
     
-    118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=obj 
     ch7_1_1.bc -o ch7_1_1.cpu0.o
 

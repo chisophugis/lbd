@@ -6,7 +6,7 @@ C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug  -G "Unix Makefiles" ../src/
 -- Targeting XCore 
 -- Configuring done 
 -- Generating done 
--- Build files have been written to: /usr/local/llvm/3.1.test/cpu0/1/cmake_debug
+-- Build files have been written to: /usr/local/llvm/test/cmake_debug
 _build 
 
 [Gamma@localhost cmake_debug_build]$ make 

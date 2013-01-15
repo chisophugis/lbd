@@ -1,4 +1,4 @@
-[Gamma@localhost cmake_debug_build]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug
+[Gamma@localhost cmake_debug_build]$ /usr/local/llvm/test/cmake_debug
 _build/bin/llc --version 
 LLVM (http://llvm.org/): 
   LLVM version 3.1svn 

@@ -34,6 +34,8 @@ With his help, we can finish this book and put on web with sphinx tool.
 Revision history
 ----------------
 
+Version 4.0, Not Released Yet
+	Update for LLVM 3.2.
 Version 3.2.3, Released January 12, 2013
 	Add chapter "Porting to LLVM 3.2".
 Version 3.2.2, Released January 10, 2013

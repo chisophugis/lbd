@@ -19,9 +19,9 @@ follows,
 
 .. code-block:: bash
 
-	[Gamma@localhost 3]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/
+	[Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
 	llc -march=cpu0 -relocation-model=pic -filetype=obj ch4_1_2.bc -o ch4_1_2.cpu0.o
-	/usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/llc: target does not 
+	/usr/local/llvm/test/cmake_debug_build/bin/llc: target does not 
 	support generation of this file type! 
 	
 The 5/Cpu0 support obj file generated. 
@@ -42,7 +42,7 @@ Run it will get the obj files as follows,
 		st	$3, 64($sp)
 	...
 	
-	[Gamma@localhost 3]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/
+	[Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
 	llc -march=cpu0 -relocation-model=pic -filetype=obj ch4_2.bc -o ch4_2.cpu0.o
 	[Gamma@localhost InputFiles]$ objdump -s ch4_2.cpu0.o 
 	
@@ -67,7 +67,7 @@ Run it will get the obj files as follows,
 	 0000 00000010 00000000 017a5200 017c0e01  .........zR..|.. 
 	 0010 000c0d00 00000010 00000018 00000000  ................ 
 	 0020 000000d4 00440e48                                    .....D.H        
-	[Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/
+	[Gamma@localhost InputFiles]$ /usr/local/llvm/test/
 	cmake_debug_build/bin/llc -march=cpu0el -relocation-model=pic -filetype=obj 
 	ch4_2.bc -o ch4_2.cpu0el.o 
 	[Gamma@localhost InputFiles]$ objdump -s ch4_2.cpu0el.o 
