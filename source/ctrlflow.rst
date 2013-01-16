@@ -595,18 +595,13 @@ empty function in Cpu0ISelLowering.cpp as follows,
 
 .. code-block:: c++
 
-    // Cpu0ISelLowering.cpp
-    SDValue
-    Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-                                  CallingConv::ID CallConv, bool isVarArg,
-                                  bool doesNotRet, bool &isTailCall,
-                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                  const SmallVectorImpl<SDValue> &OutVals,
-                                  const SmallVectorImpl<ISD::InputArg> &Ins,
-                                  DebugLoc dl, SelectionDAG &DAG,
-                                  SmallVectorImpl<SDValue> &InVals) const {
-      return InChain;
-    }
+  // Cpu0ISelLowering.cpp
+  SDValue
+  Cpu0TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                  SmallVectorImpl<SDValue> &InVals) const {
+    return CLI.Chain;
+  }
+
 
 With this LowerCall(), it can translate ch7_1_4.cpp, ch7_1_4.bc to 
 ch7_1_4.cpu0.s as follows,
@@ -695,6 +690,85 @@ ch7_1_4.cpu0.s as follows,
         .4byte  1                       # 0x1
         .4byte  2                       # 0x2
         .size   $_ZZ4mainE1a, 12
+
+The ch7_1_5.cpp is for test C operators **==, !=, &&, ||**. No code need to 
+add since we have take care them before. 
+But it can be test only when the control flow statement support is ready, as 
+follows,
+
+.. code-block:: c++
+
+  // ch7_1_5.cpp
+  int main()
+  {
+    unsigned int a = 0;
+    int b = 1;
+    int c = 2;
+    
+    if ((a == 0 && b == 2) || (c != 2)) {
+      a++;
+    }
+    
+    return 0;
+  }
+
+.. code-block:: bash
+
+  118-165-78-230:InputFiles Jonathan$ clang -c ch7_1_5.cpp -emit-llvm -o ch7_1_5.bc
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1_5.bc -o ch7_1_5.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ cat ch7_1_5.cpu0.s 
+    .section .mdebug.abi32
+    .previous
+    .file "ch7_1_5.bc"
+    .text
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,16,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -16
+  $tmp1:
+    .cfi_def_cfa_offset 16
+    addiu $3, $zero, 0
+    st  $3, 12($sp)
+    st  $3, 8($sp)
+    addiu $2, $zero, 1
+    st  $2, 4($sp)
+    addiu $2, $zero, 2
+    st  $2, 0($sp)
+    ld  $4, 8($sp)
+    cmp $4, $3
+    jne $BB0_2		// a != 0
+    jmp $BB0_1
+  $BB0_1:			// a == 0
+    ld  $3, 4($sp)
+    cmp $3, $2
+    jeq $BB0_3		// b == 2
+    jmp $BB0_2
+  $BB0_2:
+    ld  $3, 0($sp)
+    cmp $3, $2		// c == 2
+    jeq $BB0_4
+    jmp $BB0_3
+  $BB0_3:			// (a == 0 && b == 2) || (c != 2)
+    ld  $2, 8($sp)
+    addiu $2, $2, 1	// a++
+    st  $2, 8($sp)
+  $BB0_4:
+    addiu $sp, $sp, 16
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp2:
+    .size main, ($tmp2)-main
+    .cfi_endproc
 
 
 RISC CPU knowledge

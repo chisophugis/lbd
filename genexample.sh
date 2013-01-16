@@ -87,7 +87,6 @@ cp -rf 8/7 ${GEN_DIR}/8/.
 cp -rf ${GEN_DIR}/2 .
 rm -rf 3 4 6 7 8
 cp -rf InputFiles src_files_modify ${GEN_DIR}/.
-cp -rf InputFiles 3.2_src_files_modify ${GEN_DIR}/.
 mv ${GEN_DIR} ../.
 rm -f `find . -name .DS_Store`
 cd ..

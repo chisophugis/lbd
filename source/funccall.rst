@@ -48,7 +48,8 @@ if it over 4 arguments. :ref:`funccall_f1` is the Mips stack frame.
 
     Mips stack frame
     
-Run ``llc -march=mips`` for ch8_1.bc, you will get the following result.
+Run ``llc -march=mips`` for ch8_1.bc, you will get the following result. 
+See comment **"//"**.
 
 .. code-block:: c++
 
@@ -69,93 +70,107 @@ Run ``llc -march=mips`` for ch8_1.bc, you will get the following result.
 
 .. code-block:: bash
 
-    118-165-79-31:InputFiles Jonathan$ clang -c ch8_1.cpp -emit-llvm -o ch8_1.bc
-    118-165-79-31:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm 
-    ch8_1.bc -o ch8_1.mips.s
-    118-165-79-31:InputFiles Jonathan$ cat ch8_1.mips.s
-        .section .mdebug.abi32
-        .previous
-        .file   "ch8_1.bc"
-        .text
-        .globl  _Z5sum_iiiiiii
-        .align  2
-        .type   _Z5sum_iiiiiii,@function
-        .ent    _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
-    _Z5sum_iiiiiii:
-        .frame  $sp,32,$ra
-        .mask   0x00000000,0
-        .fmask  0x00000000,0
-        .set    noreorder
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -32
-        st  $4, 28($sp)
-        st  $5, 24($sp)
-        st  $6, 20($sp)
-        st  $7, 16($sp)
-        ld  $2, 48($sp) // load argument 5
-        st  $2, 12($sp)
-        ld  $2, 52($sp) // load argument 6
-        st  $2, 8($sp)
-        ld  $3, 24($sp)
-        ld  $4, 28($sp)
-        addu    $3, $4, $3
-        ld  $4, 20($sp)
-        addu    $3, $3, $4
-        ld  $4, 16($sp)
-        addu    $3, $3, $4
-        ld  $4, 12($sp)
-        addu    $3, $3, $4
-        addu    $2, $3, $2
-        st  $2, 4($sp)
-        addiu   $sp, $sp, 32
-        jr  $ra
-        nop
-        .set    macro
-        .set    reorder
-        .end    _Z5sum_iiiiiii
-    $tmp1:
-        .size   _Z5sum_iiiiiii, ($tmp1)-_Z5sum_iiiiiii
-    
-        .globl  main
-        .align  2
-        .type   main,@function
-        .ent    main                    # @main
-    main:
-        .frame  $sp,48,$ra
-        .mask   0x80000000,-4
-        .fmask  0x00000000,0
-        .set    noreorder
-        .cpload $25
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -48
-        st  $ra, 44($sp)            # 4-byte Folded Spill
-        .cprestore  24
-        st  $zero, 40($sp)
-        addiu   $2, $zero, 6
-        st  $2, 20($sp) // Save argument 6 to 20($sp)
-        addiu   $2, $zero, 5
-        st  $2, 16($sp) // Save argument 5 to 16($sp)
-        ld  $25, %call16(_Z5sum_iiiiiii)($gp)
-        addiu   $4, $zero, 1    // Pass argument 1 to $4 (=$a0)
-        addiu   $5, $zero, 2    // Pass argument 2 to $5 (=$a1)
-        addiu   $6, $zero, 3
-        addiu   $7, $zero, 4
-        jalr    $25
-        nop
-        ld  $gp, 24($sp)
-        st  $2, 36($sp)
-        ld  $ra, 44($sp)            # 4-byte Folded Reload
-        addiu   $sp, $sp, 48
-        jr  $ra
-        nop
-        .set    macro
-        .set    reorder
-        .end    main
-    $tmp4:
-        .size   main, ($tmp4)-main
+  118-165-78-230:InputFiles Jonathan$ clang -c ch8_1.cpp -emit-llvm -o ch8_1.bc
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch8_1.bc -o 
+  ch8_1.mips.s
+  118-165-78-230:InputFiles Jonathan$ cat ch8_1.mips.s 
+    .section .mdebug.abi32
+    .previous
+    .file "ch8_1.bc"
+    .text
+    .globl  _Z5sum_iiiiiii
+    .align  2
+    .type _Z5sum_iiiiiii,@function
+    .set  nomips16                # @_Z5sum_iiiiiii
+    .ent  _Z5sum_iiiiiii
+  _Z5sum_iiiiiii:
+    .cfi_startproc
+    .frame  $sp,32,$ra
+    .mask   0x00000000,0
+    .fmask  0x00000000,0
+    .set  noreorder
+    .set  nomacro
+    .set  noat
+  # BB#0:
+    addiu $sp, $sp, -32
+  $tmp1:
+    .cfi_def_cfa_offset 32
+    sw  $4, 28($sp)
+    sw  $5, 24($sp)
+    sw  $6, 20($sp)
+    sw  $7, 16($sp)
+    lw  $1, 48($sp) // load argument 5
+    sw  $1, 12($sp)
+    lw  $1, 52($sp) // load argument 6
+    sw  $1, 8($sp)
+    lw  $2, 24($sp)
+    lw  $3, 28($sp)
+    addu  $2, $3, $2
+    lw  $3, 20($sp)
+    addu  $2, $2, $3
+    lw  $3, 16($sp)
+    addu  $2, $2, $3
+    lw  $3, 12($sp)
+    addu  $2, $2, $3
+    addu  $2, $2, $1
+    sw  $2, 4($sp)
+    jr  $ra
+    addiu $sp, $sp, 32
+    .set  at
+    .set  macro
+    .set  reorder
+    .end  _Z5sum_iiiiiii
+  $tmp2:
+    .size _Z5sum_iiiiiii, ($tmp2)-_Z5sum_iiiiiii
+    .cfi_endproc
+  
+    .globl  main
+    .align  2
+    .type main,@function
+    .set  nomips16                # @main
+    .ent  main
+  main:
+    .cfi_startproc
+    .frame  $sp,40,$ra
+    .mask   0x80000000,-4
+    .fmask  0x00000000,0
+    .set  noreorder
+    .set  nomacro
+    .set  noat
+  # BB#0:
+    lui $2, %hi(_gp_disp)
+    addiu $2, $2, %lo(_gp_disp)
+    addiu $sp, $sp, -40
+  $tmp5:
+    .cfi_def_cfa_offset 40
+    sw  $ra, 36($sp)            # 4-byte Folded Spill
+  $tmp6:
+    .cfi_offset 31, -4
+    addu  $gp, $2, $25
+    sw  $zero, 32($sp)
+    addiu $1, $zero, 6
+    sw  $1, 20($sp) // Save argument 6 to 20($sp)
+    addiu $1, $zero, 5
+    sw  $1, 16($sp) // Save argument 5 to 16($sp)
+    lw  $25, %call16(_Z5sum_iiiiiii)($gp)
+    addiu $4, $zero, 1    // Pass argument 1 to $4 (=$a0)
+    addiu $5, $zero, 2    // Pass argument 2 to $5 (=$a1)
+    addiu $6, $zero, 3
+    jalr  $25
+    addiu $7, $zero, 4
+    sw  $2, 28($sp)
+    lw  $ra, 36($sp)            # 4-byte Folded Reload
+    jr  $ra
+    addiu $sp, $sp, 40
+    .set  at
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp7:
+    .size main, ($tmp7)-main
+    .cfi_endproc
+
 
 From the mips assembly code generated as above, we know it save the first 4 
 arguments to $a0..$a3 and last 2 arguments to 16($sp) and 20($sp). 
@@ -193,8 +208,8 @@ code 7/1/Cpu0 with ch8_1.cpp and see what happen.
   Assertion failed: (InVals.size() == Ins.size() && "LowerFormalArguments didn't 
   emit the correct number of values!"), function LowerArguments, file /Users/
   Jonathan/llvm/test/src/lib/CodeGen/SelectionDAG/
-  SelectionDAGBuilder.cpp, line 6671.
-  Stack dump:
+  SelectionDAGBuilder.cpp, ...
+  ...
   0.  Program arguments: /Users/Jonathan/llvm/test/cmake_debug_build/
   bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
   ch8_1.cpu0.s 
@@ -396,8 +411,8 @@ variable, which is the offset.
     }
 
 In addition to Calling Convention and LowerFormalArguments(), 8/2/Cpu0 add the 
-following code for cpu0 instructions swi (Software Interrupt), jsub and jalr 
-(function call) definition and printing.
+following code for cpu0 instructions **swi** (Software Interrupt), **jsub** and 
+**jalr** (function call) definition and printing.
 
 .. code-block:: c++
 
@@ -422,11 +437,11 @@ following code for cpu0 instructions swi (Software Interrupt), jsub and jalr
     def jmptarget   : Operand<OtherVT> {
       let EncoderMethod = "getJumpTargetOpValue";
     }
-    …
+    ...
     def calltarget  : Operand<iPTR> {
       let EncoderMethod = "getJumpTargetOpValue";
     }
-    …
+    ...
     // Jump and Link (Call)
     let isCall=1, hasDelaySlot=0 in {
       class JumpLink<bits<8> op, string instr_asm>:
@@ -445,26 +460,26 @@ following code for cpu0 instructions swi (Software Interrupt), jsub and jalr
         let shamt = 0;
       }
     }
-    …
+    ...
     /// Jump and Branch Instructions
     def SWI  : JumpLink<0x2A, "swi">;
     def JSUB : JumpLink<0x2B, "jsub">;
-    …
+    ...
     def JALR : JumpLinkReg<0x2D, "jalr", CPURegs>;
-    …
+    ...
     def : Pat<(Cpu0JmpLink (i32 tglobaladdr:$dst)),
               (JSUB tglobaladdr:$dst)>;
-    …
+    ...
     
     // Cpu0InstPrinter.cpp
-    …
+    ...
     static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
       switch (Kind) {
       ...
       case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:  OS << "%call24("; break;
-      …
+      ...
       }
-    …
+    ...
     }
     
     // Cpu0MCCodeEmitter.cpp
@@ -478,9 +493,9 @@ following code for cpu0 instructions swi (Software Interrupt), jsub and jalr
       case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:
         FixupKind = Cpu0::fixup_Cpu0_CALL24;
         break;
-      …
+      ...
       }
-    …
+    ...
     }
     
     // Cpu0MachineFucntion.h
@@ -546,21 +561,21 @@ in the following,
 
 .. code-block:: bash
 
-    118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch8_1.bc -o ch8_1.cpu0.s
-    Assertion failed: ((isTailCall || InVals.size() == Ins.size()) && 
-    "LowerCall didn't emit the correct number of values!"), function LowerCallTo, 
-    file /Users/Jonathan/llvm/test/src/lib/CodeGen/SelectionDAG/
-    SelectionDAGBuilder.cpp, line 6482.
-    Stack dump:
-    0.  Program arguments: /Users/Jonathan/llvm/test/cmake_debug_build/
-    bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
-    ch8_1.cpu0.s 
-    1.  Running pass 'Function Pass Manager' on module 'ch8_1.bc'.
-    2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
-    '@main'
-    Illegal instruction: 4
+  118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch8_1.bc -o ch8_1.cpu0.s
+  Assertion failed: ((CLI.IsTailCall || InVals.size() == CLI.Ins.size()) && 
+  "LowerCall didn't emit the correct number of values!"), function LowerCallTo, 
+  file /Users/Jonathan/llvm/test/src/lib/CodeGen/SelectionDAG/SelectionDAGBuilder.
+  cpp, ...
+  ...
+  0.  Program arguments: /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
+  ch8_1.cpu0.s 
+  1.  Running pass 'Function Pass Manager' on module 'ch8_1.bc'.
+  2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
+  '@main'
+  Illegal instruction: 4
 
 
 Store outgoing arguments to stack frame
@@ -576,237 +591,240 @@ LowerCall() is responsible to do this. The implementation as follows,
 
 .. code-block:: c++
 
-    // Cpu0ISelLowering.cpp
-    ...
-    SDValue
-    Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-                                  CallingConv::ID CallConv, bool isVarArg,
-                                  bool doesNotRet, bool &isTailCall,
-                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                  const SmallVectorImpl<SDValue> &OutVals,
-                                  const SmallVectorImpl<ISD::InputArg> &Ins,
-                                  DebugLoc dl, SelectionDAG &DAG,
-                                  SmallVectorImpl<SDValue> &InVals) const {
-      // Cpu0 target does not yet support tail call optimization.
-      isTailCall = false;
-    
-      MachineFunction &MF = DAG.getMachineFunction();
-      MachineFrameInfo *MFI = MF.getFrameInfo();
-      const TargetFrameLowering *TFL = MF.getTarget().getFrameLowering();
-      bool IsPIC = getTargetMachine().getRelocationModel() == Reloc::PIC_;
-      Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
-    
-      // Analyze operands of the call, assigning locations to each operand.
-      SmallVector<CCValAssign, 16> ArgLocs;
-      CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
-                     getTargetMachine(), ArgLocs, *DAG.getContext());
-    
-      CCInfo.AnalyzeCallOperands(Outs, CC_Cpu0);
-    
-      // Get a count of how many bytes are to be pushed on the stack.
-      unsigned NextStackOffset = CCInfo.getNextStackOffset();
-    
-      // If this is the first call, create a stack frame object that points to
-      // a location to which .cprestore saves $gp.
-      if (IsPIC && Cpu0FI->globalBaseRegFixed() && !Cpu0FI->getGPFI())
-        Cpu0FI->setGPFI(MFI->CreateFixedObject(4, 0, true));
-      // Get the frame index of the stack frame object that points to the location
-      // of dynamically allocated area on the stack.
-      int DynAllocFI = Cpu0FI->getDynAllocFI();
-      unsigned MaxCallFrameSize = Cpu0FI->getMaxCallFrameSize();
-    
-      if (MaxCallFrameSize < NextStackOffset) {
-        Cpu0FI->setMaxCallFrameSize(NextStackOffset);
-    
-        // Set the offsets relative to $sp of the $gp restore slot and dynamically
-        // allocated stack space. These offsets must be aligned to a boundary
-        // determined by the stack alignment of the ABI.
-        unsigned StackAlignment = TFL->getStackAlignment();
-        NextStackOffset = (NextStackOffset + StackAlignment - 1) /
-                          StackAlignment * StackAlignment;
-    
-        MFI->setObjectOffset(DynAllocFI, NextStackOffset);
-      }
-      // Chain is the output chain of the last Load/Store or CopyToReg node.
-      // ByValChain is the output chain of the last Memcpy node created for copying
-      // byval arguments to the stack.
-      SDValue Chain, CallSeqStart, ByValChain;
-      SDValue NextStackOffsetVal = DAG.getIntPtrConstant(NextStackOffset, true);
-      Chain = CallSeqStart = DAG.getCALLSEQ_START(InChain, NextStackOffsetVal);
-      ByValChain = InChain;
-    
-      // With EABI is it possible to have 16 args on registers.
-      SmallVector<std::pair<unsigned, SDValue>, 16> RegsToPass;
-      SmallVector<SDValue, 8> MemOpChains;
-    
-      int FirstFI = -MFI->getNumFixedObjects() - 1, LastFI = 0;
-    
-      // Walk the register/memloc assignments, inserting copies/loads.
-      for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
-        SDValue Arg = OutVals[i];
-        CCValAssign &VA = ArgLocs[i];
-        MVT ValVT = VA.getValVT(), LocVT = VA.getLocVT();
-        ISD::ArgFlagsTy Flags = Outs[i].Flags;
-    
-        // ByVal Arg.
-        if (Flags.isByVal()) {
-          assert("!!!Error!!!, Flags.isByVal()==true");
-          assert(Flags.getByValSize() &&
-                 "ByVal args of size 0 should have been ignored by front-end.");
-          continue;
-        }
-    
-        // Register can't get to this point...
-        assert(VA.isMemLoc());
-    
-        // Create the frame index object for this incoming parameter
-        LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
-                                        VA.getLocMemOffset(), true);
-        SDValue PtrOff = DAG.getFrameIndex(LastFI, getPointerTy());
-    
-        // emit ISD::STORE whichs stores the
-        // parameter value to a stack Location
-        MemOpChains.push_back(DAG.getStore(Chain, dl, Arg, PtrOff,
-                                           MachinePointerInfo(), false, false, 0));
-      }
-    
-      // Extend range of indices of frame objects for outgoing arguments that were
-      // created during this function call. Skip this step if no such objects were
-      // created.
-      if (LastFI)
-        Cpu0FI->extendOutArgFIRange(FirstFI, LastFI);
-    
-      // If a memcpy has been created to copy a byval arg to a stack, replace the
-      // chain input of CallSeqStart with ByValChain.
-      if (InChain != ByValChain)
-        DAG.UpdateNodeOperands(CallSeqStart.getNode(), ByValChain,
-                               NextStackOffsetVal);
-    
-      // Transform all store nodes into one single node because all store
-      // nodes are independent of each other.
-      if (!MemOpChains.empty())
-        Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
-                            &MemOpChains[0], MemOpChains.size());
-    
-      // If the callee is a GlobalAddress/ExternalSymbol node (quite common, every
-      // direct call is) turn it into a TargetGlobalAddress/TargetExternalSymbol
-      // node so that legalize doesn't hack it.
-      unsigned char OpFlag;
-      bool IsPICCall = IsPIC; // true if calls are translated to jalr $25
-      bool GlobalOrExternal = false;
-      SDValue CalleeLo;
-    
-      if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee)) {
-        OpFlag = IsPICCall ? Cpu0II::MO_GOT_CALL : Cpu0II::MO_NO_FLAG;
-        Callee = DAG.getTargetGlobalAddress(G->getGlobal(), dl,
-                                              getPointerTy(), 0, OpFlag);
-        GlobalOrExternal = true;
-      }
-      else if (ExternalSymbolSDNode *S = dyn_cast<ExternalSymbolSDNode>(Callee)) {
-        if (!IsPIC) // static
-          OpFlag = Cpu0II::MO_NO_FLAG;
-        else // O32 & PIC
-          OpFlag = Cpu0II::MO_GOT_CALL;
-        Callee = DAG.getTargetExternalSymbol(S->getSymbol(), getPointerTy(),
-                                             OpFlag);
-        GlobalOrExternal = true;
-      }
-    
-      SDValue InFlag;
-    
-      // Create nodes that load address of callee and copy it to T9
-      if (IsPICCall) {
-        if (GlobalOrExternal) {
-          // Load callee address
-          Callee = DAG.getNode(Cpu0ISD::Wrapper, dl, getPointerTy(),
-                               GetGlobalReg(DAG, getPointerTy()), Callee);
-          SDValue LoadValue = DAG.getLoad(getPointerTy(), dl, DAG.getEntryNode(),
-                                          Callee, MachinePointerInfo::getGOT(),
-                                          false, false, false, 0);
-    
-          // Use GOT+LO if callee has internal linkage.
-          if (CalleeLo.getNode()) {
-            SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, getPointerTy(), CalleeLo);
-            Callee = DAG.getNode(ISD::ADD, dl, getPointerTy(), LoadValue, Lo);
-          } else
-            Callee = LoadValue;
-        }
-      }
-    
-      // T9 should contain the address of the callee function if
-      // -reloction-model=pic or it is an indirect call.
-      if (IsPICCall || !GlobalOrExternal) {
-        // copy to T9
-        unsigned T9Reg = Cpu0::T9;
-        Chain = DAG.getCopyToReg(Chain, dl, T9Reg, Callee, SDValue(0, 0));
-        InFlag = Chain.getValue(1);
-        Callee = DAG.getRegister(T9Reg, getPointerTy());
-      }
-    
-      // Cpu0JmpLink = #chain, #target_address, #opt_in_flags...
-      //             = Chain, Callee, Reg#1, Reg#2, ...
-      //
-      // Returns a chain & a flag for retval copy to use.
-      SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
-      SmallVector<SDValue, 8> Ops;
-      Ops.push_back(Chain);
-      Ops.push_back(Callee);
-    
-      // Add argument registers to the end of the list so that they are
-      // known live into the call.
-      for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i)
-        Ops.push_back(DAG.getRegister(RegsToPass[i].first,
-                                      RegsToPass[i].second.getValueType()));
-    
-      // Add a register mask operand representing the call-preserved registers.
-      const TargetRegisterInfo *TRI = getTargetMachine().getRegisterInfo();
-      const uint32_t *Mask = TRI->getCallPreservedMask(CallConv);
-      assert(Mask && "Missing call preserved mask for calling convention");
-      Ops.push_back(DAG.getRegisterMask(Mask));
-    
-      if (InFlag.getNode())
-        Ops.push_back(InFlag);
-    
-      Chain  = DAG.getNode(Cpu0ISD::JmpLink, dl, NodeTys, &Ops[0], Ops.size());
-      InFlag = Chain.getValue(1);
-    
-      // Create the CALLSEQ_END node.
-      Chain = DAG.getCALLSEQ_END(Chain,
-                                 DAG.getIntPtrConstant(NextStackOffset, true),
-                                 DAG.getIntPtrConstant(0, true), InFlag);
-      InFlag = Chain.getValue(1);
-    
-      // Handle result values, copying them out of physregs into vregs that we
-      // return.
-      return LowerCallResult(Chain, InFlag, CallConv, isVarArg,
-                             Ins, dl, DAG, InVals);
+  // Cpu0ISelLowering.cpp
+  ...
+  SDValue
+  Cpu0TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                  SmallVectorImpl<SDValue> &InVals) const {
+    SelectionDAG &DAG                     = CLI.DAG;
+    DebugLoc &dl                          = CLI.DL;
+    SmallVector<ISD::OutputArg, 32> &Outs = CLI.Outs;
+    SmallVector<SDValue, 32> &OutVals     = CLI.OutVals;
+    SmallVector<ISD::InputArg, 32> &Ins   = CLI.Ins;
+    SDValue InChain                       = CLI.Chain;
+    SDValue Callee                        = CLI.Callee;
+    bool &isTailCall                      = CLI.IsTailCall;
+    CallingConv::ID CallConv              = CLI.CallConv;
+    bool isVarArg                         = CLI.IsVarArg;
+  
+    MachineFunction &MF = DAG.getMachineFunction();
+    MachineFrameInfo *MFI = MF.getFrameInfo();
+    const TargetFrameLowering *TFL = MF.getTarget().getFrameLowering();
+    bool IsPIC = getTargetMachine().getRelocationModel() == Reloc::PIC_;
+    Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+  
+    // Analyze operands of the call, assigning locations to each operand.
+    SmallVector<CCValAssign, 16> ArgLocs;
+    CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
+           getTargetMachine(), ArgLocs, *DAG.getContext());
+  
+    CCInfo.AnalyzeCallOperands(Outs, CC_Cpu0);
+  
+    // Get a count of how many bytes are to be pushed on the stack.
+    unsigned NextStackOffset = CCInfo.getNextStackOffset();
+  
+    // If this is the first call, create a stack frame object that points to
+    // a location to which .cprestore saves $gp.
+    if (IsPIC && Cpu0FI->globalBaseRegFixed() && !Cpu0FI->getGPFI())
+    Cpu0FI->setGPFI(MFI->CreateFixedObject(4, 0, true));
+    // Get the frame index of the stack frame object that points to the location
+    // of dynamically allocated area on the stack.
+    int DynAllocFI = Cpu0FI->getDynAllocFI();
+    unsigned MaxCallFrameSize = Cpu0FI->getMaxCallFrameSize();
+  
+    if (MaxCallFrameSize < NextStackOffset) {
+    Cpu0FI->setMaxCallFrameSize(NextStackOffset);
+  
+    // Set the offsets relative to $sp of the $gp restore slot and dynamically
+    // allocated stack space. These offsets must be aligned to a boundary
+    // determined by the stack alignment of the ABI.
+    unsigned StackAlignment = TFL->getStackAlignment();
+    NextStackOffset = (NextStackOffset + StackAlignment - 1) /
+              StackAlignment * StackAlignment;
+  
+    MFI->setObjectOffset(DynAllocFI, NextStackOffset);
     }
-    
-    /// LowerCallResult - Lower the result values of a call into the
-    /// appropriate copies out of appropriate physical registers.
-    SDValue
-    Cpu0TargetLowering::LowerCallResult(SDValue Chain, SDValue InFlag,
-                                        CallingConv::ID CallConv, bool isVarArg,
-                                        const SmallVectorImpl<ISD::InputArg> &Ins,
-                                        DebugLoc dl, SelectionDAG &DAG,
-                                        SmallVectorImpl<SDValue> &InVals) const {
-      // Assign locations to each value returned by this call.
-      SmallVector<CCValAssign, 16> RVLocs;
-      CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
-             getTargetMachine(), RVLocs, *DAG.getContext());
-    
-      CCInfo.AnalyzeCallResult(Ins, RetCC_Cpu0);
-    
-      // Copy all of the result registers out of their specified physreg.
-      for (unsigned i = 0; i != RVLocs.size(); ++i) {
-        Chain = DAG.getCopyFromReg(Chain, dl, RVLocs[i].getLocReg(),
-                                   RVLocs[i].getValVT(), InFlag).getValue(1);
-        InFlag = Chain.getValue(2);
-        InVals.push_back(Chain.getValue(0));
-      }
-    
-      return Chain;
+    // Chain is the output chain of the last Load/Store or CopyToReg node.
+    // ByValChain is the output chain of the last Memcpy node created for copying
+    // byval arguments to the stack.
+    SDValue Chain, CallSeqStart, ByValChain;
+    SDValue NextStackOffsetVal = DAG.getIntPtrConstant(NextStackOffset, true);
+    Chain = CallSeqStart = DAG.getCALLSEQ_START(InChain, NextStackOffsetVal);
+    ByValChain = InChain;
+  
+    // With EABI is it possible to have 16 args on registers.
+    SmallVector<std::pair<unsigned, SDValue>, 16> RegsToPass;
+    SmallVector<SDValue, 8> MemOpChains;
+  
+    int FirstFI = -MFI->getNumFixedObjects() - 1, LastFI = 0;
+  
+    // Walk the register/memloc assignments, inserting copies/loads.
+    for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
+    SDValue Arg = OutVals[i];
+    CCValAssign &VA = ArgLocs[i];
+    MVT ValVT = VA.getValVT(), LocVT = VA.getLocVT();
+    ISD::ArgFlagsTy Flags = Outs[i].Flags;
+  
+    // ByVal Arg.
+    if (Flags.isByVal()) {
+      assert("!!!Error!!!, Flags.isByVal()==true");
+      assert(Flags.getByValSize() &&
+         "ByVal args of size 0 should have been ignored by front-end.");
+      continue;
     }
+  
+    // Register can't get to this point...
+    assert(VA.isMemLoc());
+  
+    // Create the frame index object for this incoming parameter
+    LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
+                    VA.getLocMemOffset(), true);
+    SDValue PtrOff = DAG.getFrameIndex(LastFI, getPointerTy());
+  
+    // emit ISD::STORE whichs stores the
+    // parameter value to a stack Location
+    MemOpChains.push_back(DAG.getStore(Chain, dl, Arg, PtrOff,
+                       MachinePointerInfo(), false, false, 0));
+    }
+  
+    // Extend range of indices of frame objects for outgoing arguments that were
+    // created during this function call. Skip this step if no such objects were
+    // created.
+    if (LastFI)
+    Cpu0FI->extendOutArgFIRange(FirstFI, LastFI);
+  
+    // If a memcpy has been created to copy a byval arg to a stack, replace the
+    // chain input of CallSeqStart with ByValChain.
+    if (InChain != ByValChain)
+    DAG.UpdateNodeOperands(CallSeqStart.getNode(), ByValChain,
+                 NextStackOffsetVal);
+  
+    // Transform all store nodes into one single node because all store
+    // nodes are independent of each other.
+    if (!MemOpChains.empty())
+    Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
+              &MemOpChains[0], MemOpChains.size());
+  
+    // If the callee is a GlobalAddress/ExternalSymbol node (quite common, every
+    // direct call is) turn it into a TargetGlobalAddress/TargetExternalSymbol
+    // node so that legalize doesn't hack it.
+    unsigned char OpFlag;
+    bool IsPICCall = IsPIC; // true if calls are translated to jalr $25
+    bool GlobalOrExternal = false;
+    SDValue CalleeLo;
+  
+    if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee)) {
+    OpFlag = IsPICCall ? Cpu0II::MO_GOT_CALL : Cpu0II::MO_NO_FLAG;
+    Callee = DAG.getTargetGlobalAddress(G->getGlobal(), dl,
+                        getPointerTy(), 0, OpFlag);
+    GlobalOrExternal = true;
+    }
+    else if (ExternalSymbolSDNode *S = dyn_cast<ExternalSymbolSDNode>(Callee)) {
+    if (!IsPIC) // static
+      OpFlag = Cpu0II::MO_NO_FLAG;
+    else // O32 & PIC
+      OpFlag = Cpu0II::MO_GOT_CALL;
+    Callee = DAG.getTargetExternalSymbol(S->getSymbol(), getPointerTy(),
+                       OpFlag);
+    GlobalOrExternal = true;
+    }
+  
+    SDValue InFlag;
+  
+    // Create nodes that load address of callee and copy it to T9
+    if (IsPICCall) {
+    if (GlobalOrExternal) {
+      // Load callee address
+      Callee = DAG.getNode(Cpu0ISD::Wrapper, dl, getPointerTy(),
+                 GetGlobalReg(DAG, getPointerTy()), Callee);
+      SDValue LoadValue = DAG.getLoad(getPointerTy(), dl, DAG.getEntryNode(),
+                      Callee, MachinePointerInfo::getGOT(),
+                      false, false, false, 0);
+  
+      // Use GOT+LO if callee has internal linkage.
+      if (CalleeLo.getNode()) {
+      SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, getPointerTy(), CalleeLo);
+      Callee = DAG.getNode(ISD::ADD, dl, getPointerTy(), LoadValue, Lo);
+      } else
+      Callee = LoadValue;
+    }
+    }
+  
+    // T9 should contain the address of the callee function if
+    // -reloction-model=pic or it is an indirect call.
+    if (IsPICCall || !GlobalOrExternal) {
+    // copy to T9
+    unsigned T9Reg = Cpu0::T9;
+    Chain = DAG.getCopyToReg(Chain, dl, T9Reg, Callee, SDValue(0, 0));
+    InFlag = Chain.getValue(1);
+    Callee = DAG.getRegister(T9Reg, getPointerTy());
+    }
+  
+    // Cpu0JmpLink = #chain, #target_address, #opt_in_flags...
+    //             = Chain, Callee, Reg#1, Reg#2, ...
+    //
+    // Returns a chain & a flag for retval copy to use.
+    SDVTList NodeTys = DAG.getVTList(MVT::Other, MVT::Glue);
+    SmallVector<SDValue, 8> Ops;
+    Ops.push_back(Chain);
+    Ops.push_back(Callee);
+  
+    // Add argument registers to the end of the list so that they are
+    // known live into the call.
+    for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i)
+    Ops.push_back(DAG.getRegister(RegsToPass[i].first,
+                    RegsToPass[i].second.getValueType()));
+  
+    // Add a register mask operand representing the call-preserved registers.
+    const TargetRegisterInfo *TRI = getTargetMachine().getRegisterInfo();
+    const uint32_t *Mask = TRI->getCallPreservedMask(CallConv);
+    assert(Mask && "Missing call preserved mask for calling convention");
+    Ops.push_back(DAG.getRegisterMask(Mask));
+  
+    if (InFlag.getNode())
+    Ops.push_back(InFlag);
+  
+    Chain  = DAG.getNode(Cpu0ISD::JmpLink, dl, NodeTys, &Ops[0], Ops.size());
+    InFlag = Chain.getValue(1);
+  
+    // Create the CALLSEQ_END node.
+    Chain = DAG.getCALLSEQ_END(Chain,
+                 DAG.getIntPtrConstant(NextStackOffset, true),
+                 DAG.getIntPtrConstant(0, true), InFlag);
+    InFlag = Chain.getValue(1);
+  
+    // Handle result values, copying them out of physregs into vregs that we
+    // return.
+    return LowerCallResult(Chain, InFlag, CallConv, isVarArg,
+               Ins, dl, DAG, InVals);
+  }
+  
+  /// LowerCallResult - Lower the result values of a call into the
+  /// appropriate copies out of appropriate physical registers.
+  SDValue
+  Cpu0TargetLowering::LowerCallResult(SDValue Chain, SDValue InFlag,
+                    CallingConv::ID CallConv, bool isVarArg,
+                    const SmallVectorImpl<ISD::InputArg> &Ins,
+                    DebugLoc dl, SelectionDAG &DAG,
+                    SmallVectorImpl<SDValue> &InVals) const {
+    // Assign locations to each value returned by this call.
+    SmallVector<CCValAssign, 16> RVLocs;
+    CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
+       getTargetMachine(), RVLocs, *DAG.getContext());
+  
+    CCInfo.AnalyzeCallResult(Ins, RetCC_Cpu0);
+  
+    // Copy all of the result registers out of their specified physreg.
+    for (unsigned i = 0; i != RVLocs.size(); ++i) {
+    Chain = DAG.getCopyFromReg(Chain, dl, RVLocs[i].getLocReg(),
+                   RVLocs[i].getValVT(), InFlag).getValue(1);
+    InFlag = Chain.getValue(2);
+    InVals.push_back(Chain.getValue(0));
+    }
+  
+    return Chain;
+  }
+
 
 Just like load incoming arguments from stack frame, we call 
 CCInfo(CallConv,..., ArgLocs, …) to get outgoing arguments information before 
@@ -848,10 +866,10 @@ CALLSEQ_END, and translate into pseudo machine instructions !ADJCALLSTACKDOWN,
     }
     
     
-    Like load incoming arguments, we need to implement storeRegToStackSlot() for 
-    store outgoing arguments to stack frame offset.
+Like load incoming arguments, we need to implement storeRegToStackSlot() for 
+store outgoing arguments to stack frame offset.
     
-    .. code-block:: c++
+.. code-block:: c++
     
     // Cpu0InstrInfo.cpp
     ...
@@ -874,173 +892,13 @@ CALLSEQ_END, and translate into pseudo machine instructions !ADJCALLSTACKDOWN,
         .addFrameIndex(FI).addImm(0).addMemOperand(MMO);
     }
 
-Now, let's run 8/3/Cpu0 with ch8_1.cpp to get result as follows,
+Now, let's run 8/3/Cpu0 with ch8_1.cpp to get result as follows (see comment 
+//),
 
 .. code-block:: bash
 
-    118-165-79-83:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch8_1.bc -o ch8_1.cpu0.s
-    118-165-79-83:InputFiles Jonathan$ cat ch8_1.cpu0.s 
-        .section .mdebug.abi32
-        .previous
-        .file   "ch8_1.bc"
-        .text
-        .globl  _Z5sum_iiiiiii
-        .align  2
-        .type   _Z5sum_iiiiiii,@function
-        .ent    _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
-    _Z5sum_iiiiiii:
-        .frame  $sp,32,$lr
-        .mask   0x00000000,0
-        .set    noreorder
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -32
-        ld  $2, 32($sp)
-        st  $2, 28($sp)
-        ld  $2, 36($sp)
-        st  $2, 24($sp)
-        ld  $2, 40($sp)
-        st  $2, 20($sp)
-        ld  $2, 44($sp)
-        st  $2, 16($sp)
-        ld  $2, 48($sp)
-        st  $2, 12($sp)
-        ld  $2, 52($sp)
-        st  $2, 8($sp)
-        ld  $3, 24($sp)
-        ld  $4, 28($sp)
-        add $3, $4, $3
-        ld  $4, 20($sp)
-        add $3, $3, $4
-        ld  $4, 16($sp)
-        add $3, $3, $4
-        ld  $4, 12($sp)
-        add $3, $3, $4
-        add $2, $3, $2
-        st  $2, 4($sp)
-        addiu   $sp, $sp, 32
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    _Z5sum_iiiiiii
-    $tmp1:
-        .size   _Z5sum_iiiiiii, ($tmp1)-_Z5sum_iiiiiii
-    
-        .globl  main
-        .align  2
-        .type   main,@function
-        .ent    main                    # @main
-    main:
-        .frame  $sp,40,$lr
-        .mask   0x00004000,-4
-        .set    noreorder
-        .cpload $t9
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -40
-        st  $lr, 36($sp)            # 4-byte Folded Spill
-        addiu   $2, $zero, 0
-        st  $2, 32($sp)
-        !ADJCALLSTACKDOWN 24
-        addiu   $2, $zero, 6
-        st  $2, 60($sp) // wrong offset
-        addiu   $2, $zero, 5
-        st  $2, 56($sp)
-        addiu   $2, $zero, 4
-        st  $2, 52($sp)
-        addiu   $2, $zero, 3
-        st  $2, 48($sp)
-        addiu   $2, $zero, 2
-        st  $2, 44($sp)
-        addiu   $2, $zero, 1
-        st  $2, 40($sp)
-        ld  $6, %call24(_Z5sum_iiiiiii)($gp)
-        jalr    $6
-        !ADJCALLSTACKUP 24
-        st  $2, 28($sp)
-        ld  $lr, 36($sp)            # 4-byte Folded Reload
-        addiu   $sp, $sp, 40
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    main
-    $tmp4:
-        .size   main, ($tmp4)-main
-
-It store the arguments to wrong offset. 
-We will fix this issue and take care !ADJCALLSTACKUP and !ADJCALLSTACKDOWN in 
-next two sections.
-
-
-Fix the wrong offset in storing arguments to stack frame
----------------------------------------------------------
-
-To fix the wrong offset in storing arguments, we modify the following code 
-in eliminateFrameIndex() as follows. 
-The bold text as below is added in 8/4/Cpu0 to set the caller outgoing 
-arguments into spOffset($sp) (8/3/Cpu0 set them to pOffset+stackSize($sp).
-
-.. code-block:: c++
-
-    // Cpu0RegisterInfo.cpp
-    ...
-    void Cpu0RegisterInfo::
-    eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj,
-                        RegScavenger *RS) const {
-      …
-      Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
-      …
-      if (Cpu0FI->isOutArgFI(FrameIndex) || Cpu0FI->isDynAllocFI(FrameIndex) ||
-          (FrameIndex >= MinCSFI && FrameIndex <= MaxCSFI))
-        FrameReg = Cpu0::SP;
-      else
-        FrameReg = getFrameRegister(MF);
-      …
-      // Calculate final offset.
-      // - There is no need to change the offset if the frame object is one of the
-      //   following: an outgoing argument, pointer to a dynamically allocated
-      //   stack space or a $gp restore location,
-      // - If the frame object is any of the following, its offset must be adjusted
-      //   by adding the size of the stack:
-      //   incoming argument, callee-saved register location or local variable.
-      if (Cpu0FI->isOutArgFI(FrameIndex) || Cpu0FI->isGPFI(FrameIndex) ||
-          Cpu0FI->isDynAllocFI(FrameIndex))
-        Offset = spOffset;
-      else
-        Offset = spOffset + (int64_t)stackSize;
-      Offset    += MI.getOperand(i+1).getImm();
-    
-      DEBUG(errs() << "Offset     : " << Offset << "\n" << "<--------->\n");
-    
-      // If MI is not a debug value, make sure Offset fits in the 16-bit immediate
-      // field.
-      if (!MI.isDebugValue() && !isInt<16>(Offset)) {
-        assert("(!MI.isDebugValue() && !isInt<16>(Offset))");
-      }
-    
-      MI.getOperand(i).ChangeToRegister(FrameReg, false);
-      MI.getOperand(i+1).ChangeToImmediate(Offset);
-    
-    }
-    
-    // Cpu0MachineFunction.h
-      ...
-      bool isOutArgFI(int FI) const {
-        return FI <= OutArgFIRange.first && FI >= OutArgFIRange.second;
-      }
-
-Run 8/4/Cpu0 with ch8_1.cpp will get the following result. 
-It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to 
-(0)$sp, (8)$sp, ..., where the stack size is 40 in main().
-
-.. code-block:: bash
-
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=
-  asm ch8_1.bc -o ch8_1.cpu0.s
-  118-165-76-131:InputFiles Jonathan$ cat ch8_1.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o ch8_1.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ cat ch8_1.cpu0.s 
     .section .mdebug.abi32
     .previous
     .file "ch8_1.bc"
@@ -1113,17 +971,17 @@ It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to
     st  $2, 32($sp)
     !ADJCALLSTACKDOWN 24
     addiu $2, $zero, 6
-    st  $2, 20($sp)
+    st  $2, 60($sp) // wrong offset
     addiu $2, $zero, 5
-    st  $2, 16($sp)
+    st  $2, 56($sp)
     addiu $2, $zero, 4
-    st  $2, 12($sp)
+    st  $2, 52($sp)
     addiu $2, $zero, 3
-    st  $2, 8($sp)
+    st  $2, 48($sp)
     addiu $2, $zero, 2
-    st  $2, 4($sp)
+    st  $2, 44($sp)
     addiu $2, $zero, 1
-    st  $2, 0($sp)
+    st  $2, 40($sp)
     ld  $6, %call24(_Z5sum_iiiiiii)($gp)
     jalr  $6
     !ADJCALLSTACKUP 24
@@ -1137,6 +995,101 @@ It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to
   $tmp7:
     .size main, ($tmp7)-main
     .cfi_endproc
+
+
+It store the arguments to wrong offset. 
+We will fix this issue and take care !ADJCALLSTACKUP and !ADJCALLSTACKDOWN in 
+next two sections.
+
+
+Fix the wrong offset in storing arguments to stack frame
+---------------------------------------------------------
+
+To fix the wrong offset in storing arguments, we modify the following code 
+in eliminateFrameIndex() as follows. 
+The code as below is modified in 8/4/Cpu0 to set the caller outgoing 
+arguments into spOffset($sp) (8/3/Cpu0 set them to pOffset+stackSize($sp).
+
+.. code-block:: c++
+
+  // Cpu0RegisterInfo.cpp
+  ...
+  void Cpu0RegisterInfo::
+  eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj,
+                      RegScavenger *RS) const {
+    ...
+    Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+    ...
+    if (Cpu0FI->isOutArgFI(FrameIndex) || Cpu0FI->isDynAllocFI(FrameIndex) ||
+        (FrameIndex >= MinCSFI && FrameIndex <= MaxCSFI))
+      FrameReg = Cpu0::SP;
+    else
+      FrameReg = getFrameRegister(MF);
+    ...
+    // Calculate final offset.
+    // - There is no need to change the offset if the frame object is one of the
+    //   following: an outgoing argument, pointer to a dynamically allocated
+    //   stack space or a $gp restore location,
+    // - If the frame object is any of the following, its offset must be adjusted
+    //   by adding the size of the stack:
+    //   incoming argument, callee-saved register location or local variable.
+    if (Cpu0FI->isOutArgFI(FrameIndex) || Cpu0FI->isGPFI(FrameIndex) ||
+        Cpu0FI->isDynAllocFI(FrameIndex))
+      Offset = spOffset;
+    else
+      Offset = spOffset + (int64_t)stackSize;
+    Offset    += MI.getOperand(i+1).getImm();
+    ...
+  }
+    
+  // Cpu0MachineFunction.h
+  ...
+  /// SRetReturnReg - Some subtargets require that sret lowering includes
+  /// returning the value of the returned struct in a register. This field
+  /// holds the virtual register into which the sret argument is passed.
+  unsigned SRetReturnReg;
+  ...
+  Cpu0FunctionInfo(MachineFunction& MF)
+  : MF(MF), SRetReturnReg(0)
+  ...
+  bool isOutArgFI(int FI) const {
+    return FI <= OutArgFIRange.first && FI >= OutArgFIRange.second;
+  }
+  ...
+  unsigned getSRetReturnReg() const { return SRetReturnReg; }
+  void setSRetReturnReg(unsigned Reg) { SRetReturnReg = Reg; }
+  ...
+
+
+Run 8/4/Cpu0 with ch8_1.cpp will get the following result. 
+It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to 
+(0)$sp, (8)$sp, ..., where the stack size is 40 in main().
+
+.. code-block:: bash
+
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
+  ch8_1.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ cat ch8_1.cpu0.s 
+  ...
+    !ADJCALLSTACKDOWN 24
+    addiu $2, $zero, 6
+    st  $2, 60($sp) // correct offset
+    addiu $2, $zero, 5
+    st  $2, 56($sp)
+    addiu $2, $zero, 4
+    st  $2, 52($sp)
+    addiu $2, $zero, 3
+    st  $2, 48($sp)
+    addiu $2, $zero, 2
+    st  $2, 44($sp)
+    addiu $2, $zero, 1
+    st  $2, 40($sp)
+    ld  $6, %call24(_Z5sum_iiiiiii)($gp)
+    jalr  $6
+    !ADJCALLSTACKUP 24
+  ...
+
 
 The incoming arguments is the formal arguments defined in compiler and program 
 language books. The outgoing arguments is the actual arguments.
@@ -1166,7 +1119,7 @@ function and define eliminateCallFramePseudoInstr() as follows,
   ...
   Cpu0InstrInfo::Cpu0InstrInfo(Cpu0TargetMachine &tm)
     : Cpu0GenInstrInfo(Cpu0::ADJCALLSTACKDOWN, Cpu0::ADJCALLSTACKUP),
-  …
+  ...
   
   // Cpu0RegisterInfo.cpp
   ...
@@ -1187,10 +1140,10 @@ Run 8/5/Cpu0 with ch8_1.cpp will get the following result.
 
 .. code-block:: bash
 
-  118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype
-  =asm ch8_1.bc -o ch8_1.cpu0.s
-  118-165-76-131:InputFiles Jonathan$ cat ch8_1.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
+  ch8_1.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ cat ch8_1.cpu0.s 
     .section .mdebug.abi32
     .previous
     .file "ch8_1.bc"
@@ -1308,71 +1261,51 @@ comment in it for explanation.
 
 .. code-block:: bash
 
-    118-165-67-25:InputFiles Jonathan$ cat ch8_2.cpu0.s
-        .section .mdebug.abi32
-        .previous
-        .file   "ch8_2.bc"
-        .text
-        .globl  _Z5sum_iiiiiii
-        .align  2
-        .type   _Z5sum_iiiiiii,@function
-        .ent    _Z5sum_iiiiiii          # @_Z5sum_iiiiiii
-    _Z5sum_iiiiiii:
-    ...
-        .cpload $t9 // assign $gp = $t9 by loader when loader load re-entry 
-                    //  function (shared library) of _Z5sum_iiiiiii
-        .set    nomacro
-    # BB#0:
-        addiu   $sp, $sp, -32
-    $tmp1:
-        .cfi_def_cfa_offset 32
-    ...
-        ld  $3, %got(gI)($gp)   // %got(gI) is offset of (gI - _Z5sum_iiiiiii)
-    ...
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    _Z5sum_iiiiiii
-    ...
-        .ent    main                    # @main
-    main:
-        .cfi_startproc
-        .frame  $sp,72,$lr
-        .mask   0x00004000,-4
-        .set    noreorder
-        .cpload $t9
-        .set    nomacro
-    # BB#0:
-        addiu   $sp, $sp, -72
-    $tmp5:
-        .cfi_def_cfa_offset 72
-        st  $lr, 68($sp)            # 4-byte Folded Spill
-    $tmp6:
-        .cfi_offset 14, -4
-        .cprestore  24  // save $gp to 24($sp)
-        addiu   $2, $zero, 0
-    ...
-        ld  $6, %call24(_Z5sum_iiiiiii)($gp)
-        jalr    $6      // $t9 register number is 6, meaning $6 and %t9 are the 
-                        //  same register
-        ld  $gp, 24($sp)    // restore $gp from 24($sp)
-    ...
-        addiu   $sp, $sp, 72
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    main
-    $tmp7:
-        .size   main, ($tmp7)-main
-        .cfi_endproc
+  118-165-78-230:InputFiles Jonathan$ cat ch8_2.cpu0.s
+  _Z5sum_iiiiiii:
+  ...
+      .cpload $t9 // assign $gp = $t9 by loader when loader load re-entry 
+                  //  function (shared library) of _Z5sum_iiiiiii
+      .set    nomacro
+  # BB#0:
+      addiu   $sp, $sp, -32
+  $tmp1:
+      .cfi_def_cfa_offset 32
+  ...
+      ld  $3, %got(gI)($gp)   // %got(gI) is offset of (gI - _Z5sum_iiiiiii)
+  ...
+      ret $lr
+      .set    macro
+      .set    reorder
+      .end    _Z5sum_iiiiiii
+  ...
+      .ent    main                    # @main
+  main:
+      .cfi_startproc
+  ...
+      .cpload $t9
+      .set    nomacro
+  ...
+      .cprestore  24  	// save $gp to 24($sp)
+      addiu   $2, $zero, 0
+  ...
+      ld  $6, %call24(_Z5sum_iiiiiii)($gp)
+      jalr    $6      	// $t9 register number is 6, meaning $6 and %t9 are the 
+                      	//  same register
+      ld  $gp, 24($sp)	// restore $gp from 24($sp)
+  ...
+      .end    main
+  $tmp7:
+      .size   main, ($tmp7)-main
+      .cfi_endproc
     
-        .type   gI,@object              # @gI
-        .data
-        .globl  gI
-        .align  2
-    gI:
-        .4byte  100                     # 0x64
-        .size   gI, 4
+      .type   gI,@object              # @gI
+      .data
+      .globl  gI
+      .align  2
+  gI:
+      .4byte  100                     # 0x64
+      .size   gI, 4
 
 As above code comment, **“.cprestore 24”** is a pseudo instruction for saving 
 **$gp** to **24($sp)**; Instruction **“ld $gp, 24($sp)”** will restore the $gp. 
@@ -1394,7 +1327,32 @@ library or dynamic loading code to demonstrate the caller how to handle the
 caller saved register $gp in calling the shared library and the shared library 
 how to use $gp to access global variable address. This solution is popular in 
 reality and deserve change cpu0 official design as a compiler book. 
-Mips use the same solution in 32 bits Mips32 CPU.
+Mips use the same solution in 32 bits Mips32 CPU of llvm 3.1. 
+
+Mips removes these pseudo assembly code in 3.2.
+This change is good for spim (mips assembly code simulator) which run for 
+Mips assembly code. According the theory of "System Software", some pseudo 
+assembly code (especially for those not in standard) cannot be translated by  
+assembler. It will break down in assembly code simulator. 
+Run ch_mips_llvm3.2_globalvar_changes.cpp with llvm 3.1 and 3.2 for mips, you 
+will find the **".cprestore"** is removed directly since 3.2 use other register 
+in other the called function (like use $1 in f() and the remove **.gprestore** 
+in sum_i()).
+**".cpload"** is replaced with instructions as follows,
+
+.. code-block:: bash
+
+  // llvm 3.1 mips
+    .cpload $25
+  
+  // llvm 3.2 mips
+    lui $2, %hi(_gp_disp)
+    addiu $2, $2, %lo(_gp_disp)
+    ...
+    addu  $gp, $2, $25
+
+Reference [#]_ for **".cpload"**, **".cprestore"** and **"_gp_disp"**.
+
 
 Now, as the following code added in 8/6/Cpu0, we can issue **“.cprestore”** in 
 emitPrologue() and emit ld $gp, ($gp save slot on stack) after jalr by create 
@@ -1415,7 +1373,7 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     // Do not restore $gp if target is Cpu064.
     // In N32/64, $gp is a callee-saved register.
   
-    PM->add(createCpu0EmitGPRestorePass(getCpu0TargetMachine()));
+    addPass(createCpu0EmitGPRestorePass(getCpu0TargetMachine()));
     return true;
   }
   
@@ -1424,15 +1382,14 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     FunctionPass *createCpu0EmitGPRestorePass(Cpu0TargetMachine &TM);
   
   // Cpu0FrameLowering.cpp
-  …
-  
+  ...
   void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
     ...
     unsigned RegSize = 4;
     unsigned LocalVarAreaOffset = Cpu0FI->needGPSaveRestore() ?
     (MFI->getObjectOffset(Cpu0FI->getGPFI()) + RegSize) :
     Cpu0FI->getMaxCallFrameSize();
-    ….
+    ...
     // Restore GP from the saved stack location
     if (Cpu0FI->needGPSaveRestore()) {
       unsigned Offset = MFI->getObjectOffset(Cpu0FI->getGPFI());
@@ -1442,7 +1399,7 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   }
   
   // Cpu0InstrInfo.td
-  …
+  ...
   // When handling PIC code the assembler needs .cpload and .cprestore
   // directives. If the real instructions corresponding these directives
   // are used, we have the same behavior, but get also a bunch of warnings
@@ -1453,16 +1410,10 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   
   
   // Cpu0SelLowering.cpp
-  …
+  ...
   SDValue
-  Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-                  CallingConv::ID CallConv, bool isVarArg,
-                  bool doesNotRet, bool &isTailCall,
-                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                  const SmallVectorImpl<SDValue> &OutVals,
-                  const SmallVectorImpl<ISD::InputArg> &Ins,
-                  DebugLoc dl, SelectionDAG &DAG,
-                  SmallVectorImpl<SDValue> &InVals) const {
+  Cpu0TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                                SmallVectorImpl<SDValue> &InVals) const {
     ...
     // If this is the first call, create a stack frame object that points to
     // a location to which .cprestore saves $gp.
@@ -1471,7 +1422,7 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
     if (MaxCallFrameSize < NextStackOffset) {
       if (Cpu0FI->needGPSaveRestore())
         MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
-    …
+    ...
   }
   
   // Cpu0EmitGPRestore.cpp
@@ -1662,7 +1613,7 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   }
   
   // Cpu0MCInstLower.cpp
-  …
+  ...
   sstatic void CreateMCInst(MCInst& Inst, unsigned Opc, const MCOperand& Opnd0,
                const MCOperand& Opnd1,
                const MCOperand& Opnd2 = MCOperand()) {
@@ -1808,7 +1759,7 @@ machine code as follows,
     .set  nomacro
   ...
     .cprestore  24  // save $gp to 24($sp)
-  …
+  ...
 
 Run ``llc -static`` will call jsub instruction instead of jalr as follows,
 
@@ -1818,7 +1769,7 @@ Run ``llc -static`` will call jsub instruction instead of jalr as follows,
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=
   asm ch8_2.bc -o ch8_2.cpu0.s
   118-165-76-131:InputFiles Jonathan$ cat ch8_2.cpu0.s
-  …
+  ...
     jsub  _Z5sum_iiiiiii
   ...
 
@@ -1841,7 +1792,7 @@ Until now, we support fixed number of arguments in formal function definition
 (Incoming Arguments). 
 This section support variable number of arguments since C language support 
 this feature.
-Run 8/7/Cpu0 with ch8_3.cpp to get the following,
+Run 8/6/Cpu0 with ch8_3.cpp to get the following error,
 
 .. code-block:: c++
 
@@ -1874,6 +1825,19 @@ Run 8/7/Cpu0 with ch8_3.cpp to get the following,
     
     return a;
   }
+
+.. code-block:: bash
+
+  118-165-78-230:InputFiles Jonathan$ clang -c ch8_3.cpp -emit-llvm -o ch8_3.bc
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_3.bc -o 
+  ch8_3.cpu0.s
+  LLVM ERROR: Cannot select: 0x7f8b6902fd10: ch = vastart 0x7f8b6902fa10, 
+  0x7f8b6902fb10, 0x7f8b6902fc10 [ORD=9] [ID=22]
+    0x7f8b6902fb10: i32 = FrameIndex<5> [ORD=7] [ID=9]
+  In function: _Z5sum_iiz
+
+Run 8/7/Cpu0 with ch8_3.cpp to get the following result,
 
 .. code-block:: bash
 
@@ -2076,89 +2040,86 @@ The llvm IR and mips assembly output as follows,
     .ent  _Z5sum_iiz              # @_Z5sum_iiz
   _Z5sum_iiz:
     .cfi_startproc
-    .frame  $sp,72,$ra
+    .frame  $sp,64,$ra
     .mask   0x80000000,-4
     .fmask  0x00000000,0
     .set  noreorder
-    .cpload $25
     .set  nomacro
+	.set	noat
   # BB#0:
-    addiu $sp, $sp, -72
+	lui	$2, %hi(_gp_disp)
+	addiu	$2, $2, %lo(_gp_disp)
+	addiu	$sp, $sp, -64
   $tmp2:
-    .cfi_def_cfa_offset 72
-    sw  $ra, 68($sp)            # 4-byte Folded Spill
+	.cfi_def_cfa_offset 64
+	sw	$ra, 60($sp)            # 4-byte Folded Spill
   $tmp3:
     .cfi_offset 31, -4
     .cprestore  16
-    sw  $7, 84($sp)
-    sw  $6, 80($sp)
-    sw  $5, 76($sp) // 76($sp) = arg[1]
-    lw  $2, %got(__stack_chk_guard)($gp)
-    lw  $2, 0($2)
-    sw  $2, 64($sp)
-    sw  $4, 60($sp) // 60($sp) = amount = arg[0]
-    sw  $zero, 56($sp)  // i
-    sw  $zero, 52($sp)  // val
-    sw  $zero, 48($sp)  // sum
-    addiu $2, $sp, 76
-    sw  $2, 24($sp) // 24($sp) = arg_ptr
-    sw  $zero, 56($sp)
+    sw  $7, 76($sp)
+    sw  $6, 72($sp)
+    sw  $5, 68($sp) // 68($sp) = arg[1]
+	lw	$3, %got(__stack_chk_guard)($gp)
+	lw	$1, 0($3)
+	sw	$1, 56($sp)
+    sw  $4, 52($sp) // 52($sp) = amount = arg[0]
+    sw  $zero, 48($sp)  // i
+    sw  $zero, 44($sp)  // val
+    sw  $zero, 40($sp)  // sum
+    addiu $2, $sp, 68
+    sw  $2, 16($sp) // 16($sp) = arg_ptr
+    sw  $zero, 48($sp)
+	b	$BB0_2
     addiu $2, $zero, 40 // $2 = 40
+  $BB0_1:                                 #   in Loop: Header=BB0_2 Depth=1
+    lw  $1, 0($4)   // $4 = *arg_ptr
+    sw  $1, 44($sp) // val
+    lw  $4, 40($sp) // sum
+    addu  $1, $4, $1  //
+    sw  $1, 40($sp) // sum += val
+    lw  $1, 48($sp)
+    addiu $1, $1, 1
+    sw  $1, 48($sp) // i += 1
+  $BB0_2:                                 # =>This Inner Loop Header: Depth=1
+    lw  $1, 52($sp)
+    lw  $4, 48($sp)
+    slt $1, $4, $1  // set if i < amount
+    beq $1, $zero, $BB0_6 // i >= amount
+    nop
+  # BB#3:                                 #   in Loop: Header=BB0_2 Depth=1
+    lw  $4, 16($sp) // $4 = arg_ptr
+    sltu  $1, $2, $4  // set if 40 < arg_ptr
+    bne $1, $zero, $BB0_5
+    nop
+  # BB#4:                                 #   in Loop: Header=BB0_2 Depth=1 
+                      // arg_ptr <= 40
+    addiu $1, $4, 8
+    lw  $5, 28($sp) // 28($sp) = 0, assume even though we didn't find the 
+                    // 28($sp) is 0
+    sw  $4, 16($sp) // arg_ptr += 8
+    b $BB0_1
+    addu  $4, $5, $4  // arg_ptr + 0
+  $BB0_5:                                 #   in Loop: Header=BB0_1 Depth=1 
+                     // 40 < arg_ptr
+    lw  $4, 24($sp)
+    addiu $1, $4, 8
+    sw  $1, 24($sp)
     b $BB0_1
     nop
-  $BB0_5:                                 #   in Loop: Header=BB0_1 Depth=1
-    lw  $3, 0($3)   // $3 = *arg_ptr
-    sw  $3, 52($sp) // val
-    lw  $4, 48($sp) // sum
-    addu  $3, $4, $3  //
-    sw  $3, 48($sp) // sum += val
-    lw  $3, 56($sp)
-    addiu $3, $3, 1
-    sw  $3, 56($sp) // i += 1
-  $BB0_1:                                 # =>This Inner Loop Header: Depth=1
-    lw  $3, 60($sp)
-    lw  $4, 56($sp)
-    slt $3, $4, $3  // set if i < amount
-    beq $3, $zero, $BB0_6 // i >= amount
-    nop
-  # BB#2:                                 #   in Loop: Header=BB0_1 Depth=1
-    lw  $3, 24($sp) // $3 = arg_ptr
-    sltu  $4, $2, $3  // set if 40 < arg_ptr
-    bne $4, $zero, $BB0_4
-    nop
-  # BB#3:                                 #   in Loop: Header=BB0_1 Depth=1 
-                      // arg_ptr <= 40
-    addiu $4, $3, 8
-    lw  $5, 36($sp) // 36($sp) = 0, assume even though we didn't find the 
-                    // 36($sp) is 0
-    sw  $4, 24($sp) // arg_ptr += 8
-    addu  $3, $5, $3  // arg_ptr + 0
-    b $BB0_5
-    nop
-  $BB0_4:                                 #   in Loop: Header=BB0_1 Depth=1 
-                     // 40 < arg_ptr
-    lw  $3, 32($sp)
-    addiu $4, $3, 8
-    sw  $4, 32($sp)
-    b $BB0_5
-    nop
   $BB0_6:
-    lw  $2, %got(__stack_chk_guard)($gp)
-    lw  $2, 0($2)
-    lw  $3, 64($sp)
-    bne $2, $3, $BB0_8
-    nop
+	lw	$1, 0($3)
+	lw	$3, 56($sp)
+	bne	$1, $3, $BB0_8
+	lw	$2, 40($sp)
   # BB#7:                                 # %SP_return
-    lw  $2, 48($sp)
-    lw  $ra, 68($sp)            # 4-byte Folded Reload
-    addiu $sp, $sp, 72
+    lw  $ra, 60($sp)            # 4-byte Folded Reload
     jr  $ra
-    nop
+    addiu $sp, $sp, 64
   $BB0_8:                                 # %CallStackCheckFailBlk
     lw  $25, %call16(__stack_chk_fail)($gp)
     jalr  $25
     nop
-    lw  $gp, 16($sp)
+    .set  at
     .set  macro
     .set  reorder
     .end  _Z5sum_iiz
@@ -2169,47 +2130,44 @@ The llvm IR and mips assembly output as follows,
     .globl  main
     .align  2
     .type main,@function
-    .ent  main                    # @main
+    .set  nomips16                # @main
+    .ent  main
   main:
     .cfi_startproc
-    .frame  $sp,64,$ra
+    .frame  $sp,48,$ra
     .mask   0x80000000,-4
     .fmask  0x00000000,0
     .set  noreorder
-    .cpload $25
     .set  nomacro
+    .set  noat
   # BB#0:
-    addiu $sp, $sp, -64
+    lui $2, %hi(_gp_disp)
+    addiu $2, $2, %lo(_gp_disp)
+    addiu $sp, $sp, -48
   $tmp7:
-    .cfi_def_cfa_offset 64
-    sw  $ra, 60($sp)            # 4-byte Folded Spill
+    .cfi_def_cfa_offset 48
+    sw  $ra, 44($sp)            # 4-byte Folded Spill
   $tmp8:
     .cfi_offset 31, -4
-    .cprestore  40
-    sw  $zero, 56($sp)
-    addiu $2, $zero, 7
-    sw  $2, 28($sp)
-    addiu $2, $zero, 6
-    sw  $2, 24($sp)
-    addiu $2, $zero, 5
-    sw  $2, 20($sp)
-    addiu $2, $zero, 4
-    sw  $2, 16($sp)
-    addiu $4, $zero, 8
-    sw  $4, 32($sp)
+    addu  $gp, $2, $25
+    sw  $zero, 40($sp)
+    addiu $1, $zero, 5
+    sw  $1, 20($sp)
+    addiu $1, $zero, 4
+    sw  $1, 16($sp)
+    addiu $1, $zero, 6
+    sw  $1, 24($sp)
     lw  $25, %call16(_Z5sum_iiz)($gp)
+    addiu $4, $zero, 6
     addiu $5, $zero, 1
     addiu $6, $zero, 2
-    addiu $7, $zero, 3
     jalr  $25
-    nop
-    lw  $gp, 40($sp)
-    sw  $2, 52($sp)
-    addu  $2, $zero, $zero
-    lw  $ra, 60($sp)            # 4-byte Folded Reload
-    addiu $sp, $sp, 64
+    addiu $7, $zero, 3
+    sw  $2, 36($sp)
+    lw  $ra, 44($sp)            # 4-byte Folded Reload
     jr  $ra
-    nop
+    addiu $sp, $sp, 48
+    .set  at
     .set  macro
     .set  reorder
     .end  main
@@ -2512,9 +2470,9 @@ backend code too.
     setOperationAction(ISD::VAARG,             MVT::Other, Expand);
     setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
     setOperationAction(ISD::VAEND,             MVT::Other, Expand);
-    …
+    ...
   }
-  …
+  ...
   
   SDValue Cpu0TargetLowering::
   LowerOperation(SDValue Op, SelectionDAG &DAG) const
@@ -2615,7 +2573,7 @@ It translate **“(b+1)%c”** into **“div $zero, $3, $2”** and **“mfhi $2
     ...
     div $zero, $3, $2
     mfhi  $2
-    …
+    ...
 
 Summary of this chapter
 ------------------------
@@ -2625,7 +2583,7 @@ The cpu0 backend code now can take care the integer function call and control
 statement just like the llvm front end tutorial example code. 
 Look back the chapter of “Back end structure”, there are 3,000 lines of source 
 code with taking three instructions only. 
-With this 87% more of code, it can translate tens of instructions, global 
+With this 90% more of code, it can translate tens of instructions, global 
 variable, control flow statement and function call.
 
 
@@ -2638,5 +2596,7 @@ variable, control flow statement and function call.
 .. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
 
 .. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
+
+.. [#] http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
 
 .. [#] http://developer.mips.com/clang-llvm/

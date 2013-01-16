@@ -1,6 +1,6 @@
 diff -Naur 4/4/Cpu0/Cpu0FrameLowering.cpp 4/4_2/Cpu0/Cpu0FrameLowering.cpp
---- 4/4/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 18:07:22.000000000 +0800
-+++ 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 18:07:22.000000000 +0800
+--- 4/4/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:44.000000000 +0800
 @@ -100,7 +100,7 @@
    MachineBasicBlock::iterator MBBI = MBB.begin();
    DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
@@ -52,8 +52,8 @@ diff -Naur 4/4/Cpu0/Cpu0FrameLowering.cpp 4/4_2/Cpu0/Cpu0FrameLowering.cpp
  	assert("No expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);");
  //    expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);
 diff -Naur 4/4/Cpu0/Cpu0InstrInfo.td 4/4_2/Cpu0/Cpu0InstrInfo.td
---- 4/4/Cpu0/Cpu0InstrInfo.td	2013-01-16 18:07:22.000000000 +0800
-+++ 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-01-16 18:07:22.000000000 +0800
+--- 4/4/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
++++ 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
 @@ -196,9 +196,9 @@
  defm ST     : StoreM32<0x01, "st",  store_a>;
  

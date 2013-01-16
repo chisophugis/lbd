@@ -1,6 +1,6 @@
 diff -Naur 3/1/Cpu0/CMakeLists.txt 3/2/Cpu0/CMakeLists.txt
---- 3/1/Cpu0/CMakeLists.txt	2013-01-16 18:07:22.000000000 +0800
-+++ 3/2/Cpu0/CMakeLists.txt	2013-01-16 18:07:22.000000000 +0800
+--- 3/1/Cpu0/CMakeLists.txt	2013-01-16 21:39:44.000000000 +0800
++++ 3/2/Cpu0/CMakeLists.txt	2013-01-16 21:39:44.000000000 +0800
 @@ -21,6 +21,7 @@
    Cpu0ISelLowering.cpp
    Cpu0InstrInfo.cpp
@@ -10,8 +10,8 @@ diff -Naur 3/1/Cpu0/CMakeLists.txt 3/2/Cpu0/CMakeLists.txt
    Cpu0TargetMachine.cpp
    Cpu0SelectionDAGInfo.cpp
 diff -Naur 3/1/Cpu0/Cpu0InstrInfo.cpp 3/2/Cpu0/Cpu0InstrInfo.cpp
---- 3/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 18:07:22.000000000 +0800
-+++ 3/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 18:07:22.000000000 +0800
+--- 3/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/2/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:44.000000000 +0800
 @@ -20,5 +20,10 @@
  
  Cpu0InstrInfo::Cpu0InstrInfo(Cpu0TargetMachine &tm)
@@ -26,8 +26,8 @@ diff -Naur 3/1/Cpu0/Cpu0InstrInfo.cpp 3/2/Cpu0/Cpu0InstrInfo.cpp
 +}
 +
 diff -Naur 3/1/Cpu0/Cpu0InstrInfo.h 3/2/Cpu0/Cpu0InstrInfo.h
---- 3/1/Cpu0/Cpu0InstrInfo.h	2013-01-16 18:07:22.000000000 +0800
-+++ 3/2/Cpu0/Cpu0InstrInfo.h	2013-01-16 18:07:22.000000000 +0800
+--- 3/1/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/2/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:44.000000000 +0800
 @@ -15,6 +15,7 @@
  #define CPU0INSTRUCTIONINFO_H
  
@@ -56,7 +56,7 @@ diff -Naur 3/1/Cpu0/Cpu0InstrInfo.h 3/2/Cpu0/Cpu0InstrInfo.h
  
 diff -Naur 3/1/Cpu0/Cpu0RegisterInfo.cpp 3/2/Cpu0/Cpu0RegisterInfo.cpp
 --- 3/1/Cpu0/Cpu0RegisterInfo.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/2/Cpu0/Cpu0RegisterInfo.cpp	2013-01-16 18:07:22.000000000 +0800
++++ 3/2/Cpu0/Cpu0RegisterInfo.cpp	2013-01-16 21:39:44.000000000 +0800
 @@ -0,0 +1,100 @@
 +//===-- Cpu0RegisterInfo.cpp - CPU0 Register Information -== --------------===//
 +//
@@ -160,7 +160,7 @@ diff -Naur 3/1/Cpu0/Cpu0RegisterInfo.cpp 3/2/Cpu0/Cpu0RegisterInfo.cpp
 +
 diff -Naur 3/1/Cpu0/Cpu0RegisterInfo.h 3/2/Cpu0/Cpu0RegisterInfo.h
 --- 3/1/Cpu0/Cpu0RegisterInfo.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/2/Cpu0/Cpu0RegisterInfo.h	2013-01-16 18:07:22.000000000 +0800
++++ 3/2/Cpu0/Cpu0RegisterInfo.h	2013-01-16 21:39:44.000000000 +0800
 @@ -0,0 +1,57 @@
 +//===-- Cpu0RegisterInfo.h - Cpu0 Register Information Impl -----*- C++ -*-===//
 +//
@@ -220,8 +220,8 @@ diff -Naur 3/1/Cpu0/Cpu0RegisterInfo.h 3/2/Cpu0/Cpu0RegisterInfo.h
 +
 +#endif
 diff -Naur 3/1/Cpu0/Cpu0TargetMachine.h 3/2/Cpu0/Cpu0TargetMachine.h
---- 3/1/Cpu0/Cpu0TargetMachine.h	2013-01-16 18:07:22.000000000 +0800
-+++ 3/2/Cpu0/Cpu0TargetMachine.h	2013-01-16 18:07:22.000000000 +0800
+--- 3/1/Cpu0/Cpu0TargetMachine.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/2/Cpu0/Cpu0TargetMachine.h	2013-01-16 21:39:44.000000000 +0800
 @@ -50,6 +50,10 @@
      virtual const DataLayout *getDataLayout()    const
      { return &DL;}
