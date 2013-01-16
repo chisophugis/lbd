@@ -188,7 +188,10 @@ About the **cl** command variable, you can refer to [#]_ further.
     IsLinuxOpt("cpu0-islinux-format", cl::Hidden, cl::init(true),
                      cl::desc("Always use linux format."));
     
-        Next add the following code to Cpu0ISelLowering.cpp.
+Next add the following code to Cpu0ISelLowering.cpp.
+
+.. code-block:: c++
+
     //  Cpu0ISelLowering.cpp
     Cpu0TargetLowering::
     Cpu0TargetLowering(Cpu0TargetMachine &TM)
@@ -199,6 +202,7 @@ About the **cl** command variable, you can refer to [#]_ further.
       setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
        ...
     }
+    ...
     SDValue Cpu0TargetLowering::
     LowerOperation(SDValue Op, SelectionDAG &DAG) const
     {
@@ -303,13 +307,15 @@ Cpu0InstrInfo.td as follows,
 
 .. code-block:: c++
 
-    //  Cpu0InstrInfo.td
-    // Hi and Lo nodes are used to handle global addresses. Used on
-    // Cpu0ISelLowering to lower stuff like GlobalAddress, ExternalSymbol
-    // static model. (nothing to do with Cpu0 Registers Hi and Lo)
-    def Cpu0Hi    : SDNode<"Cpu0ISD::Hi", SDTIntUnaryOp>;
-    def Cpu0Lo    : SDNode<"Cpu0ISD::Lo", SDTIntUnaryOp>;
-    ...
+  //  Cpu0InstrInfo.td
+  ...
+  // Hi and Lo nodes are used to handle global addresses. Used on
+  // Cpu0ISelLowering to lower stuff like GlobalAddress, ExternalSymbol
+  // static model. (nothing to do with Cpu0 Registers Hi and Lo)
+  def Cpu0Hi    : SDNode<"Cpu0ISD::Hi", SDTIntUnaryOp>;
+  def Cpu0Lo    : SDNode<"Cpu0ISD::Lo", SDTIntUnaryOp>;
+  def Cpu0GPRel : SDNode<"Cpu0ISD::GPRel", SDTIntUnaryOp>;
+  ...
   // hi/lo relocs
   def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (ADDiu ZERO, tglobaladdr:$in), 16)>;
   // Expect cpu0 add LUi support, like Mips
@@ -461,23 +467,23 @@ emit .cpload asm pseudo instruction,
 
 .. code-block:: c++
 
-    // Cpu0AsmPrinter.cpp
-    /// EmitFunctionBodyStart - Targets can override this to emit stuff before
-    /// the first basic block in the function.
-    void Cpu0AsmPrinter::EmitFunctionBodyStart() {
-    ...
-        // Emit .cpload directive if needed.
-        if (EmitCPLoad)
-        //- .cpload $t9
-          OutStreamer.EmitRawText(StringRef("\t.cpload\t$t9"));
-    ...
-    }
+  // Cpu0AsmPrinter.cpp
+  /// EmitFunctionBodyStart - Targets can override this to emit stuff before
+  /// the first basic block in the function.
+  void Cpu0AsmPrinter::EmitFunctionBodyStart() {
+  ...
+      // Emit .cpload directive if needed.
+      if (EmitCPLoad)
+      //- .cpload $t9
+        OutStreamer.EmitRawText(StringRef("\t.cpload\t$t9"));
+  ...
+  }
     
-    // ch6_1.cpu0.s
-        .cpload $t9 
-        .set    nomacro 
-    # BB#0: 
-        ldi $sp, -8
+  // ch6_1.cpu0.s
+      .cpload $t9 
+      .set    nomacro 
+  # BB#0: 
+      ldi $sp, -8
 
 According Mips Application Binary Interface (ABI), $t9 ($25) is the register 
 used in jalr $25 for long distance function pointer (far subroutine call). 
@@ -504,70 +510,88 @@ Global variable print support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Above code is for global address DAG translation. 
-Next, add the following code to Cpu0MCInstLower.cpp and Cpu0InstPrinter.cpp 
-for global variable printing operand function.
+Next, add the following code to Cpu0MCInstLower.cpp, Cpu0InstPrinter.cpp and 
+Cpu0ISelLowering.cpp for global variable printing operand function.
 
 .. code-block:: c++
 
-    // Cpu0MCInstLower.cpp
-    MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
-                                                  MachineOperandType MOTy,
-                                                  unsigned Offset) const {
-      MCSymbolRefExpr::VariantKind Kind;
-      const MCSymbol *Symbol;
+  // Cpu0MCInstLower.cpp
+  MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
+                                                MachineOperandType MOTy,
+                                                unsigned Offset) const {
+    MCSymbolRefExpr::VariantKind Kind;
+    const MCSymbol *Symbol;
     
-      switch(MO.getTargetFlags()) {
-      default:                   llvm_unreachable("Invalid target flag!"); 
-    // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static 
-    //  -cpu0-islinux-format=false (global var in .sdata) 
-      case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break; 
+    switch(MO.getTargetFlags()) {
+    default:                   llvm_unreachable("Invalid target flag!"); 
+  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static 
+  //  -cpu0-islinux-format=false (global var in .sdata) 
+    case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break; 
     
-      case Cpu0II::MO_GOT16:     Kind = MCSymbolRefExpr::VK_Cpu0_GOT16; break; 
-      case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break; 
-    // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static 
-    //  (global var in .data) 
-      case Cpu0II::MO_ABS_HI:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_HI; break; 
-      case Cpu0II::MO_ABS_LO:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_LO; break;
-      }
-    
-      switch (MOTy) {
-      case MachineOperand::MO_GlobalAddress:
-        Symbol = Mang->getSymbol(MO.getGlobal());
-        break;
-    
-      default:
-        llvm_unreachable("<unknown operand type>");
-      }
-      ...
+    case Cpu0II::MO_GOT16:     Kind = MCSymbolRefExpr::VK_Cpu0_GOT16; break; 
+    case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break; 
+  // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static 
+  //  (global var in .data) 
+    case Cpu0II::MO_ABS_HI:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_HI; break; 
+    case Cpu0II::MO_ABS_LO:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_LO; break;
     }
     
-    MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
-                                            unsigned offset) const {
-      MachineOperandType MOTy = MO.getType();
+    switch (MOTy) {
+    case MachineOperand::MO_GlobalAddress:
+      Symbol = Mang->getSymbol(MO.getGlobal());
+      break;
     
-      switch (MOTy) {
-      ...
-      case MachineOperand::MO_GlobalAddress:
-        return LowerSymbolOperand(MO, MOTy, offset);
-      ...
-     }
-    
-    // Cpu0InstPrinter.cpp
+    default:
+      llvm_unreachable("<unknown operand type>");
+    }
     ...
-    static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
-      ...
-      switch (Kind) {
-      default:                                 llvm_unreachable("Invalid kind!");
-      case MCSymbolRefExpr::VK_None:           break;
-    // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
-      case MCSymbolRefExpr::VK_Cpu0_GPREL:     OS << "%gp_rel("; break;
-      case MCSymbolRefExpr::VK_Cpu0_GOT16:     OS << "%got(";    break;
-      case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
-      case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
-      case MCSymbolRefExpr::VK_Cpu0_ABS_LO:    OS << "%lo(";     break;
-      }
-      ...
+  }
+    
+  MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
+                                            unsigned offset) const {
+    MachineOperandType MOTy = MO.getType();
+    
+    switch (MOTy) {
+    ...
+    case MachineOperand::MO_GlobalAddress:
+      return LowerSymbolOperand(MO, MOTy, offset);
+    ...
+   }
+    
+  // Cpu0InstPrinter.cpp
+  ...
+  static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
+    ...
+    switch (Kind) {
+    default:                                 llvm_unreachable("Invalid kind!");
+    case MCSymbolRefExpr::VK_None:           break;
+  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
+    case MCSymbolRefExpr::VK_Cpu0_GPREL:     OS << "%gp_rel("; break;
+    case MCSymbolRefExpr::VK_Cpu0_GOT16:     OS << "%got(";    break;
+    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
+    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
+    case MCSymbolRefExpr::VK_Cpu0_ABS_LO:    OS << "%lo(";     break;
     }
+    ...
+  }
+
+  Cpu0ISelLowering.cpp
+  ...
+  // The following function is for llc -debug DAG node name printing.
+  const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
+    switch (Opcode) {
+    case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
+    case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
+    case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
+    case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
+    case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
+    case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
+    case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
+    case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
+    default:                         return NULL;
+    }
+  }
+
 
 
 OS is the output stream which output to the assembly file.
@@ -594,10 +618,6 @@ The section "Instruction Selector" of [#]_ is the references.
 
 Array and struct support
 -------------------------
-
-Shifting our work to iMac at this point. 
-The Linux platform is fine. 
-The reason we do the shift is for new platform using experience.
 
 LLVM use getelementptr to represent the array and struct type in C. 
 Please reference section getelementptr of [#]_. 
@@ -825,7 +845,8 @@ Let use debug option in llc to see what's wrong,
     …
 
 
-By llc -debug, you can see the DAG translation process. As above, the DAG list 
+By ``llc -debug``, you can see the DAG translation process. 
+As above, the DAG list 
 for date.day (add GlobalAddress<[3 x i32]* @a> 0, Constant<8>) with 3 nodes is 
 replaced by 1 node GlobalAddress<%struct.Date* @date> + 8. 
 The DAG list for a[1] is same. 

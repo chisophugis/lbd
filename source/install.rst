@@ -241,7 +241,7 @@ Now, let's repeat above steps to create llvm/test with cpu0 modified code
   /Users/Jonathan/llvm/test
   118-165-78-111:test Jonathan$ cp -rf /Users/Jonathan/llvm/release/src .
   118-165-78-111:test Jonathan$ cp -rf /Users/Jonathan/
-  LLVMBackendTutorialExampleCode/3.2_src_files_modify/src_files_modify/src .
+  LLVMBackendTutorialExampleCode/src_files_modify/src_files_modify/src .
   118-165-78-111:test Jonathan$ grep -R "Cpu0" src/
   src//cmake/config-ix.cmake:  set(LLVM_NATIVE_ARCH Cpu0)
   src//CMakeLists.txt:  Cpu0
@@ -572,7 +572,8 @@ according the following list steps, the corresponding commands shown as follows,
 ``cp -rf /usr/local/llvm/release/src .``.
 
 2) Update my modified files to support cpu0 by command, 
-``cp -rf /home/Gamma/LLVMBackendTutorialExampleCode/src_files_modify/src .``.
+``cp -rf /home/Gamma/LLVMBackendTutorialExampleCode/src_files_modify/
+src_files_modify/src .``.
 
 3) Check step 2 is effective by command 
 ``grep -R "Cpu0" . | more```. I add the Cpu0 backend support, so check with 

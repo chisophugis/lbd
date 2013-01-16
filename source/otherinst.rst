@@ -39,44 +39,38 @@ follows,
 
 .. code-block:: bash
 
-	[Gamma@localhost 3]$ clang -c ch4_1_1.cpp -emit-llvm -o ch4_1_1.bc 
-	[Gamma@localhost 3]$ llvm-dis ch4_1_1.bc -o ch4_1_1.ll 
-	[Gamma@localhost 3]$ cat ch4_1.ll 
-	; ModuleID = 'ch4_1_1.bc' 
-	target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:
-	64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-
-	n8:16:32:64-S128" 
-	target triple = "x86_64-unknown-linux-gnu" 
-	
-	define i32 @main() nounwind uwtable { 
-	  %1 = alloca i32, align 4 
-	  %a = alloca i32, align 4 
-	  %b = alloca i32, align 4 
-	  %c = alloca i32, align 4 
-	  store i32 0, i32* %1 
-	  store i32 5, i32* %a, align 4 
-	  store i32 2, i32* %b, align 4 
-	  store i32 0, i32* %c, align 4 
-	  %2 = load i32* %a, align 4 
-	  %3 = load i32* %b, align 4 
-	  %4 = add nsw i32 %2, %3 
-	  store i32 %4, i32* %c, align 4 
-	  %5 = load i32* %c, align 4 
-	  ret i32 %5 
-	} 
-	[Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
-	llc -march=cpu0 -relocation-model=pic -filetype=asm ch4_1_1.bc -o ch4_1_1.
-	cpu0.s 
-	LLVM ERROR: Cannot select: 0x30da480: i32 = add 0x30da280, 0x30da380 
-	[ORD=7] [ID=17] 
-	  0x30da280: i32,ch = load 0x30da180, 0x30d9b80, 0x30d9880<LD4[%a]> [ORD=5] 
-	  [ID=15] 
-		0x30d9b80: i32 = FrameIndex<1> [ORD=2] [ID=5] 
-		0x30d9880: i32 = undef [ORD=1] [ID=3] 
-	  0x30da380: i32,ch = load 0x30da180, 0x30d9e80, 0x30d9880<LD4[%b]> [ORD=6] 
-	  [ID=14] 
-		0x30d9e80: i32 = FrameIndex<2> [ORD=3] [ID=7] 
-		0x30d9880: i32 = undef [ORD=1] [ID=3] 
+  118-165-78-230:InputFiles Jonathan$ clang -c ch4_1_1.cpp -emit-llvm -o 
+  ch4_1_1.bc
+  118-165-78-230:InputFiles Jonathan$ llvm-dis ch4_1_1.bc -o ch4_1_1.ll
+  118-165-78-230:InputFiles Jonathan$ cat ch4_1_1.ll 
+  ; ModuleID = 'ch4_1_1.bc'
+  target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-
+  f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:
+  32:64-S128"
+  target triple = "x86_64-apple-macosx10.8.0"
+  
+  define i32 @main() nounwind uwtable ssp {
+    %1 = alloca i32, align 4
+    %a = alloca i32, align 4
+    %b = alloca i32, align 4
+    %c = alloca i32, align 4
+    store i32 0, i32* %1
+    store i32 5, i32* %a, align 4
+    store i32 2, i32* %b, align 4
+    store i32 0, i32* %c, align 4
+    %2 = load i32* %a, align 4
+    %3 = load i32* %b, align 4
+    %4 = add nsw i32 %2, %3
+    store i32 %4, i32* %c, align 4
+    %5 = load i32* %c, align 4
+    ret i32 %5
+  }
+    
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch4_1_1.bc -o 
+  ch4_1_1.cpu0.s
+  LLVM ERROR: Cannot select: 0x7ff02102b010: i32 = add 0x7ff02102ae10, ...
+  ...
 
 This error says we have not instructions to translate IR DAG node **add**. 
 The ADDiu instruction is defined for node **add** with operands of 1 register 
@@ -87,46 +81,91 @@ So, appending the following code to Cpu0InstrInfo.td and Cpu0Schedule.td in
 
 .. code-block:: c++
 
-	// Cpu0InstrInfo.td
-	/// Arithmetic Instructions (3-Operand, R-Type)
-	def CMP	   : CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
-	def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
-	def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
-	def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
-	def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
-	def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
-	def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
-	def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
-	
-	/// Shift Instructions
-	def ROL     : ArithLogicR<0x1C, "rol", rotl, IIAlu, CPURegs, 1>;
-	def ROR     : ArithLogicR<0x1D, "ror", rotr, IIAlu, CPURegs, 1>;
-	def SHL     : ArithLogicR<0x1E, "shl", shl, IIAlu, CPURegs, 1>;
-	def SHR     : ArithLogicR<0x1F, "shr", sra, IIAlu, CPURegs, 1>;
-	
-	// Cpu0Schedule.td
-	...
-	def ALU     : FuncUnit;
-	def IMULDIV : FuncUnit;
-	
-	//===------------------------------------------------------------------===//
-	// Instruction Itinerary classes used for Cpu0
-	//===------------------------------------------------------------------===//
-	...
-	def IIImul             : InstrItinClass;
-	def IIIdiv             : InstrItinClass;
-	
-	def IIPseudo           : InstrItinClass;
-	
-	//===------------------------------------------------------------------===//
-	// Cpu0 Generic instruction itineraries.
-	//===------------------------------------------------------------------===//
-	// http://llvm.org/docs/doxygen/html/structllvm_1_1InstrStage.html 
-	def Cpu0GenericItineraries : ProcessorItineraries<[ALU, IMULDIV], [], [
-	...
-	  InstrItinData<IIImul             , [InstrStage<17, [IMULDIV]>]>,
-	  InstrItinData<IIIdiv             , [InstrStage<38, [IMULDIV]>]>
-	]>;
+  // Cpu0InstrInfo.td
+  ...
+  def shamt       : Operand<i32>;
+  ...
+  // shamt field must fit in 5 bits.
+  def immZExt5 : ImmLeaf<i32, [{return Imm == (Imm & 0x1f);}]>;
+  ...
+  // Arithmetic and logical instructions with 3 register operands.
+  class ArithLogicR<bits<8> op, string instr_asm, SDNode OpNode,
+            InstrItinClass itin, RegisterClass RC, bit isComm = 0>:
+    FA<op, (outs RC:$ra), (ins RC:$rb, RC:$rc),
+     !strconcat(instr_asm, "\t$ra, $rb, $rc"),
+     [(set RC:$ra, (OpNode RC:$rb, RC:$rc))], itin> {
+    let shamt = 0;
+    let isCommutable = isComm;  // e.g. add rb rc =  add rc rb
+    let isReMaterializable = 1;
+  }
+  
+  class CmpInstr<bits<8> op, string instr_asm,
+            InstrItinClass itin, RegisterClass RC, bit isComm = 0>:
+    FA<op, (outs RC:$SW), (ins RC:$ra, RC:$rb),
+     !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
+    let rc = 0;
+    let shamt = 0;
+    let isCommutable = isComm;
+  }
+  ...
+  // Shifts
+  class shift_rotate_imm<bits<8> op, bits<4> isRotate, string instr_asm,
+               SDNode OpNode, PatFrag PF, Operand ImmOpnd,
+               RegisterClass RC>:
+    FA<op, (outs RC:$ra), (ins RC:$rb, ImmOpnd:$shamt),
+     !strconcat(instr_asm, "\t$ra, $rb, $shamt"),
+     [(set RC:$ra, (OpNode RC:$rb, PF:$shamt))], IIAlu> {
+    let rc = isRotate;
+    let shamt = shamt;
+  }
+  
+  // 32-bit shift instructions.
+  class shift_rotate_imm32<bits<8> func, bits<4> isRotate, string instr_asm,
+               SDNode OpNode>:
+    shift_rotate_imm<func, isRotate, instr_asm, OpNode, immZExt5, shamt, CPURegs>;
+  
+  // Load Upper Imediate
+  class LoadUpper<bits<8> op, string instr_asm, RegisterClass RC, Operand Imm>:
+    FL<op, (outs RC:$ra), (ins Imm:$imm16),
+     !strconcat(instr_asm, "\t$ra, $imm16"), [], IIAlu> {
+    let rb = 0;
+    let neverHasSideEffects = 1;
+    let isReMaterializable = 1;
+  }
+  ...
+  /// Arithmetic Instructions (3-Operand, R-Type)
+  def CMP   : CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
+  def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+  def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
+  def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
+  def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
+  def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
+  def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
+  def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
+  
+  /// Shift Instructions
+  def ROL     : shift_rotate_imm32<0x1C, 0x01, "rol", rotl>;
+  def ROR     : shift_rotate_imm32<0x1D, 0x01, "ror", rotr>;
+  def SHL     : shift_rotate_imm32<0x1E, 0x00, "shl", shl>;
+  // work, it's for ashr llvm IR instruction
+  //def SHR     : shift_rotate_imm32<0x1F, 0x00, "sra", sra>;
+  // work, it's for lshr llvm IR instruction
+  def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>;
+  
+  
+  // Cpu0Schedule.td
+  ...
+  def IMULDIV : FuncUnit;
+  ...
+  def IIImul             : InstrItinClass;
+  def IIIdiv             : InstrItinClass;
+  ...
+  // http://llvm.org/docs/doxygen/html/structllvm_1_1InstrStage.html 
+  def Cpu0GenericItineraries : ProcessorItineraries<[ALU, IMULDIV], [], [
+  ...
+    InstrItinData<IIImul             , [InstrStage<17, [IMULDIV]>]>,
+    InstrItinData<IIIdiv             , [InstrStage<38, [IMULDIV]>]>
+  ]>;
 
 In RISC CPU like Mips, the multiply/divide function unit and add/sub/logic unit 
 are designed from two different hardware circuits, and more, their data path is 
@@ -213,8 +252,8 @@ Micorsoft implementation references as [#]_.
 The sub-section "‘ashr‘ Instruction" and sub-section "‘lshr‘ Instruction" of 
 [#]_.
 
-The 4/1 version just add 40 lines code in td files. 
-With these 40 lines code, it process 9 operators more for C language and their 
+The 4/1 version just add 70 lines code in td files. 
+With these 70 lines code, it process 9 operators more for C language and their 
 corresponding llvm IR instructions. 
 The arithmetic instructions are easy to implement by add the definition in td 
 file only.
@@ -272,71 +311,78 @@ Let's assume %0 != 0 first, then the (icmp ne i32 %0, 0) = 1 (or true), and
 When %0 = 0, (icmp ne i32 %0, 0) = 0 (or false), and (xor 0, 1) = 1. 
 So, the translation is correct. 
     
-Now, let's run ch4_2.bc with 4/2/Cpu0 with ``llc -debug`` option to get result 
+Now, let's run ch4_2.bc with 4/1/Cpu0 with ``llc -debug`` option to get result 
 as follows,
 
 .. code-block:: bash
 
-    118-165-16-22:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=pic 
-    -filetype=asm ch4_3.bc -o ch4_3.cpu0.s
-    ...
+  118-165-16-22:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=pic 
+  -filetype=asm ch4_3.bc -o ch4_3.cpu0.s
+  ...
     
-    === main
-    Initial selection DAG: BB#0 'main:entry'
-    SelectionDAG has 20 nodes:
-    ...
-        0x7fbfc282c510: <multiple use>
-              0x7fbfc282c510: <multiple use>
-              0x7fbfc282bc10: <multiple use>
-              0x7fbfc282c610: ch = setne [ORD=5]
-    
-            0x7fbfc282c710: i1 = setcc 0x7fbfc282c510, 0x7fbfc282bc10, 
-            0x7fbfc282c610 [ORD=5]
-    
-            0x7fbfc282c810: i1 = Constant<-1> [ORD=6]
-    
-          0x7fbfc282c910: i1 = xor 0x7fbfc282c710, 0x7fbfc282c810 [ORD=6]
-    
-        0x7fbfc282ca10: i32 = zero_extend 0x7fbfc282c910 [ORD=7]
-    
-    ...
-    
-    
-    Replacing.3 0x7fbfc282c910: i1 = xor 0x7fbfc282c710, 0x7fbfc282c810 [ORD=6]
-    
-    With: 0x7fbfc282ec10: i1 = setcc 0x7fbfc282c510, 0x7fbfc282bc10, 
-    0x7fbfc282e910
-    
-    Optimized lowered selection DAG: BB#0 'main:entry'
-    SelectionDAG has 17 nodes:
-    ...
-          0x7fbfc282c510: <multiple use>
-              0x7fbfc282c510: <multiple use>
-              0x7fbfc282bc10: <multiple use>
-              0x7fbfc282e910: ch = seteq
-    
-            0x7fbfc282ec10: i1 = setcc 0x7fbfc282c510, 0x7fbfc282bc10, 
-            0x7fbfc282e910
-    
-          0x7fbfc282ca10: i32 = zero_extend 0x7fbfc282ec10 [ORD=7]
-    …
-    Type-legalized selection DAG: BB#0 'main:entry'
-    SelectionDAG has 18 nodes:
-    ...
-          0x7fbfc282c510: <multiple use>
-              0x7fbfc282c510: <multiple use>
-              0x7fbfc282bc10: <multiple use>
-              0x7fbfc282e910: ch = seteq [ID=-3]
-    
-            0x7fbfc282c610: i32 = setcc 0x7fbfc282c510, 0x7fbfc282bc10, 
-            0x7fbfc282e910 [ID=-3]
-    
-            0x7fbfc282c710: i32 = Constant<1> [ID=-3]
-    
-          0x7fbfc282c810: i32 = and 0x7fbfc282c610, 0x7fbfc282c710 [ID=-3]
-    
-     ...
+  === main
+  Initial selection DAG: BB#0 'main:entry'
+  SelectionDAG has 20 nodes:
+  ...
+    0x7ffb7982ab10: <multiple use>
+          0x7ffb7982ab10: <multiple use>
+          0x7ffb7982a210: <multiple use>
+          0x7ffb7982ac10: ch = setne [ORD=5]
+
+        0x7ffb7982ad10: i1 = setcc 0x7ffb7982ab10, 0x7ffb7982a210, 0x7ffb7982ac10 
+        [ORD=5]
+
+        0x7ffb7982ae10: i1 = Constant<-1> [ORD=6]
+
+      0x7ffb7982af10: i1 = xor 0x7ffb7982ad10, 0x7ffb7982ae10 [ORD=6]
+
+    0x7ffb7982b010: i32 = zero_extend 0x7ffb7982af10 [ORD=7]
+  ...   
+  Replacing.3 0x7ffb7982af10: i1 = xor 0x7ffb7982ad10, 0x7ffb7982ae10 [ORD=6]
+
+  With: 0x7ffb7982d210: i1 = setcc 0x7ffb7982ab10, 0x7ffb7982a210, 0x7ffb7982cf10
+
+  Optimized lowered selection DAG: BB#0 'main:'
+  SelectionDAG has 17 nodes:
+  ...
+     0x7ffb7982ab10: <multiple use>
+          0x7ffb7982ab10: <multiple use>
+          0x7ffb7982a210: <multiple use>
+          0x7ffb7982cf10: ch = seteq
+
+        0x7ffb7982d210: i1 = setcc 0x7ffb7982ab10, 0x7ffb7982a210, 0x7ffb7982cf10
+
+      0x7ffb7982b010: i32 = zero_extend 0x7ffb7982d210 [ORD=7]
+  ...
+  Type-legalized selection DAG: BB#0 'main:entry'
+  SelectionDAG has 18 nodes:
+  ...
+      0x7ffb7982ab10: <multiple use>
+          0x7ffb7982ab10: <multiple use>
+          0x7ffb7982a210: <multiple use>
+          0x7ffb7982cf10: ch = seteq [ID=-3]
+
+        0x7ffb7982ac10: i32 = setcc 0x7ffb7982ab10, 0x7ffb7982a210, 0x7ffb7982cf10
+         [ID=-3]
+
+        0x7ffb7982ad10: i32 = Constant<1> [ID=-3]
+
+      0x7ffb7982ae10: i32 = and 0x7ffb7982ac10, 0x7ffb7982ad10 [ID=-3]
+  ...
+  ISEL: Starting pattern match on root node: 0x7ffb7982ac10: i32 = setcc 
+  0x7ffb7982ab10, 0x7ffb7982a210, 0x7ffb7982cf10 [ID=14]
+  
+    Initial Opcode index to 0
+    Match failed at index 0
+  LLVM ERROR: Cannot select: 0x7ffb7982ac10: i32 = setcc 0x7ffb7982ab10, 
+  0x7ffb7982a210, 0x7ffb7982cf10 [ID=14]
+    0x7ffb7982ab10: i32,ch = load 0x7ffb7982aa10, 0x7ffb7982a710, 
+    0x7ffb7982a410<LD4[%a]> [ORD=4] [ID=13]
+    0x7ffb7982a710: i32 = FrameIndex<1> [ORD=2] [ID=5]
+    0x7ffb7982a410: i32 = undef [ORD=1] [ID=3]
+    0x7ffb7982a210: i32 = Constant<0> [ORD=1] [ID=1]
+  In function: main
 
 
 The (setcc %1, %2, setne) and (xor %3, -1) in “Initial selection DAG” stage 
@@ -353,9 +399,9 @@ In “Optimized lowered selection DAG” stage, it also translate (zero_extern i
 %lnot to 32) into (and %lnot, 1). 
 (zero_extern i1 %lnot to 32) just expand the %lnot to i32 32 bits result, so 
 translate into (and %lnot, 1) is correct. 
-Finally, translate (setcc %1, %2, seteq) into (xor (xor %1, %2), (ldi $0, 1) in 
-“Instruction selection” stage by the rule defined in Cpu0InstrInfo.td as 
-follows,
+It fails at (setcc %1, %2, seteq).
+
+Run it with 4/2/Cpu0 which added code as below, to get the following result.
 
 .. code-block:: c++
 
@@ -374,9 +420,34 @@ follows,
     
   defm : SeteqPats<CPURegs, XOR, ZERO>;
 
+.. code-block:: bash
+
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -debug -filetype=asm ch4_2.bc 
+  -o ch4_2.cpu0.s
+  ...
+  ISEL: Starting pattern match on root node: 0x7fbc6902ac10: i32 = setcc 
+  0x7fbc6902ab10, 0x7fbc6902a210, 0x7fbc6902cf10 [ID=14]
+  
+    Initial Opcode index to 365
+    Created node: 0x7fbc6902af10: i32 = XOR 0x7fbc6902ab10, 0x7fbc6902a210
+  
+    Created node: 0x7fbc6902d510: i32 = LDI 0x7fbc6902d310, 0x7fbc6902d410
+  
+    Morphed node: 0x7fbc6902ac10: i32 = XOR 0x7fbc6902af10, 0x7fbc6902d510
+  
+  ISEL: Match complete!
+  => 0x7fbc6902ac10: i32 = XOR 0x7fbc6902af10, 0x7fbc6902d510
+
+
+4/2/Cpu0 defined seteq DAG pattern. 
+It translate (setcc %1, %2, seteq) into (xor (xor %1, %2), (ldi $0, 1) in 
+“Instruction selection” stage by the rule defined in Cpu0InstrInfo.td as 
+above.
+
 After xor, the (and %4, 1) is translated into (and $2, (ldi $3, 1)) which is 
 defined before already. 
-List the asm file ch4_3.cpu0.s code fragment as below, you can check it with 
+List the asm file ch4_2.cpu0.s code fragment as below, you can check it with 
 the final result. 
 
 .. code-block:: bash
@@ -505,7 +576,7 @@ Cpu0InstrInfo.td as follows,
     def UDIV    : ArithLogicR<0x17, "udiv", udiv, IIIdiv, CPURegs, 1>;
     …
     /// Shift Instructions
-    // work, it's for ashr llvm IR instruction
+    // work, sra for ashr llvm IR instruction
     def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
 
 To use addiu only instead of ldi, change Cpu0InstrInfo.td as follows,
@@ -579,13 +650,13 @@ Cpu0FrameLowering.cpp as follows,
 .. code-block:: c++
 
     // Cpu0InstrInfo.td
-    …
+    ...
     
     /// Arithmetic Instructions (ALU Immediate)
     def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
     // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
     //def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
-    …
+    ...
     
     // Small immediates
     
@@ -814,12 +885,12 @@ Operator mod, %
 The DAG of %
 ~~~~~~~~~~~~~
 
-Example input code ch4_6.cpp which contains the C operator **“%”** and it's 
+Example input code ch4_6_1.cpp which contains the C operator **“%”** and it's 
 corresponding llvm IR, as follows,
 
 .. code-block:: c++
 
-  // ch4_6.cpp
+  // ch4_6_1.cpp
   int main()
   {
     int b = 11;
@@ -832,7 +903,7 @@ corresponding llvm IR, as follows,
 
 .. code-block:: bash
 
-  ; ModuleID = 'ch4_6.bc'
+  ; ModuleID = 'ch4_6_1.bc'
    target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
    f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
   target triple = "i386-apple-macosx10.8.0"
@@ -892,7 +963,7 @@ Copy the reference as follows,
       <result> = **srem i32 4, %var**          ; yields {i32}:result = 4 % %var
 
 
-Run 4/5/Cpu0 with input file ch4_6.bc and ``llc`` option –view-isel-dags as 
+Run 4/5/Cpu0 with input file ch4_6_1.bc and ``llc`` option –view-isel-dags as 
 follows, will get the error message as follows and the llvm DAG of 
 :ref:`otherinst_f2`.
 
@@ -900,7 +971,7 @@ follows, will get the error message as follows and the llvm DAG of
 
     118-165-79-37:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -view-isel-dags -relocation-model=
-    pic -filetype=asm ch4_6.bc -o ch4_6.cpu0.s
+    pic -filetype=asm ch4_6_1.bc -o ch4_6.cpu0.s
     ...
     LLVM ERROR: Cannot select: 0x7fa73a02ea10: i32 = mulhs 0x7fa73a02c610, 
     0x7fa73a02e910 [ID=12]
@@ -1047,8 +1118,11 @@ from TargetSelectionDAG.td.
     ...
     // Hi/Lo registers
     def HI  : Register<"hi">, DwarfRegNum<[18]>;
-      def LO  : Register<"lo">, DwarfRegNum<[19]>;
-    
+    def LO  : Register<"lo">, DwarfRegNum<[19]>;
+    ...
+    // Hi/Lo Registers
+    def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
+
   // Cpu0Schedule.td
   ...
   def IIHiLo             : InstrItinClass;
@@ -1119,7 +1193,10 @@ from TargetSelectionDAG.td.
   /// expanded, promoted and normal instructions
   SDNode* Cpu0DAGToDAGISel::Select(SDNode *Node) {
     unsigned Opcode = Node->getOpcode();
+    DebugLoc dl = Node->getDebugLoc();
     ...
+    EVT NodeTy = Node->getValueType(0);
+    unsigned MultOpc;
     switch(Opcode) {
     default: break;
     
@@ -1298,7 +1375,7 @@ The code added in 4/6_4/Cpu0 as follows,
   
   class Div32<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin>:
     Div<opNode, op, instr_asm, itin, CPURegs, [HI, LO]>;
-  …
+  ...
   class MoveToLOHI<bits<8> op, string instr_asm, RegisterClass RC,
            list<Register> DefRegs>:
     FL<op, (outs), (ins RC:$ra),
@@ -1311,7 +1388,7 @@ The code added in 4/6_4/Cpu0 as follows,
   ...
   def SDIV    : Div32<Cpu0DivRem, 0x16, "div", IIIdiv>;
   def UDIV    : Div32<Cpu0DivRemU, 0x17, "divu", IIIdiv>;
-  …
+  ...
   def MTHI : MoveToLOHI<0x42, "mthi", CPURegs, [HI]>;
   def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
   
@@ -1385,7 +1462,7 @@ The code added in 4/6_4/Cpu0 as follows,
   }
   
   // Cpu0ISelLowering.h
-  …
+  ...
   namespace llvm {
     namespace Cpu0ISD {
     enum NodeType {
@@ -1397,12 +1474,7 @@ The code added in 4/6_4/Cpu0 as follows,
       DivRemU
     };
     }
-  …
-  
-  // Cpu0RegisterInfo.td
   ...
-  // Hi/Lo Registers
-  def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
 
 
 Run with ch4_1_2.cpp can get the result for operator **“/”** as below. 

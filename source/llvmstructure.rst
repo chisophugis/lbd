@@ -432,8 +432,8 @@ follows,
     def SP   : Cpu0GPRReg< 13, "SP">,   DwarfRegNum<[13]>; 
     def LR   : Cpu0GPRReg< 14, "LR">,   DwarfRegNum<[14]>; 
     def PC   : Cpu0GPRReg< 15, "PC">,   DwarfRegNum<[15]>; 
-  //  def MAR  : Cpu0GPRReg< 16, "MAR">,  DwarfRegNum<[16]>; 
-  //  def MDR  : Cpu0GPRReg< 17, "MDR">,  DwarfRegNum<[17]>; 
+  //  def MAR  : Register< 16, "MAR">,  DwarfRegNum<[16]>; 
+  //  def MDR  : Register< 17, "MDR">,  DwarfRegNum<[17]>; 
   } 
   //===----------------------------------------------------------------------===//
   // Register Classes 
@@ -491,34 +491,45 @@ The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
   // This file is distributed under the University of Illinois Open Source 
   // License. See LICENSE.TXT for details. 
   // 
+
   //===----------------------------------------------------------------------===//
   // 
   // This file contains the Cpu0 implementation of the TargetInstrInfo class. 
   // 
   //===----------------------------------------------------------------------===//
+
   //===----------------------------------------------------------------------===//
   // Instruction format superclass 
   //===----------------------------------------------------------------------===//
+
    include "Cpu0InstrFormats.td" 
+
   //===----------------------------------------------------------------------===//
   // Cpu0 profiles and nodes 
   //===----------------------------------------------------------------------===//
+
   def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>; 
+
   // Return 
   def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain, 
              SDNPOptInGlue]>; 
+
   //===----------------------------------------------------------------------===//
   // Cpu0 Operand, Complex Patterns and Transformations Definitions. 
   //===----------------------------------------------------------------------===//
+
+  // Signed Operand
   def simm16      : Operand<i32> { 
     let DecoderMethod= "DecodeSimm16"; 
   } 
+
   // Address operand 
   def mem : Operand<i32> { 
     let PrintMethod = "printMemOperand"; 
     let MIOperandInfo = (ops CPURegs, simm16); 
     let EncoderMethod = "getMemEncoding"; 
   } 
+
   // Node immediate fits as 16-bit sign extended on target immediate. 
   // e.g. addiu 
   def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>; 
@@ -531,22 +542,27 @@ The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
   //===----------------------------------------------------------------------===//
   // Pattern fragment for load/store 
   //===----------------------------------------------------------------------===//
+
   class AlignedLoad<PatFrag Node> : 
     PatFrag<(ops node:$ptr), (Node node:$ptr), [{ 
     LoadSDNode *LD = cast<LoadSDNode>(N); 
     return LD->getMemoryVT().getSizeInBits()/8 <= LD->getAlignment(); 
   }]>; 
+
   class AlignedStore<PatFrag Node> : 
     PatFrag<(ops node:$val, node:$ptr), (Node node:$val, node:$ptr), [{ 
     StoreSDNode *SD = cast<StoreSDNode>(N); 
     return SD->getMemoryVT().getSizeInBits()/8 <= SD->getAlignment(); 
   }]>; 
+
   // Load/Store PatFrags. 
   def load_a          : AlignedLoad<load>; 
   def store_a         : AlignedStore<store>; 
+
   //===----------------------------------------------------------------------===//
   // Instructions specific format 
   //===----------------------------------------------------------------------===//
+
   // Arithmetic and logical instructions with 2 register operands. 
   class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode, 
             Operand Od, PatLeaf imm_type, RegisterClass RC> : 
@@ -583,6 +599,7 @@ The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
      [(set RC:$ra, (OpNode addr:$addr))], IILoad> { 
     let isPseudo = Pseudo; 
   } 
+
   class StoreM<bits<8> op, string instr_asm, PatFrag OpNode, RegisterClass RC, 
          Operand MemOpnd, bit Pseudo>: 
     FMem<op, (outs), (ins RC:$ra, MemOpnd:$addr), 
@@ -590,22 +607,27 @@ The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
      [(OpNode RC:$ra, addr:$addr)], IIStore> { 
     let isPseudo = Pseudo; 
   } 
+
   // 32-bit load. 
   multiclass LoadM32<bits<8> op, string instr_asm, PatFrag OpNode, 
              bit Pseudo = 0> { 
     def #NAME# : LoadM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>; 
   } 
+
   // 32-bit store. 
   multiclass StoreM32<bits<8> op, string instr_asm, PatFrag OpNode, 
             bit Pseudo = 0> { 
     def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>; 
   } 
+
   //===----------------------------------------------------------------------===//
   // Instruction definition 
   //===----------------------------------------------------------------------===//
+
   //===----------------------------------------------------------------------===//
   // Cpu0I Instructions 
   //===----------------------------------------------------------------------===//
+
   /// Load and Store Instructions 
   ///  aligned 
   defm LD      : LoadM32<0x00,  "ld",  load_a>; 
@@ -624,6 +646,7 @@ The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
   //===----------------------------------------------------------------------===//
   //  Arbitrary patterns that map to one or more instructions 
   //===----------------------------------------------------------------------===//
+
   // Small immediates 
   
   def : Pat<(i32 immSExt16:$in), 
@@ -717,14 +740,14 @@ The Cpu0InstrFormats.td is included by Cpu0InstInfo.td as follows,
     bits<4>  ra; 
     bits<4>  rb; 
     bits<4>  rc; 
-    bits<12> imm12; 
+    bits<12> shamt; 
   
     let Opcode = op; 
   
     let Inst{23-20} = ra; 
     let Inst{19-16} = rb; 
     let Inst{15-12} = rc; 
-    let Inst{11-0}  = imm12; 
+    let Inst{11-0}  = shamt; 
   } 
   
   //===----------------------------------------------------------------------===//
@@ -923,9 +946,9 @@ contents as follows,
   set(LLVM_TARGET_DEFINITIONS Cpu0.td) 
   
   # Generate Cpu0GenRegisterInfo.inc and Cpu0GenInstrInfo.inc which included by
-  # your hand code C++ files. 
+  #  your hand code C++ files. 
   # Cpu0GenRegisterInfo.inc came from Cpu0RegisterInfo.td, Cpu0GenInstrInfo.inc
-  # came from Cpu0InstrInfo.td. 
+  #  came from Cpu0InstrInfo.td. 
   tablegen(LLVM Cpu0GenRegisterInfo.inc -gen-register-info) 
   tablegen(LLVM Cpu0GenInstrInfo.inc -gen-instr-info) 
   
@@ -992,7 +1015,8 @@ contents as follows,
   #  dependencies for this component. When tools are built, the build system will
   #  include the transitive closure of all required_libraries for the components 
   #  the tool needs. 
-  required_libraries = CodeGen Core MC Cpu0Desc Cpu0Info SelectionDAG Support Target 
+  required_libraries = CodeGen Core MC Cpu0Desc Cpu0Info SelectionDAG Support 
+                       Target 
   # All LLVMBuild.txt in Target/Cpu0 and subdirectory use 'add_to_library_groups =
   #  Cpu0' 
   add_to_library_groups = Cpu0 
@@ -1063,53 +1087,47 @@ Please see "Target Registration" [#]_ for reference.
 Build libraries and td
 ----------------------
 
-The llvm source code is put in /usr/local/llvm/release/src and have llvm 
-release-build in /usr/local/llvm/release/configure_release_build. 
+The llvm source code is put in /Users/Jonathan/llvm/release/src and have llvm 
+release-build in /Users/Jonathan/llvm/release/configure_release_build. 
 About how to build llvm, please refer [#]_. 
-We made a copy from /usr/local/llvm/release/src to 
-/usr/local/llvm/test/src for working with my Cpu0 target back end. 
+We made a copy from /Users/Jonathan/llvm/release/src to 
+/Users/Jonathan/llvm/test/src for working with my Cpu0 target back end. 
 Sub-directories src is for source code and cmake_debug_build is for debug 
 build directory.
 
 Except directory src/lib/Target/Cpu0, there are a couple of files modified to 
 support cpu0 new Target. 
-Please check files in src_files_modify/src/. 
-You can search cpu0 without case sensitive to find the modified files by 
+Please check files in src_files_modify/src_files_modified/src/. 
+
+You can update your llvm working copy and find the modified files by 
 command,
 
 .. code-block:: bash
 
-  [Gamma@localhost cmake_debug_build]$ grep -R -i "cpu0" ../src/ 
-  ../src/CMakeLists.txt:  Cpu0 
-  ../src/lib/Target/LLVMBuild.txt:subdirectories = ARM CellSPU CppBackend Hexagon 
-  MBlaze MSP430 Mips Cpu0 PTX PowerPC Sparc X86 XCore ../src/lib/MC/MCExpr.cpp:  
-  case VK_Cpu0_GPREL: return "GPREL"; 
+  cp -rf LLVMBackendTutorialExampleCode/src_files_modified/src_files_modified/src/
+  * yourllvm/workingcopy/sourcedir/.
+  
+  118-165-78-230:test Jonathan$ pwd
+  /Users/Jonathan/test
+  118-165-78-230:test Jonathan$ grep -R "cpu0" src/
+  src//cmake/config-ix.cmake:elseif (LLVM_NATIVE_ARCH MATCHES "cpu0")
+  src//include/llvm/ADT/Triple.h:#undef cpu0
+  src//include/llvm/ADT/Triple.h:    cpu0,    // Gamma add
+  src//include/llvm/ADT/Triple.h:    cpu0el,
+  src//include/llvm/ADT/Triple.h:    cpu064,
+  src//include/llvm/ADT/Triple.h:    cpu064el,
+  src//include/llvm/Support/ELF.h:  EF_CPU0_ARCH_32R2 = 0x70000000, // cpu032r2
+  src//include/llvm/Support/ELF.h:  EF_CPU0_ARCH_64R2 = 0x80000000, // cpu064r2
+  src//lib/Support/Triple.cpp:  case cpu0:    return "cpu0";
   ...
-  ../src/lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TLSGD: 
-  ...
-  ../src/lib/MC/MCDwarf.cpp:  // AT_language, a 4 byte value.  We use DW_LANG_Cpu0
-  _Assembler as the dwarf2 
-  ../src/lib/MC/MCDwarf.cpp: // MCOS->EmitIntValue(dwarf::DW_LANG_Cpu0_Assembler, 
-  2); 
-  ../src/lib/Support/Triple.cpp:  case cpu0:    return "cpu0";
-   ...
-  ../src/include/llvm/Support/ELF.h:  EM_LATTICEMICO32 = 138, // RISC processor fo
-  r Lattice CPU0 architecture
-  ...
 
-You can update your llvm working copy by,
 
-.. code-block:: bash
-
-  cp -rf LLVMBackendTutorial/src_files_modified/src/*   yourllvm/workingcopy/sourc
-  edir/.
-
-Now, run the cmake and make command to build td (the following cmake command is 
+Now, run the ``cmake`` command and Xcode to build td (the following cmake command is 
 for my setting),
 
 .. code-block:: bash
 
-  [Gamma@localhost cmake_debug_build]$ cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_
+  118-165-78-230:test Jonathan$ cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_
   C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug  -G "Unix Makefiles" ../src/
   
   -- Targeting Cpu0 
@@ -1117,26 +1135,19 @@ for my setting),
   -- Targeting XCore 
   -- Configuring done 
   -- Generating done 
-  -- Build files have been written to: /usr/local/llvm/test/cmake_debug
+  -- Build files have been written to: /Users/Jonathan/llvm/test/cmake_debug
   _build 
   
-  [Gamma@localhost cmake_debug_build]$ make 
-  ...
-  [100%] Built target gtest_main
+  118-165-78-230:test Jonathan$
 
 After build, you can type command ``llc –version`` to find the cpu0 backend,
 
 .. code-block:: bash
 
-  [Gamma@localhost cmake_debug_build]$ /usr/local/llvm/test/cmake_debug
-  _build/bin/llc --version 
-  LLVM (http://llvm.org/): 
-    LLVM version 3.2svn 
-    DEBUG build with assertions. 
-    Built Sep 21 2012 (18:27:58). 
-    Default target: x86_64-unknown-linux-gnu 
-    Host CPU: penryn 
-  
+  118-165-78-230:test Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/bin/
+  Debug/llc --version
+  LLVM (http://llvm.org/):
+  ...
     Registered Targets: 
     arm      - ARM 
     cellspu  - STI CBEA Cell SPU [experimental] 
@@ -1183,7 +1194,7 @@ Next step, transfer bitcode .bc to human readable text format as follows,
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ llvm-dis ch3.bc -o ch3.ll 
+  118-165-78-230:test Jonathan$ llvm-dis ch3.bc -o ch3.ll 
   
   // ch3.ll
   ; ModuleID = 'ch3.bc' 
@@ -1201,15 +1212,13 @@ Next step, transfer bitcode .bc to human readable text format as follows,
 Now, compile ch3.bc into ch3.cpu0.s, we get the error message as follows,
 
 .. code-block:: c++
-
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
-  bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  llc: /usr/local/llvm/test/src/tools/llc/llc.cpp:456: int main(int, ch
-  ar **): Assertion `target.get() && "Could not allocate target machine!"' failed. 
-  Stack dump: 
-  0.  Program arguments: /usr/local/llvm/test/cmake_debug_build/bin/llc
-   -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  Aborted (core dumped)
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o 
+  ch3.cpu0.s
+  Assertion failed: (target.get() && "Could not allocate target machine!"), 
+  function main, file /Users/Jonathan/llvm/test/src/tools/llc/llc.cpp, 
+  line 271.
+  ...
 
 Currently we just define target td files (Cpu0.td, Cpu0RegisterInfo.td, ...). 
 According to LLVM structure, we need to define our target machine and include 

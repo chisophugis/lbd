@@ -32,8 +32,8 @@ The Cpu0TargetMachine contents as follows,
 
   //- TargetMachine.h 
   class TargetMachine { 
-    TargetMachine(const TargetMachine &);   // DO NOT IMPLEMENT 
-    void operator=(const TargetMachine &);  // DO NOT IMPLEMENT 
+    TargetMachine(const TargetMachine &) LLVM_DELETED_FUNCTION;
+    void operator=(const TargetMachine &) LLVM_DELETED_FUNCTION;
   
   public: 
     // Interfaces to the major aspects of target machine information: 
@@ -46,7 +46,7 @@ The Cpu0TargetMachine contents as follows,
     virtual const TargetFrameLowering *getFrameLowering() const { return 0; } 
     virtual const TargetLowering    *getTargetLowering() const { return 0; } 
     virtual const TargetSelectionDAGInfo *getSelectionDAGInfo() const{ return 0; } 
-    virtual const TargetData             *getTargetData() const { return 0; } 
+    virtual const DataLayout             *getDataLayout() const { return 0; } 
     ... 
     /// getSubtarget - This method returns a pointer to the specified type of 
     /// TargetSubtargetInfo.  In debug builds, it verifies that the object being 
@@ -69,7 +69,7 @@ The Cpu0TargetMachine contents as follows,
   
   class Cpu0TargetMachine : public LLVMTargetMachine { 
     Cpu0Subtarget       Subtarget; 
-    const TargetData    DataLayout; // Calculates type size & alignment 
+    const DataLayout    DL; // Calculates type size & alignment 
     Cpu0InstrInfo       InstrInfo;  //- Instructions 
     Cpu0FrameLowering   FrameLowering;  //- Stack(Frame) and Stack direction 
     Cpu0TargetLowering  TLInfo; //- Stack(Frame) and Stack direction 
@@ -81,8 +81,8 @@ The Cpu0TargetMachine contents as follows,
     { return &FrameLowering; } 
     virtual const Cpu0Subtarget   *getSubtargetImpl() const 
     { return &Subtarget; } 
-    virtual const TargetData      *getTargetData()    const 
-    { return &DataLayout;} 
+    virtual const DataLayout *getDataLayout()    const
+    { return &DL;}
      virtual const Cpu0TargetLowering *getTargetLowering() const { 
     return &TLInfo; 
     } 
@@ -94,8 +94,8 @@ The Cpu0TargetMachine contents as follows,
   
   //- TargetInstInfo.h 
   class TargetInstrInfo : public MCInstrInfo { 
-    TargetInstrInfo(const TargetInstrInfo &);  // DO NOT IMPLEMENT 
-    void operator=(const TargetInstrInfo &);   // DO NOT IMPLEMENT 
+    TargetInstrInfo(const TargetInstrInfo &) LLVM_DELETED_FUNCTION;
+    void operator=(const TargetInstrInfo &) LLVM_DELETED_FUNCTION;
   public: 
     ... 
   } 
@@ -225,7 +225,7 @@ CMakeLists.txt  modified with those new added \*.cpp as follows,
 
 Please take a look for 3/1 code. 
 After that, building 3/1 by make as chapter 2 (of course, you should remove old 
-Target/Cpu0 and replace with 3/1/Cpu0). 
+lib/Target/Cpu0 and replace with 3/1/Cpu0). 
 You can remove lib/Target/Cpu0/\*.inc before do “make” to ensure your code 
 rebuild completely. 
 By remove \*.inc, all files those have included .inc will be rebuild, then your 
@@ -234,7 +234,7 @@ Command as follows,
 
 .. code-block:: bash
 
-  [Gamma@localhost cmake_debug_build]$ rm -rf lib/Target/Cpu0/* 
+  118-165-78-230:cmake_debug_build Jonathan$ rm -rf lib/Target/Cpu0/*
 
 Add RegisterInfo
 ----------------
@@ -292,18 +292,12 @@ After that, let's try to run the ``llc`` compile command to see what happen,
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
-  bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  llc: /usr/local/llvm/test/src/lib/CodeGen/LLVMTargetMachine.cpp:78: l
-  lvm::LLVMTargetMachine::LLVMTargetMachine(const llvm::Target &, llvm::StringRef,
-   llvm::StringRef, llvm::StringRef, llvm::TargetOptions, Reloc::Model, CodeModel:
-   :Model, CodeGenOpt::Level): Assertion `AsmInfo && "MCAsmInfo not initialized." 
-   "Make sure you include the correct TargetSelect.h" "and that InitializeAllTarge
-   tMCs() is being invoked!"' failed. 
-  Stack dump: 
-  0.  Program arguments: /usr/local/llvm/test/cmake_debug_build/bin/llc
-   -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  Aborted (core dumped) 
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o 
+  ch3.cpu0.s
+  Assertion failed: (AsmInfo && "MCAsmInfo not initialized." "Make sure you includ
+  ...
+
 
 The errors say that we have not Target AsmPrinter. 
 Let's add it in next section.
@@ -451,16 +445,18 @@ Cpu0AsmPrinter to LLVMBuild.txt as follows,
   
   [component_1] 
   # Add AsmPrinter Cpu0AsmPrinter
-  required_libraries = AsmPrinter CodeGen Core MC Cpu0AsmPrinter Cpu0Desc Cpu0Info
+  required_libraries = AsmPrinter CodeGen Core MC Cpu0AsmPrinter Cpu0Desc  
+                       Cpu0Info SelectionDAG Support Target
 
 Now, run 3/3/Cpu0 for AsmPrinter support, will get error message as follows,
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
-  bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  /usr/local/llvm/test/cmake_debug_build/bin/llc: target does not suppo
-  rt generation of this file type! 
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o 
+  ch3.cpu0.s
+  /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc: target does not 
+  support generation of this file type!
 
 The ``llc`` fails to compile IR code into machine code since we didn't implement 
 class Cpu0DAGToDAGISel. Before the implementation, we will introduce the LLVM 
@@ -753,7 +749,7 @@ IR DAG is defined in file  include/llvm/Target/TargetSelectionDAG.td.
     def RET : FJ <0x2C, (outs), (ins CPURegs:$target), 
           "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
 
-Add  class Cpu0DAGToDAGISel (Cpu0ISelDAGToDAG.cpp) to CMakeLists.txt, and add 
+Add class Cpu0DAGToDAGISel (Cpu0ISelDAGToDAG.cpp) to CMakeLists.txt, and add 
 following fragment to Cpu0TargetMachine.cpp,
 
 .. code-block:: c++
@@ -763,7 +759,7 @@ following fragment to Cpu0TargetMachine.cpp,
   // Install an instruction selector pass using
   // the ISelDag to gen Cpu0 code.
   bool Cpu0PassConfig::addInstSelector() {
-    PM->add(createCpu0ISelDag(getCpu0TargetMachine()));
+    addPass(createCpu0ISelDag(getCpu0TargetMachine()));
     return false;
   }
   
@@ -795,18 +791,15 @@ message for 3/4 as follows,
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
-  bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  Target didn't implement TargetInstrInfo::storeRegToStackSlot! 
-  UNREACHABLE executed at /usr/local/llvm/test/src/include/llvm/Target/
-  TargetInstrInfo.h:390! 
-  Stack dump: 
-  0.  Program arguments: /usr/local/llvm/test/cmake_debug_build/bin/llc
-   -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  1.  Running pass 'Function Pass Manager' on module 'ch3.bc'. 
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o 
+  ch3.cpu0.s
+  ...
+  Target didn't implement TargetInstrInfo::storeRegToStackSlot!
+  1.  Running pass 'Function Pass Manager' on module 'ch3.bc'.
   2.  Running pass 'Prologue/Epilogue Insertion & Frame Finalization' on function 
-  '@main' 
-  Aborted (core dumped) 
+  '@main'
+  ...
 
 
 Add Prologue/Epilogue functions
@@ -864,12 +857,15 @@ machine instructions as follows,
     .type main,@function
     .ent  main                    # @main
   main:
+    .cfi_startproc
     .frame  $sp,8,$lr
     .mask   0x00000000,0
     .set  noreorder
     .set  nomacro
-  # BB#0:                                 # %entry
+  # BB#0:
     addiu $sp, $sp, -8
+  $tmp1:
+    .cfi_def_cfa_offset 8
     addiu $2, $zero, 0
     st  $2, 4($sp)
     addiu $sp, $sp, 8
@@ -877,8 +873,9 @@ machine instructions as follows,
     .set  macro
     .set  reorder
     .end  main
-  $tmp1:
-    .size main, ($tmp1)-main
+  $tmp2:
+    .size main, ($tmp2)-main
+    .cfi_endproc
 
 LLVM get the stack size by parsing IR and counting how many virtual registers 
 is assigned to local variables. After that, it call emitPrologue(). 
@@ -916,10 +913,10 @@ bottom) as follows,
   $tmp1: 
     addiu $3, $zero, 0 
     st  $3, 52($sp)   // %1 is the first frame index local variable, so allocate
-              // in 52($sp)
+                      // in 52($sp)
     addiu $2, $zero, 5 
     st  $2, 48($sp)   // %2 is the second frame index local variable, so 
-              // allocate in 48($sp)
+                      // allocate in 48($sp)
     ...
     ret $lr
 
@@ -929,9 +926,7 @@ Following is the command and output file ch3.cpu0.s,
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
-  bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
-  [Gamma@localhost InputFiles]$ cat ch3.cpu0.s 
+  118-165-78-230:InputFiles Jonathan$ cat ch3.cpu0.s 
     .section .mdebug.abi32
     .previous
     .file "ch3.bc"
@@ -941,12 +936,15 @@ Following is the command and output file ch3.cpu0.s,
     .type main,@function
     .ent  main                    # @main
   main:
+    .cfi_startproc
     .frame  $sp,8,$lr
     .mask   0x00000000,0
     .set  noreorder
     .set  nomacro
-  # BB#0:                                 # %entry
+  # BB#0:
     addiu $sp, $sp, -8
+  $tmp1:
+    .cfi_def_cfa_offset 8
     addiu $2, $zero, 0
     st  $2, 4($sp)
     addiu $sp, $sp, 8
@@ -954,8 +952,10 @@ Following is the command and output file ch3.cpu0.s,
     .set  macro
     .set  reorder
     .end  main
-  $tmp1:
-    .size main, ($tmp1)-main
+  $tmp2:
+    .size main, ($tmp2)-main
+    .cfi_endproc
+
 
 Summary of this Chapter
 -----------------------

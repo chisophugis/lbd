@@ -356,8 +356,9 @@ readability.
       // Reserved
       ZERO, AT, GP, FP, SW, SP, LR, PC)>;
 
-By the following ``llc`` option, you can get the obj file and dump it's content 
-by hexdump as follows,
+7/1/Cpu0 include support for control flow statement. 
+Run with it as well as the following ``llc`` option, you can get the obj file 
+and dump it's content by hexdump as follows,
 
 .. code-block:: c++
 
@@ -415,8 +416,8 @@ List and explain this again as follows,
     $BB0_2:                                 # %if.end
         ld  $2, 28($sp)
 
-If cpu0 do jne compare in execution stage, then we should set PC=PC+12, offset 
-of ($BB0_2, jn e $BB02) – 8, in this example.
+If cpu0 do **"jne"** compare in execution stage, then we should set PC=PC+12, 
+offset of ($BB0_2, jn e $BB02) – 8, in this example.
 
 Cpu0 is for teaching purpose and didn't consider the performance with design. 
 In reality, the conditional branch is important in performance of CPU design. 
