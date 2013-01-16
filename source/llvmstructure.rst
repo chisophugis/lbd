@@ -245,7 +245,35 @@ The most important aspect of it, though, is that it is itself defined as a
 first class language with well-defined semantics. 
 To make this concrete, here is a simple example of a .ll file:
 
-.. literalinclude:: ../code_fragment/llvmstructure/1.txt
+.. code-block:: c++
+
+  define i32 @add1(i32 %a, i32 %b) {
+  entry:
+    %tmp1 = add i32 %a, %b
+    ret i32 %tmp1
+  }
+  define i32 @add2(i32 %a, i32 %b) {
+  entry:
+    %tmp1 = icmp eq i32 %a, 0
+    br i1 %tmp1, label %done, label %recurse
+  recurse:
+    %tmp2 = sub i32 %a, 1
+    %tmp3 = add i32 %b, 1
+    %tmp4 = call i32 @add2(i32 %tmp2, i32 %tmp3)
+    ret i32 %tmp4
+  done:
+    ret i32 %b
+  }
+  // This LLVM IR corresponds to this C code, which provides two different ways to
+  //  add integers:
+  unsigned add1(unsigned a, unsigned b) {
+    return a+b;
+  }
+  // Perhaps not the most efficient way to add two numbers.
+  unsigned add2(unsigned a, unsigned b) {
+    if (a == 0) return b;
+    return add2(a-1, b+1);
+  }
 
 As you can see from this example, LLVM IR is a low-level RISC-like virtual 
 instruction set. 
@@ -311,7 +339,11 @@ For example, the x86 back end defines a register class that holds all of its
 32-bit registers named "GR32" (in the .td files, target specific definitions 
 are all caps) like this:
 
-.. literalinclude:: ../code_fragment/llvmstructure/2.txt
+.. code-block:: c++
+
+  def GR32 : RegisterClass<[i32], 32,
+    [EAX, ECX, EDX, ESI, EDI, EBX, EBP, ESP,
+     R8D, R9D, R10D, R11D, R14D, R15D, R12D, R13D]> { … }
 
 
 Write td (Target Description)
@@ -327,18 +359,107 @@ The \*.inc file is a text file (C++ file) with table driven in concept.
 Every back end has a target td which define it's own target information. 
 File td is like C++ in syntax. For example the Cpu0.td as follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/3.txt
+.. code-block:: c++
+
+  /===-- Cpu0.td - Describe the Cpu0 Target Machine ---------*- tablegen -*-===//
+  // 
+  //                     The LLVM Compiler Infrastructure 
+  // 
+  // This file is distributed under the University of Illinois Open Source 
+  // License. See LICENSE.TXT for details. 
+  // 
+  //===----------------------------------------------------------------------===//
+  // This is the top level entry point for the Cpu0 target. 
+  //===----------------------------------------------------------------------===//
+  
+  //===----------------------------------------------------------------------===//
+  // Target-independent interfaces 
+  //===----------------------------------------------------------------------===//
+  
+  include "llvm/Target/Target.td" 
+  //===----------------------------------------------------------------------===//
+  // Register File, Calling Conv, Instruction Descriptions 
+  //===----------------------------------------------------------------------===//
+  
+  include "Cpu0RegisterInfo.td" 
+  include "Cpu0Schedule.td" 
+  include "Cpu0InstrInfo.td" 
+  
+  def Cpu0InstrInfo : InstrInfo; 
+  
+  def Cpu0 : Target { 
+  // def Cpu0InstrInfo : InstrInfo as before. 
+    let InstructionSet = Cpu0InstrInfo; 
+  }
 
 The registers td named Cpu0RegisterInfo.td included by Cpu0.td is defined as 
 follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/4.txt
+.. code-block:: c++
+
+  //  Cpu0RegisterInfo.td
+  //===----------------------------------------------------------------------===//
+  //  Declarations that describe the CPU0 register file 
+  //===----------------------------------------------------------------------===//
+  // We have banks of 16 registers each. 
+  class Cpu0Reg<string n> : Register<n> { 
+    field bits<4> Num; 
+    let Namespace = "Cpu0"; 
+  } 
+  
+  // Cpu0 CPU Registers 
+  class Cpu0GPRReg<bits<4> num, string n> : Cpu0Reg<n> { 
+    let Num = num; 
+  } 
+  //===----------------------------------------------------------------------===//
+  //  Registers 
+  //===----------------------------------------------------------------------===//
+  let Namespace = "Cpu0" in { 
+    // General Purpose Registers 
+    def ZERO : Cpu0GPRReg< 0, "ZERO">, DwarfRegNum<[0]>; 
+    def AT   : Cpu0GPRReg< 1, "AT">,   DwarfRegNum<[1]>; 
+    def V0   : Cpu0GPRReg< 2, "2">,    DwarfRegNum<[2]>; 
+    def V1   : Cpu0GPRReg< 3, "3">,    DwarfRegNum<[3]>; 
+    def A0   : Cpu0GPRReg< 4, "4">,    DwarfRegNum<[6]>; 
+    def A1   : Cpu0GPRReg< 5, "5">,    DwarfRegNum<[7]>; 
+    def T9   : Cpu0GPRReg< 6, "6">,    DwarfRegNum<[6]>; 
+    def S0   : Cpu0GPRReg< 7, "7">,    DwarfRegNum<[7]>; 
+    def S1   : Cpu0GPRReg< 8, "8">,    DwarfRegNum<[8]>; 
+    def S2   : Cpu0GPRReg< 9, "9">,    DwarfRegNum<[9]>; 
+    def GP   : Cpu0GPRReg< 10, "GP">,  DwarfRegNum<[10]>; 
+    def FP   : Cpu0GPRReg< 11, "FP">,  DwarfRegNum<[11]>; 
+    def SW   : Cpu0GPRReg< 12, "SW">,   DwarfRegNum<[12]>; 
+    def SP   : Cpu0GPRReg< 13, "SP">,   DwarfRegNum<[13]>; 
+    def LR   : Cpu0GPRReg< 14, "LR">,   DwarfRegNum<[14]>; 
+    def PC   : Cpu0GPRReg< 15, "PC">,   DwarfRegNum<[15]>; 
+  //  def MAR  : Cpu0GPRReg< 16, "MAR">,  DwarfRegNum<[16]>; 
+  //  def MDR  : Cpu0GPRReg< 17, "MDR">,  DwarfRegNum<[17]>; 
+  } 
+  //===----------------------------------------------------------------------===//
+  // Register Classes 
+  //===----------------------------------------------------------------------===//
+  def CPURegs : RegisterClass<"Cpu0", [i32], 32, (add 
+    // Return Values and Arguments 
+    V0, V1, A0, A1, 
+    // Not preserved across procedure calls 
+    T9, 
+    // Callee save 
+    S0, S1, S2, 
+    // Reserved 
+    ZERO, AT, GP, FP, SW, SP, LR, PC)>; 
 
 In C++ the data layout is declared by class. Declaration tells the variable 
 layout; definition allocates memory for the variable. 
 For example,
 
-.. literalinclude:: ../code_fragment/llvmstructure/5.txt
+
+.. code-block:: c++
+
+  class Date {  // declare Date
+    int year, month, day;
+  }; 
+  Date date;  // define(instance) date
+
 
 Just like C++ class, the keyword **“class”** is used for declaring data structure 
 layout. 
@@ -361,24 +482,424 @@ defined with a set of Register.
 
 The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/6.txt
+.. code-block:: c++
+
+  /===- Cpu0InstrInfo.td - Target Description for Cpu0 Target -*- tablegen -*-=//
+  // 
+  //                     The LLVM Compiler Infrastructure 
+  // 
+  // This file is distributed under the University of Illinois Open Source 
+  // License. See LICENSE.TXT for details. 
+  // 
+  //===----------------------------------------------------------------------===//
+  // 
+  // This file contains the Cpu0 implementation of the TargetInstrInfo class. 
+  // 
+  //===----------------------------------------------------------------------===//
+  //===----------------------------------------------------------------------===//
+  // Instruction format superclass 
+  //===----------------------------------------------------------------------===//
+   include "Cpu0InstrFormats.td" 
+  //===----------------------------------------------------------------------===//
+  // Cpu0 profiles and nodes 
+  //===----------------------------------------------------------------------===//
+  def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>; 
+  // Return 
+  def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDT_Cpu0Ret, [SDNPHasChain, 
+             SDNPOptInGlue]>; 
+  //===----------------------------------------------------------------------===//
+  // Cpu0 Operand, Complex Patterns and Transformations Definitions. 
+  //===----------------------------------------------------------------------===//
+  def simm16      : Operand<i32> { 
+    let DecoderMethod= "DecodeSimm16"; 
+  } 
+  // Address operand 
+  def mem : Operand<i32> { 
+    let PrintMethod = "printMemOperand"; 
+    let MIOperandInfo = (ops CPURegs, simm16); 
+    let EncoderMethod = "getMemEncoding"; 
+  } 
+  // Node immediate fits as 16-bit sign extended on target immediate. 
+  // e.g. addiu 
+  def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>; 
+  
+  // Cpu0 Address Mode! SDNode frameindex could possibily be a match 
+  // since load and store instructions from stack used it. 
+  def addr : ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], [SDNPWantParent]>
+  ; 
+  
+  //===----------------------------------------------------------------------===//
+  // Pattern fragment for load/store 
+  //===----------------------------------------------------------------------===//
+  class AlignedLoad<PatFrag Node> : 
+    PatFrag<(ops node:$ptr), (Node node:$ptr), [{ 
+    LoadSDNode *LD = cast<LoadSDNode>(N); 
+    return LD->getMemoryVT().getSizeInBits()/8 <= LD->getAlignment(); 
+  }]>; 
+  class AlignedStore<PatFrag Node> : 
+    PatFrag<(ops node:$val, node:$ptr), (Node node:$val, node:$ptr), [{ 
+    StoreSDNode *SD = cast<StoreSDNode>(N); 
+    return SD->getMemoryVT().getSizeInBits()/8 <= SD->getAlignment(); 
+  }]>; 
+  // Load/Store PatFrags. 
+  def load_a          : AlignedLoad<load>; 
+  def store_a         : AlignedStore<store>; 
+  //===----------------------------------------------------------------------===//
+  // Instructions specific format 
+  //===----------------------------------------------------------------------===//
+  // Arithmetic and logical instructions with 2 register operands. 
+  class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode, 
+            Operand Od, PatLeaf imm_type, RegisterClass RC> : 
+    FL<op, (outs RC:$ra), (ins RC:$rb, Od:$imm16), 
+     !strconcat(instr_asm, "\t$ra, $rb, $imm16"), 
+     [(set RC:$ra, (OpNode RC:$rb, imm_type:$imm16))], IIAlu> { 
+    let isReMaterializable = 1; 
+  } 
+  
+  // Move immediate imm16 to register ra. 
+  class MoveImm<bits<8> op, string instr_asm, SDNode OpNode, 
+            Operand Od, PatLeaf imm_type, RegisterClass RC> : 
+    FL<op, (outs RC:$ra), (ins RC:$rb, Od:$imm16), 
+     !strconcat(instr_asm, "\t$ra, $imm16"), 
+     [(set RC:$ra, (OpNode RC:$rb, imm_type:$imm16))], IIAlu> { 
+    let rb = 0; 
+    let isReMaterializable = 1; 
+  } 
+  
+  class FMem<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern, 
+        InstrItinClass itin>: FL<op, outs, ins, asmstr, pattern, itin> { 
+    bits<20> addr; 
+    let Inst{19-16} = addr{19-16}; 
+    let Inst{15-0}  = addr{15-0}; 
+    let DecoderMethod = "DecodeMem"; 
+  } 
+  
+  // Memory Load/Store 
+  let canFoldAsLoad = 1 in 
+  class LoadM<bits<8> op, string instr_asm, PatFrag OpNode, RegisterClass RC, 
+        Operand MemOpnd, bit Pseudo>: 
+    FMem<op, (outs RC:$ra), (ins MemOpnd:$addr), 
+     !strconcat(instr_asm, "\t$ra, $addr"), 
+     [(set RC:$ra, (OpNode addr:$addr))], IILoad> { 
+    let isPseudo = Pseudo; 
+  } 
+  class StoreM<bits<8> op, string instr_asm, PatFrag OpNode, RegisterClass RC, 
+         Operand MemOpnd, bit Pseudo>: 
+    FMem<op, (outs), (ins RC:$ra, MemOpnd:$addr), 
+     !strconcat(instr_asm, "\t$ra, $addr"), 
+     [(OpNode RC:$ra, addr:$addr)], IIStore> { 
+    let isPseudo = Pseudo; 
+  } 
+  // 32-bit load. 
+  multiclass LoadM32<bits<8> op, string instr_asm, PatFrag OpNode, 
+             bit Pseudo = 0> { 
+    def #NAME# : LoadM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>; 
+  } 
+  // 32-bit store. 
+  multiclass StoreM32<bits<8> op, string instr_asm, PatFrag OpNode, 
+            bit Pseudo = 0> { 
+    def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>; 
+  } 
+  //===----------------------------------------------------------------------===//
+  // Instruction definition 
+  //===----------------------------------------------------------------------===//
+  //===----------------------------------------------------------------------===//
+  // Cpu0I Instructions 
+  //===----------------------------------------------------------------------===//
+  /// Load and Store Instructions 
+  ///  aligned 
+  defm LD      : LoadM32<0x00,  "ld",  load_a>; 
+  defm ST      : StoreM32<0x01, "st",  store_a>; 
+  
+  /// Arithmetic Instructions (ALU Immediate)
+  //def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+  // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+  def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+  
+  let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1, 
+    isBarrier=1, hasCtrlDep=1 in 
+    def RET : FJ <0x2C, (outs), (ins CPURegs:$target), 
+          "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>; 
+  
+  //===----------------------------------------------------------------------===//
+  //  Arbitrary patterns that map to one or more instructions 
+  //===----------------------------------------------------------------------===//
+  // Small immediates 
+  
+  def : Pat<(i32 immSExt16:$in), 
+        (ADDiu ZERO, imm:$in)>;
 
 The Cpu0InstrFormats.td is included by Cpu0InstInfo.td as follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/7.txt
+.. code-block:: c++
+
+  //===-- Cpu0InstrFormats.td - Cpu0 Instruction Formats -----*- tablegen -*-===//
+  // 
+  //                     The LLVM Compiler Infrastructure 
+  // 
+  // This file is distributed under the University of Illinois Open Source 
+  // License. See LICENSE.TXT for details. 
+  // 
+  //===----------------------------------------------------------------------===//
+  
+  //===----------------------------------------------------------------------===//
+  //  Describe CPU0 instructions format 
+  // 
+  //  CPU INSTRUCTION FORMATS 
+  // 
+  //  opcode  - operation code. 
+  //  ra      - dst reg, only used on 3 regs instr. 
+  //  rb      - src reg. 
+  //  rc      - src reg (on a 3 reg instr). 
+  //  cx      - immediate 
+  // 
+  //===----------------------------------------------------------------------===//
+  
+  // Format specifies the encoding used by the instruction.  This is part of the 
+  // ad-hoc solution used to emit machine instruction encodings by our machine 
+  // code emitter. 
+  class Format<bits<4> val> { 
+    bits<4> Value = val; 
+  } 
+  
+  def Pseudo    : Format<0>; 
+  def FrmA      : Format<1>; 
+  def FrmL      : Format<2>; 
+  def FrmJ      : Format<3>; 
+  def FrmFR     : Format<4>; 
+  def FrmFI     : Format<5>; 
+  def FrmOther  : Format<6>; // Instruction w/ a custom format 
+  
+  // Generic Cpu0 Format 
+  class Cpu0Inst<dag outs, dag ins, string asmstr, list<dag> pattern, 
+           InstrItinClass itin, Format f>: Instruction 
+  { 
+    field bits<32> Inst; 
+    Format Form = f; 
+  
+    let Namespace = "Cpu0"; 
+  
+    let Size = 4; 
+  
+    bits<8> Opcode = 0; 
+  
+    // Top 8 bits are the 'opcode' field 
+    let Inst{31-24} = Opcode; 
+  
+    let OutOperandList = outs; 
+    let InOperandList  = ins; 
+  
+    let AsmString   = asmstr; 
+    let Pattern     = pattern; 
+    let Itinerary   = itin; 
+  
+    // 
+    // Attributes specific to Cpu0 instructions... 
+    // 
+    bits<4> FormBits = Form.Value; 
+  
+    // TSFlags layout should be kept in sync with Cpu0InstrInfo.h. 
+    let TSFlags{3-0}   = FormBits; 
+  
+    let DecoderNamespace = "Cpu0"; 
+  
+    field bits<32> SoftFail = 0; 
+  } 
+  
+  //===----------------------------------------------------------------------===//
+  // Format A instruction class in Cpu0 : <|opcode|ra|rb|rc|cx|> 
+  //===----------------------------------------------------------------------===//
+  
+  class FA<bits<8> op, dag outs, dag ins, string asmstr, 
+       list<dag> pattern, InstrItinClass itin>: 
+      Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmA> 
+  { 
+    bits<4>  ra; 
+    bits<4>  rb; 
+    bits<4>  rc; 
+    bits<12> imm12; 
+  
+    let Opcode = op; 
+  
+    let Inst{23-20} = ra; 
+    let Inst{19-16} = rb; 
+    let Inst{15-12} = rc; 
+    let Inst{11-0}  = imm12; 
+  } 
+  
+  //===----------------------------------------------------------------------===//
+  // Format I instruction class in Cpu0 : <|opcode|ra|rb|cx|> 
+  //===----------------------------------------------------------------------===//
+  
+  class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern, 
+       InstrItinClass itin>: Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL> 
+  { 
+    bits<4>  ra; 
+    bits<4>  rb; 
+    bits<16> imm16; 
+  
+    let Opcode = op; 
+  
+    let Inst{23-20} = ra; 
+    let Inst{19-16} = rb; 
+    let Inst{15-0}  = imm16; 
+  } 
+  
+  //===----------------------------------------------------------------------===//
+  // Format J instruction class in Cpu0 : <|opcode|address|> 
+  //===----------------------------------------------------------------------===//
+  
+  class FJ<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern, 
+       InstrItinClass itin>: Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmJ>
+  { 
+    bits<24> addr; 
+  
+    let Opcode = op; 
+  
+    let Inst{23-0} = addr; 
+  } 
 
 ADDiu is class ArithLogicI inherited from FL, can expand and get member value 
 as follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/8.txt
+.. code-block:: c++
+
+  def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+  
+  /// Arithmetic and logical instructions with 2 register operands.
+  class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode,
+            Operand Od, PatLeaf imm_type, RegisterClass RC> :
+    FL<op, (outs RC:$ra), (ins RC:$rb, Od:$imm16),
+     !strconcat(instr_asm, "\t$ra, $rb, $imm16"),
+     [(set RC:$ra, (OpNode RC:$rb, imm_type:$imm16))], IIAlu> {
+    let isReMaterializable = 1;
+  }
+  
+  So,
+  op = 0x09
+  instr_asm = “addiu”
+  OpNode = add
+  Od = simm16
+  imm_type = immSExt16
+  RC = CPURegs
 
 Expand with FL further,
 
-.. literalinclude:: ../code_fragment/llvmstructure/9.txt
+
+.. code-block:: c++
+
+   :  FL<op, (outs RC:$ra), (ins RC:$rb, Od:$imm16),
+     !strconcat(instr_asm, "\t$ra, $rb, $imm16"), 
+     [(set RC:$ra, (OpNode RC:$rb, imm_type:$imm16))], IIAlu>
+  
+  class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern, 
+       InstrItinClass itin>: Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
+  { 
+    bits<4>  ra; 
+    bits<4>  rb; 
+    bits<16> imm16; 
+  
+    let Opcode = op; 
+  
+    let Inst{23-20} = ra; 
+    let Inst{19-16} = rb; 
+    let Inst{15-0}  = imm16; 
+  }
+  
+  So,
+  op = 0x09
+  outs = CPURegs:$ra
+  ins = CPURegs:$rb,simm16:$imm16
+  asmstr = "addiu\t$ra, $rb, $imm16"
+  pattern = [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))]
+  itin = IIAlu
+  
+  Members are,
+  ra = CPURegs:$ra
+  rb = CPURegs:$rb
+  imm16 = simm16:$imm16
+  Opcode = 0x09;
+  Inst{23-20} = CPURegs:$ra; 
+  Inst{19-16} = CPURegs:$rb; 
+  Inst{15-0}  = simm16:$imm16; 
 
 Expand with Cpu0Inst further,
 
-.. literalinclude:: ../code_fragment/llvmstructure/10.txt
+.. code-block:: c++
+
+  class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern, 
+       InstrItinClass itin>: Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
+  
+  class Cpu0Inst<dag outs, dag ins, string asmstr, list<dag> pattern, 
+           InstrItinClass itin, Format f>: Instruction 
+  { 
+    field bits<32> Inst; 
+    Format Form = f; 
+  
+    let Namespace = "Cpu0"; 
+  
+    let Size = 4; 
+  
+    bits<8> Opcode = 0; 
+  
+    // Top 8 bits are the 'opcode' field 
+    let Inst{31-24} = Opcode; 
+  
+    let OutOperandList = outs; 
+    let InOperandList  = ins; 
+  
+    let AsmString   = asmstr; 
+    let Pattern     = pattern; 
+    let Itinerary   = itin; 
+  
+    // 
+    // Attributes specific to Cpu0 instructions... 
+    // 
+    bits<4> FormBits = Form.Value; 
+  
+    // TSFlags layout should be kept in sync with Cpu0InstrInfo.h. 
+    let TSFlags{3-0}   = FormBits; 
+  
+    let DecoderNamespace = "Cpu0"; 
+  
+    field bits<32> SoftFail = 0; 
+  }
+  
+  So,
+  outs = CPURegs:$ra
+  ins = CPURegs:$rb,simm16:$imm16
+  asmstr = "addiu\t$ra, $rb, $imm16"
+  pattern = [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))]
+  itin = IIAlu
+  f =  FrmL
+  
+  Members are,
+  Inst{31-24} = 0x09; 
+  OutOperandList = CPURegs:$ra 
+  InOperandList  = CPURegs:$rb,simm16:$imm16
+  AsmString = "addiu\t$ra, $rb, $imm16"
+  Pattern = [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))]
+  Itinerary = IIAlu
+  
+  Summary with all members are, 
+  // Inherited from parent like Instruction
+  Namespace = "Cpu0";
+  DecoderNamespace = "Cpu0";
+  Inst{31-24} = 0x08; 
+  Inst{23-20} = CPURegs:$ra; 
+  Inst{19-16} = CPURegs:$rb; 
+  Inst{15-0}  = simm16:$imm16; 
+  OutOperandList = CPURegs:$ra 
+  InOperandList  = CPURegs:$rb,simm16:$imm16
+  AsmString = "addiu\t$ra, $rb, $imm16"
+  Pattern = [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))]
+  Itinerary = IIAlu
+  // From Cpu0Inst
+  Opcode = 0x09;
+  // From FL
+  ra = CPURegs:$ra
+  rb = CPURegs:$rb
+  imm16 = simm16:$imm16
 
 It's a lousy process. 
 Similarly, LD and ST instruction definition can be expanded in this way. 
@@ -394,7 +915,87 @@ Write cmake file
 Target/Cpu0 directory has two files CMakeLists.txt and LLVMBuild.txt, 
 contents as follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/11.txt
+.. code-block:: c++
+
+  # CMakeLists.txt 
+  # Our td all in Cpu0.td, Cpu0RegisterInfo.td and Cpu0InstrInfo.td included in 
+  #  Cpu0.td 
+  set(LLVM_TARGET_DEFINITIONS Cpu0.td) 
+  
+  # Generate Cpu0GenRegisterInfo.inc and Cpu0GenInstrInfo.inc which included by
+  # your hand code C++ files. 
+  # Cpu0GenRegisterInfo.inc came from Cpu0RegisterInfo.td, Cpu0GenInstrInfo.inc
+  # came from Cpu0InstrInfo.td. 
+  tablegen(LLVM Cpu0GenRegisterInfo.inc -gen-register-info) 
+  tablegen(LLVM Cpu0GenInstrInfo.inc -gen-instr-info) 
+  
+  # Used by llc 
+  add_public_tablegen_target(Cpu0CommonTableGen) 
+  
+  # Cpu0CodeGen should match with LLVMBuild.txt Cpu0CodeGen 
+  add_llvm_target(Cpu0CodeGen 
+    Cpu0TargetMachine.cpp 
+    ) 
+  # Should match with "subdirectories =  MCTargetDesc TargetInfo" in LLVMBuild.txt
+  add_subdirectory(TargetInfo) 
+  add_subdirectory(MCTargetDesc)
+  
+  CMakeLists.txt is the make information for cmake, # is comment.
+  
+  ;===- ./lib/Target/Cpu0/LLVMBuild.txt --------------------------*- Conf -*--===;
+  ; 
+  ;                     The LLVM Compiler Infrastructure 
+  ; 
+  ; This file is distributed under the University of Illinois Open Source 
+  ; License. See LICENSE.TXT for details. 
+  ; 
+  ;===------------------------------------------------------------------------===;
+  ; 
+  ; This is an LLVMBuild description file for the components in this subdirectory. 
+  ; 
+  ; For more information on the LLVMBuild system, please see: 
+  ; 
+  ;   http://llvm.org/docs/LLVMBuild.html 
+  ; 
+  ;===------------------------------------------------------------------------===;
+  
+  # Following comments extracted from http://llvm.org/docs/LLVMBuild.html 
+  
+  [common] 
+  subdirectories =  MCTargetDesc TargetInfo 
+  
+  [component_0] 
+  # TargetGroup components are an extension of LibraryGroups, specifically for
+  #  defining LLVM targets (which are handled specially in a few places). 
+  type = TargetGroup 
+  # The name of the component should always be the name of the target. (should
+  #  match "def Cpu0 : Target" in Cpu0.td) 
+  name = Cpu0 
+  # Cpu0 component is located in directory Target/ 
+  parent = Target 
+  # Whether this target defines an assembly parser, assembly printer, disassembler
+  #  , and supports JIT compilation. They are optional. 
+  #has_asmparser = 1 
+  #has_asmprinter = 1 
+  #has_disassembler = 1 
+  #has_jit = 1 
+  
+  [component_1] 
+  # component_1 is a Library type and name is Cpu0CodeGen. After build it will in
+  #  lib/libLLVMCpu0CodeGen.a of your build command directory. 
+  type = Library 
+  name = Cpu0CodeGen 
+  # Cpu0CodeGen component(Library) is located in directory Cpu0/ 
+  parent = Cpu0 
+  # If given, a list of the names of Library or LibraryGroup components which must
+  #  also be linked in whenever this library is used. That is, the link time 
+  #  dependencies for this component. When tools are built, the build system will
+  #  include the transitive closure of all required_libraries for the components 
+  #  the tool needs. 
+  required_libraries = CodeGen Core MC Cpu0Desc Cpu0Info SelectionDAG Support Target 
+  # All LLVMBuild.txt in Target/Cpu0 and subdirectory use 'add_to_library_groups =
+  #  Cpu0' 
+  add_to_library_groups = Cpu0 
 
 LLVMBuild.txt files are written in a simple variant of the INI or configuration 
 file format. 
@@ -427,12 +1028,35 @@ and use the RegisterTarget template to register the target.
 For example, the file TargetInfo/Cpu0TargetInfo.cpp register TheCpu0Target for 
 big endian and TheCpu0elTarget for little endian, as follows.
 
-.. literalinclude:: ../code_fragment/llvmstructure/12.txt
+.. code-block:: c++
+
+  // TargetInfo/Cpu0TargetInfo.cpp
+  ...
+  Target llvm::TheCpu0Target, llvm::TheCpu0elTarget; 
+  extern "C" void LLVMInitializeCpu0TargetInfo() { 
+    RegisterTarget<Triple::cpu0, 
+      /*HasJIT=*/true> X(TheCpu0Target, "cpu0", "Cpu0"); 
+  
+    RegisterTarget<Triple::cpu0el, 
+      /*HasJIT=*/true> Y(TheCpu0elTarget, "cpu0el", "Cpu0el"); 
+  }
 
 Files Cpu0TargetMachine.cpp and MCTargetDesc/Cpu0MCTargetDesc.cpp just define 
 the empty initialize function since we register nothing in them for this moment.
 
-.. literalinclude:: ../code_fragment/llvmstructure/13.txt
+.. code-block:: c++
+
+  //===-- Cpu0TargetMachine.cpp - Define TargetMachine for Cpu0 -------------===//
+  ...
+  
+  extern "C" void LLVMInitializeCpu0Target() { 
+  } 
+  ...
+  
+  //===-- Cpu0MCTargetDesc.cpp - Cpu0 Target Descriptions -------------------===//
+  ...
+  extern "C" void LLVMInitializeCpu0TargetMC() { 
+  }
 
 Please see "Target Registration" [#]_ for reference.
 
@@ -453,43 +1077,139 @@ Please check files in src_files_modify/src/.
 You can search cpu0 without case sensitive to find the modified files by 
 command,
 
-.. literalinclude:: ../terminal_io/llvmstructure/1.txt
+.. code-block:: bash
+
+  [Gamma@localhost cmake_debug_build]$ grep -R -i "cpu0" ../src/ 
+  ../src/CMakeLists.txt:  Cpu0 
+  ../src/lib/Target/LLVMBuild.txt:subdirectories = ARM CellSPU CppBackend Hexagon 
+  MBlaze MSP430 Mips Cpu0 PTX PowerPC Sparc X86 XCore ../src/lib/MC/MCExpr.cpp:  
+  case VK_Cpu0_GPREL: return "GPREL"; 
+  ...
+  ../src/lib/MC/MCELFStreamer.cpp:    case MCSymbolRefExpr::VK_Cpu0_TLSGD: 
+  ...
+  ../src/lib/MC/MCDwarf.cpp:  // AT_language, a 4 byte value.  We use DW_LANG_Cpu0
+  _Assembler as the dwarf2 
+  ../src/lib/MC/MCDwarf.cpp: // MCOS->EmitIntValue(dwarf::DW_LANG_Cpu0_Assembler, 
+  2); 
+  ../src/lib/Support/Triple.cpp:  case cpu0:    return "cpu0";
+   ...
+  ../src/include/llvm/Support/ELF.h:  EM_LATTICEMICO32 = 138, // RISC processor fo
+  r Lattice CPU0 architecture
+  ...
 
 You can update your llvm working copy by,
 
-.. literalinclude:: ../terminal_io/llvmstructure/2.txt
+.. code-block:: bash
+
+  cp -rf LLVMBackendTutorial/src_files_modified/src/*   yourllvm/workingcopy/sourc
+  edir/.
 
 Now, run the cmake and make command to build td (the following cmake command is 
 for my setting),
 
-.. literalinclude:: ../terminal_io/llvmstructure/3.txt
+.. code-block:: bash
+
+  [Gamma@localhost cmake_debug_build]$ cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_
+  C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug  -G "Unix Makefiles" ../src/
+  
+  -- Targeting Cpu0 
+  ...
+  -- Targeting XCore 
+  -- Configuring done 
+  -- Generating done 
+  -- Build files have been written to: /usr/local/llvm/test/cmake_debug
+  _build 
+  
+  [Gamma@localhost cmake_debug_build]$ make 
+  ...
+  [100%] Built target gtest_main
 
 After build, you can type command ``llc –version`` to find the cpu0 backend,
 
-.. literalinclude:: ../terminal_io/llvmstructure/4.txt
+.. code-block:: bash
+
+  [Gamma@localhost cmake_debug_build]$ /usr/local/llvm/test/cmake_debug
+  _build/bin/llc --version 
+  LLVM (http://llvm.org/): 
+    LLVM version 3.2svn 
+    DEBUG build with assertions. 
+    Built Sep 21 2012 (18:27:58). 
+    Default target: x86_64-unknown-linux-gnu 
+    Host CPU: penryn 
+  
+    Registered Targets: 
+    arm      - ARM 
+    cellspu  - STI CBEA Cell SPU [experimental] 
+    cpp      - C++ backend 
+    cpu0     - Cpu0 
+    cpu0el   - Cpu0el 
+  ...
 
 The ``llc -version`` can display **“cpu0”** and **“cpu0el”** message, because 
 the following code from file TargetInfo/Cpu0TargetInfo.cpp what in 
 "section Target Registration" [#]_ we made. 
 List them as follows again,
 
-.. literalinclude:: ../code_fragment/llvmstructure/14.txt
+.. code-block:: c++
+
+  // Cpu0TargetInfo.cpp
+  Target llvm::TheCpu0Target, llvm::TheCpu0elTarget; 
+  
+  extern "C" void LLVMInitializeCpu0TargetInfo() { 
+    RegisterTarget<Triple::cpu0, 
+      /*HasJIT=*/true> X(TheCpu0Target, "cpu0", "Cpu0"); 
+  
+    RegisterTarget<Triple::cpu0el, 
+      /*HasJIT=*/true> Y(TheCpu0elTarget, "cpu0el", "Cpu0el"); 
+  }
 
 Now try to do ``llc`` command to compile input file ch3.cpp as follows,
 
-.. literalinclude:: ../code_fragment/llvmstructure/15.txt
+.. code-block:: c++
+
+  // ch3.cpp
+  int main() 
+  { 
+    return 0; 
+  } 
 
 First step, compile it with clang and get output ch3.bc as follows,
 
-.. literalinclude:: ../terminal_io/llvmstructure/5.txt
+.. code-block:: bash
+
+  [Gamma@localhost InputFiles]$ clang -c ch3.cpp -emit-llvm -o ch3.bc
 
 Next step, transfer bitcode .bc to human readable text format as follows,
 
-.. literalinclude:: ../terminal_io/llvmstructure/6.txt
+.. code-block:: bash
+
+  [Gamma@localhost InputFiles]$ llvm-dis ch3.bc -o ch3.ll 
+  
+  // ch3.ll
+  ; ModuleID = 'ch3.bc' 
+  target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f3
+  2:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:6
+  4-S128" 
+  target triple = "x86_64-unknown-linux-gnu" 
+  
+  define i32 @main() nounwind uwtable { 
+    %1 = alloca i32, align 4 
+    store i32 0, i32* %1 
+    ret i32 0 
+  }
 
 Now, compile ch3.bc into ch3.cpu0.s, we get the error message as follows,
 
-.. literalinclude:: ../terminal_io/llvmstructure/7.txt
+.. code-block:: c++
+
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
+  bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+  llc: /usr/local/llvm/test/src/tools/llc/llc.cpp:456: int main(int, ch
+  ar **): Assertion `target.get() && "Could not allocate target machine!"' failed. 
+  Stack dump: 
+  0.  Program arguments: /usr/local/llvm/test/cmake_debug_build/bin/llc
+   -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o ch3.cpu0.s 
+  Aborted (core dumped)
 
 Currently we just define target td files (Cpu0.td, Cpu0RegisterInfo.td, ...). 
 According to LLVM structure, we need to define our target machine and include 

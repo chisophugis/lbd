@@ -1,3 +1,0 @@
-def GR32 : RegisterClass<[i32], 32,
-  [EAX, ECX, EDX, ESI, EDI, EBX, EBP, ESP,
-   R8D, R9D, R10D, R11D, R14D, R15D, R12D, R13D]> { … }

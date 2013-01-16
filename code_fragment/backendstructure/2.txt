@@ -1,9 +1,0 @@
-//- Cpu0GenInstInfo.inc which generate from Cpu0InstrInfo.td 
-#ifdef GET_INSTRINFO_HEADER 
-#undef GET_INSTRINFO_HEADER 
-namespace llvm { 
-struct Cpu0GenInstrInfo : public TargetInstrInfoImpl { 
-  explicit Cpu0GenInstrInfo(int SO = -1, int DO = -1); 
-}; 
-} // End llvm namespace 
-#endif // GET_INSTRINFO_HEADER 

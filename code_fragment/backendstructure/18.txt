@@ -1,3 +1,0 @@
-a = b + c		// in notation IR form
-d = a – d
-%e = fmadd %a, %c, %b	// in llvm SSA IR form

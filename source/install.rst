@@ -53,14 +53,16 @@ compiler-rt source to src/project/compiler-rt as shown as follows,
   118-165-78-111:Downloads Jonathan$ pwd
   /Users/Jonathan/Downloads
   118-165-78-111:Downloads Jonathan$ ls
-  clang-3.2.src.tar.gz    llvm-3.2.src.tar.gz
+  clang-3.2.src.tar.gz        llvm-3.2.src.tar.gz
   compiler-rt-3.2.src.tar.gz  src
   118-165-78-111:Downloads Jonathan$ ls src/tools/
-  CMakeLists.txt  clang   llvm-as   llvm-dis  llvm-mcmarkup llvm-readobj  llvm-stub
-  LLVMBuild.txt gold    llvm-bcanalyzer llvm-dwarfdump  llvm-nm   llvm-rtdyld lto
-  Makefile  llc   llvm-config llvm-extract  llvm-objdump  llvm-shlib  macho-dump
-  bugpoint  lli   llvm-cov  llvm-link llvm-prof llvm-size opt
-  bugpoint-passes llvm-ar   llvm-diff llvm-mc   llvm-ranlib llvm-stress
+  CMakeLists.txt  clang       llvm-as         llvm-dis        llvm-mcmarkup 
+  llvm-readobj    llvm-stub   LLVMBuild.txt   gold            llvm-bcanalyzer 
+  llvm-dwarfdump  llvm-nm     llvm-rtdyld     lto             Makefile  
+  llc             llvm-config llvm-extract    llvm-objdump    llvm-shlib 
+  macho-dump      bugpoint    lli             llvm-cov        llvm-link 
+  llvm-prof       llvm-size   opt             bugpoint-passes llvm-ar 
+  llvm-diff       llvm-mc     llvm-ranlib     llvm-stress
   118-165-78-111:Downloads Jonathan$ ls src/projects/
   CMakeLists.txt  LLVMBuild.txt Makefile  compiler-rt sample
 
@@ -85,8 +87,8 @@ illustration. You may want to revert this setting after installing cmake.
   
 Alternatively, you can mount the cmake .dmg image file you downloaded, right
 -click (or 
-control-click) the cmake .pkg package file and click "Open." Mac OS X will ask y
-ou if you 
+control-click) the cmake .pkg package file and click "Open." Mac OS X will ask 
+you if you 
 are sure you want to install this package, and you can click "Open" to start the 
 installer.
 
@@ -95,8 +97,8 @@ installer.
 Create LLVM.xcodeproj by cmake Graphic UI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We install llvm source code with clang on directory /Users/Jonathan/llvm/
-release/ in last section.
+We install llvm source code with clang on directory 
+/Users/Jonathan/llvm/release/ in last section.
 Now, will generate the LLVM.xcodeproj in this chapter.
 
 Currently, we cannot do debug by lldb with cmake graphic UI operations depicted 
@@ -572,12 +574,13 @@ according the following list steps, the corresponding commands shown as follows,
 2) Update my modified files to support cpu0 by command, 
 ``cp -rf /home/Gamma/LLVMBackendTutorialExampleCode/src_files_modify/src .``.
 
-3) Check step 3 is effect by command 
+3) Check step 2 is effective by command 
 ``grep -R "Cpu0" . | more```. I add the Cpu0 backend support, so check with 
 grep.
 
-4) Enter src/lib/Target and copy example code LLVMBackendTutorialExampleCode/2/
-Cpu0 to the directory by command ``cd lib/Target/`` and 
+4) Enter src/lib/Target and copy example code 
+LLVMBackendTutorialExampleCode/2/Cpu0 to the directory by command 
+``cd lib/Target/`` and 
 ``cp -rf /home/Gamma/LLVMBackendTutorialExample/2/Cpu0 .``.
 
 5) Remove clang from test/src/tools/clang, and mkdir 
@@ -625,7 +628,6 @@ command ``make`` in cpu0 example code build.
   ./include/llvm/MC/MCExpr.h:    VK_Cpu0_GOT,
   ./include/llvm/MC/MCExpr.h:    VK_Cpu0_ABS_HI,
   ./include/llvm/MC/MCExpr.h:    VK_Cpu0_ABS_LO,
-  ./include/llvm/MC/MCExpr.h://    VK_Cpu0_ABS,
   ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TLSGD,
   ./include/llvm/MC/MCExpr.h:    VK_Cpu0_TLSLDM,
   ./include/llvm/MC/MCExpr.h:    VK_Cpu0_DTPREL_HI,
