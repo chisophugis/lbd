@@ -1,6 +1,6 @@
 diff -Naur 4/1/Cpu0/Cpu0InstrInfo.td 4/2/Cpu0/Cpu0InstrInfo.td
---- 4/1/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
-+++ 4/2/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
+--- 4/1/Cpu0/Cpu0InstrInfo.td	2013-01-16 18:07:22.000000000 +0800
++++ 4/2/Cpu0/Cpu0InstrInfo.td	2013-01-16 18:07:22.000000000 +0800
 @@ -196,7 +196,7 @@
  defm ST     : StoreM32<0x01, "st",  store_a>;
  

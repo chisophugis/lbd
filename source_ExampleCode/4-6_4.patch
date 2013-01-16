@@ -1,6 +1,6 @@
 diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.cpp 4/6_4/Cpu0/Cpu0ISelLowering.cpp
---- 4/6_2/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 18:07:22.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 18:07:22.000000000 +0800
 @@ -43,6 +43,14 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -75,96 +75,9 @@ diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.cpp 4/6_4/Cpu0/Cpu0ISelLowering.cpp
  #include "Cpu0GenCallingConv.inc"
  
  /// LowerFormalArguments - transform physical registers into virtual registers
-diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.cpp.orig 4/6_4/Cpu0/Cpu0ISelLowering.cpp.orig
---- 4/6_2/Cpu0/Cpu0ISelLowering.cpp.orig	1970-01-01 08:00:00.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
-@@ -0,0 +1,83 @@
-+//===-- Cpu0ISelLowering.cpp - Cpu0 DAG Lowering Implementation -----------===//
-+//
-+//                     The LLVM Compiler Infrastructure
-+//
-+// This file is distributed under the University of Illinois Open Source
-+// License. See LICENSE.TXT for details.
-+//
-+//===----------------------------------------------------------------------===//
-+//
-+// This file defines the interfaces that Cpu0 uses to lower LLVM code into a
-+// selection DAG.
-+//
-+//===----------------------------------------------------------------------===//
-+
-+#define DEBUG_TYPE "cpu0-lower"
-+#include "Cpu0ISelLowering.h"
-+#include "Cpu0TargetMachine.h"
-+#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
-+#include "Cpu0Subtarget.h"
-+#include "llvm/DerivedTypes.h"
-+#include "llvm/Function.h"
-+#include "llvm/GlobalVariable.h"
-+#include "llvm/Intrinsics.h"
-+#include "llvm/CallingConv.h"
-+#include "llvm/CodeGen/CallingConvLower.h"
-+#include "llvm/CodeGen/MachineFrameInfo.h"
-+#include "llvm/CodeGen/MachineFunction.h"
-+#include "llvm/CodeGen/MachineInstrBuilder.h"
-+#include "llvm/CodeGen/MachineRegisterInfo.h"
-+#include "llvm/CodeGen/SelectionDAGISel.h"
-+#include "llvm/CodeGen/ValueTypes.h"
-+#include "llvm/Support/Debug.h"
-+#include "llvm/Support/ErrorHandling.h"
-+#include "llvm/Support/raw_ostream.h"
-+
-+using namespace llvm;
-+
-+Cpu0TargetLowering::
-+Cpu0TargetLowering(Cpu0TargetMachine &TM)
-+  : TargetLowering(TM, new TargetLoweringObjectFileELF()),
-+    Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
-+
-+  // Set up the register classes
-+  addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
-+
-+//- Set .align 2
-+// It will emit .align 2 later
-+  setMinFunctionAlignment(2);
-+
-+// must, computeRegisterProperties - Once all of the register classes are 
-+//  added, this allows us to compute derived properties we expose.
-+  computeRegisterProperties();
-+}
-+
-+#include "Cpu0GenCallingConv.inc"
-+
-+/// LowerFormalArguments - transform physical registers into virtual registers
-+/// and generate load operations for arguments places on the stack.
-+SDValue
-+Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
-+                                         CallingConv::ID CallConv,
-+                                         bool isVarArg,
-+                                      const SmallVectorImpl<ISD::InputArg> &Ins,
-+                                         DebugLoc dl, SelectionDAG &DAG,
-+                                         SmallVectorImpl<SDValue> &InVals)
-+                                          const {
-+  return Chain;
-+}
-+
-+//===----------------------------------------------------------------------===//
-+//               Return Value Calling Convention Implementation
-+//===----------------------------------------------------------------------===//
-+
-+SDValue
-+Cpu0TargetLowering::LowerReturn(SDValue Chain,
-+                                CallingConv::ID CallConv, bool isVarArg,
-+                                const SmallVectorImpl<ISD::OutputArg> &Outs,
-+                                const SmallVectorImpl<SDValue> &OutVals,
-+                                DebugLoc dl, SelectionDAG &DAG) const {
-+
-+    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
-+                       Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
-+}
 diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.h 4/6_4/Cpu0/Cpu0ISelLowering.h
---- 4/6_2/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0ISelLowering.h	2013-01-16 18:07:22.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0ISelLowering.h	2013-01-16 18:07:22.000000000 +0800
 @@ -25,7 +25,10 @@
      enum NodeType {
        // Start the numbering from where ISD NodeType finishes.
@@ -187,8 +100,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.h 4/6_4/Cpu0/Cpu0ISelLowering.h
      // Subtarget Info
      const Cpu0Subtarget *Subtarget;
 diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.cpp 4/6_4/Cpu0/Cpu0InstrInfo.cpp
---- 4/6_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0InstrInfo.cpp	2013-01-15 16:52:19.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 18:07:22.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 18:07:22.000000000 +0800
 @@ -28,6 +28,42 @@
    return RI;
  }
@@ -233,8 +146,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.cpp 4/6_4/Cpu0/Cpu0InstrInfo.cpp
  Cpu0InstrInfo::emitFrameIndexDebugValue(MachineFunction &MF, int FrameIx,
                                          uint64_t Offset, const MDNode *MDPtr,
 diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.h 4/6_4/Cpu0/Cpu0InstrInfo.h
---- 4/6_2/Cpu0/Cpu0InstrInfo.h	2013-01-15 16:52:19.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0InstrInfo.h	2013-01-15 16:52:19.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0InstrInfo.h	2013-01-16 18:07:22.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.h	2013-01-16 18:07:22.000000000 +0800
 @@ -36,6 +36,11 @@
    ///
    virtual const Cpu0RegisterInfo &getRegisterInfo() const;
@@ -248,8 +161,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.h 4/6_4/Cpu0/Cpu0InstrInfo.h
    virtual MachineInstr* emitFrameIndexDebugValue(MachineFunction &MF,
                                                   int FrameIx, uint64_t Offset,
 diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
---- 4/6_2/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-15 16:52:19.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0InstrInfo.td	2013-01-16 18:07:22.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-16 18:07:22.000000000 +0800
 @@ -23,10 +23,20 @@
  
  def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>;

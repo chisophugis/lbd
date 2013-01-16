@@ -1,6 +1,6 @@
 diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
---- 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-15 16:52:19.000000000 +0800
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 18:07:22.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 18:07:22.000000000 +0800
 @@ -73,7 +73,8 @@
    // Cpu0 Custom Operations
    setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
@@ -54,45 +54,9 @@ diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
  #include "Cpu0GenCallingConv.inc"
  
  SDValue
-diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp.orig 8/7/Cpu0/Cpu0ISelLowering.cpp.orig
---- 8/6/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.cpp.orig	2013-01-15 16:52:19.000000000 +0800
-@@ -267,6 +267,8 @@
-     unsigned StackAlignment = TFL->getStackAlignment();
-     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
-                       StackAlignment * StackAlignment;
-+    if (Cpu0FI->needGPSaveRestore())
-+      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
- 
-     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
-   }
-diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig
---- 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig	2013-01-15 16:52:19.000000000 +0800
-@@ -267,6 +267,8 @@
-     unsigned StackAlignment = TFL->getStackAlignment();
-     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
-                       StackAlignment * StackAlignment;
-+    if (Cpu0FI->needGPSaveRestore())
-+      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
- 
-     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
-   }
-diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig
---- 8/6/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 16:52:19.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.cpp.orig.orig.orig	2013-01-15 16:52:19.000000000 +0800
-@@ -267,6 +267,8 @@
-     unsigned StackAlignment = TFL->getStackAlignment();
-     NextStackOffset = (NextStackOffset + StackAlignment - 1) /
-                       StackAlignment * StackAlignment;
-+    if (Cpu0FI->needGPSaveRestore())
-+      MFI->setObjectOffset(Cpu0FI->getGPFI(), NextStackOffset);
- 
-     MFI->setObjectOffset(DynAllocFI, NextStackOffset);
-   }
 diff -Naur 8/6/Cpu0/Cpu0ISelLowering.h 8/7/Cpu0/Cpu0ISelLowering.h
---- 8/6/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
-+++ 8/7/Cpu0/Cpu0ISelLowering.h	2013-01-15 16:52:19.000000000 +0800
+--- 8/6/Cpu0/Cpu0ISelLowering.h	2013-01-16 18:07:22.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.h	2013-01-16 18:07:22.000000000 +0800
 @@ -86,6 +86,7 @@
      // Lower Operand specifics
      SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
