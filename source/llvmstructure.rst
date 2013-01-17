@@ -3,10 +3,10 @@
 Cpu0 Instruction and LLVM Target Description
 ============================================
 
-Before you start, you should know that you can always examine existing LLVM 
-backend code and attempt to port what you find for your own target architecture
-.  The majority of this code can be found in the /lib/Target directory of your 
-root LLVM directory. As most major RISC instruction set architectures have some 
+Before you begin this tutorial, you should know that you can always examine existing LLVM 
+backend code and attempt to port what you find for your own target architecture.  
+The majority of this code can be found in the /lib/Target directory of your 
+root LLVM installation. As most major RISC instruction set architectures have some 
 similarities, this may be the avenue you might try if you are both an 
 experienced programmer and knowledgable of compiler backends. 
 However, there is a steep learning curve and you may easily get held up 
@@ -16,57 +16,70 @@ method deep in the LLVM codebase - and with a codebase as large as LLVM, this
 can easily become a headache. This tutorial will help you work through this 
 process while learning the fundamentals of LLVM backend design. It will show 
 you what is necessary to get your first backend functional and complete, and it 
-should help you understand how to debug your backend when it does not produce 
-desirable output using the output provided by LLVM.
+should help you understand how to debug your backend when it produces incorrect output 
+using output provided by the compiler.
 
-This chapter shows you the cpu0 instruction format first. 
-Next, the llvm structure is introduced to you by copy and paste the related 
-article from llvm web site. The llvm structure introduced here is extracted 
-from the asop web site. You can read the whole article from the asop web site. 
-After that we will show you how to write register and instruction definitions 
-(Target Description File) which will be used in next chapter.
+This section first details the Cpu0 instruction set. Next, the structure of LLVM is 
+introduced.  The LLVM structure information is adapted from Chris Lattner's LLVM 
+chapter of the Architecture of Open Source Applications book [#aosa-book]_. You can read 
+the original article from the AOSA website if you prefer. Finally, you will begin to 
+write register and instruction definitions in the Target Description files which will be 
+used in next section.
 
-CPU0 processor architecture
+Cpu0 processor architecture
 ---------------------------
 
-We copy and redraw figures in english in this section. This 
-web site [#]_ is chinese version and here [#]_ is english version.
+This subsection is based on materials available here [#cpu0-chinese]_ (Chinese version)
+and [#cpu0-english]_ (English version).
 
 Brief introduction
 ++++++++++++++++++
 
-CPU0 is a 32-bit processor which has registers R0 .. R15, IR, MAR, MDR, etc., 
-and its structure is shown below.
+Cpu0 is a 32-bit architecture. It has 16 general purpose registers (R0, ..., R15), the 
+Instruction Register (IR), the memory access registers MAR & MDR. Its structure is 
+illustrated in :num:`Figure #llvmstructure-f1` below.
 
-.. _llvmstructure_f1: 
+.. _llvmstructure-f1: 
 .. figure:: ../Fig/llvmstructure/1.png
 	:align: center
 
-	The structure of the processor of CPU0
+	Architectural block diagram of the Cpu0 processor
 
-Uses of each register as follows:
 
-.. _llvmstructure_t1: 
-.. figure:: ../Table/llvmstructure/1.png
-	:align: center
+The registers are used for the following purposes:
 
-	Cpu0 registers table
+	============	===========
+	Register		Description
+	============	===========
+	IR				Instruction register
+	R0				Constant register, value is 0
+	R1-R11			General-purpose registers
+	R12				Status Word register (SW)
+	R13				Stack Pointer register (SP)
+	R14				Link Register (LR)
+	R15				Program Counter (PC)
+	MAR				Memory Address Register (MAR)
+	MDR				Memory Data Register (MDR)
+	============	===========
 
-Instruction Set for CPU0
+The Cpu0 Instruction Set
 ++++++++++++++++++++++++
 
-The CPU0 instruction divided into three types, L-type usually load the saved 
-instruction, A-type arithmetic instruction-based J-type usually jump 
-instruction, the following figure shows the three types of instruction encoding 
-format.
+The Cpu0 instruction set can be divided into three types: L-type instructions, which are 
+generally associated with memory operations, A-type instructions for arithmetic 
+operations, and J-type instructions that are typically used when altering control flow 
+(i.e. jumps).  :num:`Figure #llvmstructure-f2` illustrates how the bitfields are broken 
+down for each type of instruction.
 
-.. _llvmstructure_f2: 
+.. _llvmstructure-f2: 
 .. figure:: ../Fig/llvmstructure/2.png
 	:align: center
 
-	CPU0 three instruction formats
+	Cpu0's three instruction formats
 
-The following is the CPU0 processor's instruction table format
+.. resume editing here
+
+The following is the Cpu0 processor's instruction table format
 
 .. _llvmstructure_t2: 
 .. figure:: ../Table/llvmstructure/2.png
@@ -160,7 +173,7 @@ The cpu0 is my brother's work, I will find time to talk with him.
 LLVM structure
 --------------
 
-Following came from AOSA [#]_.
+Following came from AOSA [#aosa-book]_.
 
 The most popular design for a traditional static compiler (like most C 
 compilers) is the three phase design whose major components are the front end, 
@@ -322,7 +335,7 @@ instruction format.
 After finish the .td files, llvm can generate C++ files (\*.inc) by llvm-tblgen 
 tools. 
 The \*.inc file is a text file (C++ file) with table driven in concept. 
-[#]_ is the web site.
+[#tablegen]_ is the web site.
 
 Every back end has a target td which define it's own target information. 
 File td is like C++ in syntax. For example the Cpu0.td as follows,
@@ -409,8 +422,8 @@ After building, you will find three libraries: ``libLLVMCpu0CodeGen.a``,
 ``libLLVMCpu0Desc.a`` and ``libLLVMCpu0Info.a`` in lib/ of your build 
 directory. 
 For more details please see 
-"Building LLVM with CMake" [#]_ and 
-"LLVMBuild Guide" [#]_.
+"Building LLVM with CMake" [#cmake]_ and 
+"LLVMBuild Guide" [#llvmbuild]_.
 
 Target Registration
 -------------------
@@ -434,14 +447,14 @@ the empty initialize function since we register nothing in them for this moment.
 
 .. literalinclude:: ../code_fragment/llvmstructure/13.txt
 
-Please see "Target Registration" [#]_ for reference.
+Please see "Target Registration" [#target-reg]_ for reference.
 
 Build libraries and td
 ----------------------
 
 The llvm3.1 source code is put in /usr/local/llvm/3.1/src and have llvm3.1 
 release-build in /usr/local/llvm/3.1/configure_release_build. 
-About how to build llvm, please refer [#]_. 
+About how to build llvm, please refer [#clang]_. 
 We made a copy from /usr/local/llvm/3.1/src to 
 /usr/local/llvm/3.1.test/cpu0/1/src for working with my Cpu0 target back end. 
 Sub-directories src is for source code and cmake_debug_build is for debug 
@@ -470,7 +483,7 @@ After build, you can type command ``llc –version`` to find the cpu0 backend,
 
 The ``llc -version`` can display **“cpu0”** and **“cpu0el”** message, because 
 the following code from file TargetInfo/Cpu0TargetInfo.cpp what in 
-"section Target Registration" [#]_ we made. 
+"section Target Registration" [#asadasd]_ we made. 
 List them as follows again,
 
 .. literalinclude:: ../code_fragment/llvmstructure/14.txt
@@ -498,20 +511,20 @@ The error message say we didn't define our target machine.
 
 
 
-.. [#] http://ccckmit.wikidot.com/ocs:cpu0
+.. [#cpu0-chinese] Original Cpu0 architecture and ISA details (Chinese). http://ccckmit.wikidot.com/ocs:cpu0
 
-.. [#] http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0
+.. [#cpu0-english] English translation of Cpu0 description. http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0
 
-.. [#] http://www.aosabook.org/en/llvm.html
+.. [#aosa-book] Chris Lattner, **LLVM**. Published in The Architecture of Open Source Applications. http://www.aosabook.org/en/llvm.html
 
-.. [#] http://llvm.org/docs/TableGenFundamentals.html
+.. [#tablegen] http://llvm.org/docs/TableGenFundamentals.html
 
-.. [#] http://llvm.org/docs/CMake.html
+.. [#cmake] http://llvm.org/docs/CMake.html
 
-.. [#] http://llvm.org/docs/LLVMBuild.html
+.. [#llvmbuild] http://llvm.org/docs/LLVMBuild.html
 
-.. [#] http://llvm.org/docs/WritingAnLLVMBackend.html#target-registration
+.. [#target-reg] http://llvm.org/docs/WritingAnLLVMBackend.html#target-registration
 
-.. [#] http://clang.llvm.org/get_started.html
+.. [#clang] http://clang.llvm.org/get_started.html
 
-.. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
+.. [#asadasd] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
