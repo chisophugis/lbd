@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture'
+project = u'TutorialLLVMBackendCpu0'
 copyright = u'2012, LLVM'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -168,7 +168,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'TutorialCreatinganLLVMBackendfortheCpu0Architecture'
+htmlhelp_basename = 'TutorialLLVMBackendCpu0'
 
 
 # -- Options for LaTeX output --------------------------------------------------
