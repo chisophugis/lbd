@@ -182,15 +182,14 @@ format and binutils tools are not a part of LLVM, but are introduced.  This chap
 details how to use the ELF tools to verify and analyze the object files created by the 
 Cpu0 backend.
 
-:ref:`sec-porting32`:
-
-Introduces the changes of the LLVM APIs used by Cpu0 and Mips when updating this guide 
-from LLVM 3.1 to 3.2.  
-
 :ref:`sec-appendix-installing`:
 
 Details how to set up the LLVM source code, development tools, and environment
 setting for Mac OS X and Linux platforms.
 
+:ref:`sec-appendix-old-llvm-ver`:
+
+Introduces the difference of the LLVM APIs used by Cpu0 and Mips when updating 
+this guide between LLVM different version.  
 
 
