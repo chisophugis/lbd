@@ -53,20 +53,20 @@ See comment **"//"**.
 
 .. code-block:: c++
 
-    // ch8_1.cpp
-    int sum_i(int x1, int x2, int x3, int x4, int x5, int x6)
-    {
-        int sum = x1 + x2 + x3 + x4 + x5 + x6;
+  // ch8_1.cpp
+  int sum_i(int x1, int x2, int x3, int x4, int x5, int x6)
+  {
+      int sum = x1 + x2 + x3 + x4 + x5 + x6;
         
-        return sum; 
-    }
+      return sum; 
+  }
     
-    int main()
-    {
-        int a = sum_i(1, 2, 3, 4, 5, 6);
+  int main()
+  {
+      int a = sum_i(1, 2, 3, 4, 5, 6);
         
-        return a;
-    }
+      return a;
+  }
 
 .. code-block:: bash
 
@@ -228,41 +228,42 @@ for cpu0 passing rule as follows,
 
 .. code-block:: c++
 
-    // Cpu0CallingConv.td
-    ...
-    def RetCC_Cpu0EABI : CallingConv<[ 
-      // i32 are returned in registers V0, V1
-      CCIfType<[i32], CCAssignToReg<[V0, V1]>>
-    ]>;
+  // Cpu0CallingConv.td
+  ...
+  def RetCC_Cpu0EABI : CallingConv<[ 
+    // i32 are returned in registers V0, V1
+    CCIfType<[i32], CCAssignToReg<[V0, V1]>>
+  ]>;
     
-    //===----------------------------------------------------------------------===//
-    // Cpu0 EABI Calling Convention
-    //===----------------------------------------------------------------------===//
+  //===----------------------------------------------------------------------===//
+  // Cpu0 EABI Calling Convention
+  //===----------------------------------------------------------------------===//
     
-    def CC_Cpu0EABI : CallingConv<[
-      // Promote i8/i16 arguments to i32.
-      CCIfType<[i8, i16], CCPromoteToType<i32>>,
-      // Integer values get stored in stack slots that are 4 bytes in
-      // size and 4-byte aligned.
-      CCIfType<[i32], CCAssignToStack<4, 4>>
-    ]>;
-    
-    
-    //===----------------------------------------------------------------------===//
-    // Cpu0 Calling Convention Dispatch
-    //===----------------------------------------------------------------------===//
-    
-    def CC_Cpu0 : CallingConv<[
-      CCDelegateTo<CC_Cpu0EABI>
-    ]>;
+  def CC_Cpu0EABI : CallingConv<[
+    // Promote i8/i16 arguments to i32.
+    CCIfType<[i8, i16], CCPromoteToType<i32>>,
+    // Integer values get stored in stack slots that are 4 bytes in
+    // size and 4-byte aligned.
+    CCIfType<[i32], CCAssignToStack<4, 4>>
+  ]>;
     
     
-    def RetCC_Cpu0 : CallingConv<[
-      CCDelegateTo<RetCC_Cpu0EABI>
-    ]>;
+  //===----------------------------------------------------------------------===//
+  // Cpu0 Calling Convention Dispatch
+  //===----------------------------------------------------------------------===//
     
-    def CSR_O32 : CalleeSavedRegs<(add LR, FP,
-                                       (sequence "S%u", 2, 0))>;
+  def CC_Cpu0 : CallingConv<[
+    CCDelegateTo<CC_Cpu0EABI>
+  ]>;
+    
+    
+  def RetCC_Cpu0 : CallingConv<[
+    CCDelegateTo<RetCC_Cpu0EABI>
+  ]>;
+    
+  def CSR_O32 : CalleeSavedRegs<(add LR, FP,
+                                     (sequence "S%u", 2, 0))>;
+
 
 As above, CC_Cpu0 is the cpu0 Calling Convention which delegate to CC_Cpu0EABI 
 and define the CC_Cpu0EABI. 
@@ -280,72 +281,73 @@ We define it as follows,
 
 .. code-block:: c++
 
-    // Cpu0ISelLowering.cpp
-    ...
-    /// LowerFormalArguments - transform physical registers into virtual registers
-    /// and generate load operations for arguments places on the stack.
-    SDValue
-    Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
-                                             CallingConv::ID CallConv,
-                                             bool isVarArg,
-                                          const SmallVectorImpl<ISD::InputArg> &Ins,
-                                             DebugLoc dl, SelectionDAG &DAG,
-                                             SmallVectorImpl<SDValue> &InVals)
-                                              const {
-      MachineFunction &MF = DAG.getMachineFunction();
-      MachineFrameInfo *MFI = MF.getFrameInfo();
-      Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+  // Cpu0ISelLowering.cpp
+  ...
+  /// LowerFormalArguments - transform physical registers into virtual registers
+  /// and generate load operations for arguments places on the stack.
+  SDValue
+  Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
+                                           CallingConv::ID CallConv,
+                                           bool isVarArg,
+                                        const SmallVectorImpl<ISD::InputArg> &Ins,
+                                           DebugLoc dl, SelectionDAG &DAG,
+                                           SmallVectorImpl<SDValue> &InVals)
+                                            const {
+    MachineFunction &MF = DAG.getMachineFunction();
+    MachineFrameInfo *MFI = MF.getFrameInfo();
+    Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
     
-      Cpu0FI->setVarArgsFrameIndex(0);
+    Cpu0FI->setVarArgsFrameIndex(0);
     
-      // Used with vargs to acumulate store chains.
-      std::vector<SDValue> OutChains;
+    // Used with vargs to acumulate store chains.
+    std::vector<SDValue> OutChains;
     
-      // Assign locations to all of the incoming arguments.
-      SmallVector<CCValAssign, 16> ArgLocs;
-      CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
-                     getTargetMachine(), ArgLocs, *DAG.getContext());
+    // Assign locations to all of the incoming arguments.
+    SmallVector<CCValAssign, 16> ArgLocs;
+    CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
+                   getTargetMachine(), ArgLocs, *DAG.getContext());
                              
-      CCInfo.AnalyzeFormalArguments(Ins, CC_Cpu0);
+    CCInfo.AnalyzeFormalArguments(Ins, CC_Cpu0);
     
-      Function::const_arg_iterator FuncArg =
-        DAG.getMachineFunction().getFunction()->arg_begin();
-      int LastFI = 0;// Cpu0FI->LastInArgFI is 0 at the entry of this function.
+    Function::const_arg_iterator FuncArg =
+      DAG.getMachineFunction().getFunction()->arg_begin();
+    int LastFI = 0;// Cpu0FI->LastInArgFI is 0 at the entry of this function.
     
-      for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i, ++FuncArg) {
-        CCValAssign &VA = ArgLocs[i];
-        EVT ValVT = VA.getValVT();
-        ISD::ArgFlagsTy Flags = Ins[i].Flags;
-        bool IsRegLoc = VA.isRegLoc();
+    for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i, ++FuncArg) {
+      CCValAssign &VA = ArgLocs[i];
+      EVT ValVT = VA.getValVT();
+      ISD::ArgFlagsTy Flags = Ins[i].Flags;
+      bool IsRegLoc = VA.isRegLoc();
     
-        if (Flags.isByVal()) {
-          assert(Flags.getByValSize() &&
-                 "ByVal args of size 0 should have been ignored by front-end."); 
-          continue;
-        }
-        // sanity check
-        assert(VA.isMemLoc());
+      if (Flags.isByVal()) {
+        assert(Flags.getByValSize() &&
+               "ByVal args of size 0 should have been ignored by front-end."); 
+        continue;
+      }
+      // sanity check
+      assert(VA.isMemLoc());
     
-        // The stack pointer offset is relative to the caller stack frame.
-        LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
-                                        VA.getLocMemOffset(), true);
+      // The stack pointer offset is relative to the caller stack frame.
+      LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
+                                      VA.getLocMemOffset(), true);
     
-        // Create load nodes to retrieve arguments from the stack
-        SDValue FIN = DAG.getFrameIndex(LastFI, getPointerTy());
-        InVals.push_back(DAG.getLoad(ValVT, dl, Chain, FIN,
-                                     MachinePointerInfo::getFixedStack(LastFI),
+      // Create load nodes to retrieve arguments from the stack
+      SDValue FIN = DAG.getFrameIndex(LastFI, getPointerTy());
+      InVals.push_back(DAG.getLoad(ValVT, dl, Chain, FIN,
+                                   MachinePointerInfo::getFixedStack(LastFI),
                                      false, false, false, 0));
-      }
-      Cpu0FI->setLastInArgFI(LastFI);
-      // All stores are grouped in one node to allow the matching between
-      // the size of Ins and InVals. This only happens when on varg functions
-      if (!OutChains.empty()) {
-        OutChains.push_back(Chain);
-        Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
-                            &OutChains[0], OutChains.size());
-      }
-      return Chain;
     }
+    Cpu0FI->setLastInArgFI(LastFI);
+    // All stores are grouped in one node to allow the matching between
+    // the size of Ins and InVals. This only happens when on varg functions
+    if (!OutChains.empty()) {
+      OutChains.push_back(Chain);
+      Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
+                          &OutChains[0], OutChains.size());
+    }
+    return Chain;
+  }
+
 
 Refresh "section Global variable" [#]_, we handled global 
 variable translation by create the IR DAG in LowerGlobalAddress() first, and 
@@ -354,7 +356,7 @@ DAG in Cpu0InstrInfo.td.
 LowerGlobalAddress() is called when ``llc`` meet the global variable access. 
 LowerFormalArguments() work with the same way. 
 It is called when function is entered. 
-It get incoming arguments information by CCInfo(CallConv,..., ArgLocs, …) 
+It get incoming arguments information by CCInfo(CallConv,..., ArgLocs, ...) 
 before enter **“for loop”**. In ch8_1.cpp, there are 6 arguments in sum_i(...) 
 function call and we use the stack frame only for arguments passing without 
 any arguments pass in registers. 
@@ -380,35 +382,36 @@ variable, which is the offset.
 
 .. code-block:: c++
     
-    // Cpu0InstrInfo.cpp
-    ...
-    static MachineMemOperand* GetMemOperand(MachineBasicBlock &MBB, int FI,
-                                            unsigned Flag) {
-      MachineFunction &MF = *MBB.getParent();
-      MachineFrameInfo &MFI = *MF.getFrameInfo();
-      unsigned Align = MFI.getObjectAlignment(FI);
+  // Cpu0InstrInfo.cpp
+  ...
+  static MachineMemOperand* GetMemOperand(MachineBasicBlock &MBB, int FI,
+                                          unsigned Flag) {
+    MachineFunction &MF = *MBB.getParent();
+    MachineFrameInfo &MFI = *MF.getFrameInfo();
+    unsigned Align = MFI.getObjectAlignment(FI);
     
-      return MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(FI), Flag,
-                                     MFI.getObjectSize(FI), Align);
-    }
+    return MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(FI), Flag,
+                                   MFI.getObjectSize(FI), Align);
+  }
     
-    void Cpu0InstrInfo::
-    loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                         unsigned DestReg, int FI,
-                         const TargetRegisterClass *RC,
-                         const TargetRegisterInfo *TRI) const
-    {
-      DebugLoc DL;
-      if (I != MBB.end()) DL = I->getDebugLoc();
-      MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOLoad);
-      unsigned Opc = 0;
+  void Cpu0InstrInfo::
+  loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
+                       unsigned DestReg, int FI,
+                       const TargetRegisterClass *RC,
+                       const TargetRegisterInfo *TRI) const
+  {
+    DebugLoc DL;
+    if (I != MBB.end()) DL = I->getDebugLoc();
+    MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOLoad);
+    unsigned Opc = 0;
     
-      if (RC == Cpu0::CPURegsRegisterClass)
-        Opc = Cpu0::LD;
-      assert(Opc && "Register class not handled!");
-      BuildMI(MBB, I, DL, get(Opc), DestReg).addFrameIndex(FI).addImm(0)
-        .addMemOperand(MMO);
-    }
+    if (RC == Cpu0::CPURegsRegisterClass)
+      Opc = Cpu0::LD;
+    assert(Opc && "Register class not handled!");
+    BuildMI(MBB, I, DL, get(Opc), DestReg).addFrameIndex(FI).addImm(0)
+      .addMemOperand(MMO);
+  }
+
 
 In addition to Calling Convention and LowerFormalArguments(), 8/2/Cpu0 add the 
 following code for cpu0 instructions **swi** (Software Interrupt), **jsub** and 
@@ -416,145 +419,146 @@ following code for cpu0 instructions **swi** (Software Interrupt), **jsub** and
 
 .. code-block:: c++
 
-    // Cpu0InstrFormats.td
-    ...
-    // Cpu0 Pseudo Instructions Format
-    class Cpu0Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>:
-          Cpu0Inst<outs, ins, asmstr, pattern, IIPseudo, Pseudo> {
-      let isCodeGenOnly = 1;
-      let isPseudo = 1;
-    }
+  // Cpu0InstrFormats.td
+  ...
+  // Cpu0 Pseudo Instructions Format
+  class Cpu0Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>:
+        Cpu0Inst<outs, ins, asmstr, pattern, IIPseudo, Pseudo> {
+    let isCodeGenOnly = 1;
+    let isPseudo = 1;
+  }
     
-    // Cpu0InstrInfo.td
-    ...
-    def SDT_Cpu0JmpLink      : SDTypeProfile<0, 1, [SDTCisVT<0, iPTR>]>;
-    ...
-    // Call
-    def Cpu0JmpLink : SDNode<"Cpu0ISD::JmpLink",SDT_Cpu0JmpLink,
-                             [SDNPHasChain, SDNPOutGlue, SDNPOptInGlue,
-                              SDNPVariadic]>;
-    ...
-    def jmptarget   : Operand<OtherVT> {
-      let EncoderMethod = "getJumpTargetOpValue";
-    }
-    ...
-    def calltarget  : Operand<iPTR> {
-      let EncoderMethod = "getJumpTargetOpValue";
-    }
-    ...
-    // Jump and Link (Call)
-    let isCall=1, hasDelaySlot=0 in {
-      class JumpLink<bits<8> op, string instr_asm>:
-        FJ<op, (outs), (ins calltarget:$target, variable_ops),
-           !strconcat(instr_asm, "\t$target"), [(Cpu0JmpLink imm:$target)],
-           IIBranch> {
-           let DecoderMethod = "DecodeJumpTarget";
-           }
+  // Cpu0InstrInfo.td
+  ...
+  def SDT_Cpu0JmpLink      : SDTypeProfile<0, 1, [SDTCisVT<0, iPTR>]>;
+  ...
+  // Call
+  def Cpu0JmpLink : SDNode<"Cpu0ISD::JmpLink",SDT_Cpu0JmpLink,
+                           [SDNPHasChain, SDNPOutGlue, SDNPOptInGlue,
+                            SDNPVariadic]>;
+  ...
+  def jmptarget   : Operand<OtherVT> {
+    let EncoderMethod = "getJumpTargetOpValue";
+  }
+  ...
+  def calltarget  : Operand<iPTR> {
+    let EncoderMethod = "getJumpTargetOpValue";
+  }
+  ...
+  // Jump and Link (Call)
+  let isCall=1, hasDelaySlot=0 in {
+    class JumpLink<bits<8> op, string instr_asm>:
+      FJ<op, (outs), (ins calltarget:$target, variable_ops),
+         !strconcat(instr_asm, "\t$target"), [(Cpu0JmpLink imm:$target)],
+         IIBranch> {
+         let DecoderMethod = "DecodeJumpTarget";
+         }
     
-      class JumpLinkReg<bits<8> op, string instr_asm,
-                        RegisterClass RC>:
-        FA<op, (outs), (ins RC:$rb, variable_ops),
-           !strconcat(instr_asm, "\t$rb"), [(Cpu0JmpLink RC:$rb)], IIBranch> {
-        let rc = 0;
-        let ra = 14;
-        let shamt = 0;
-      }
+    class JumpLinkReg<bits<8> op, string instr_asm,
+                      RegisterClass RC>:
+      FA<op, (outs), (ins RC:$rb, variable_ops),
+         !strconcat(instr_asm, "\t$rb"), [(Cpu0JmpLink RC:$rb)], IIBranch> {
+      let rc = 0;
+      let ra = 14;
+      let shamt = 0;
     }
-    ...
-    /// Jump and Branch Instructions
-    def SWI  : JumpLink<0x2A, "swi">;
-    def JSUB : JumpLink<0x2B, "jsub">;
-    ...
-    def JALR : JumpLinkReg<0x2D, "jalr", CPURegs>;
-    ...
-    def : Pat<(Cpu0JmpLink (i32 tglobaladdr:$dst)),
-              (JSUB tglobaladdr:$dst)>;
-    ...
+  }
+  ...
+  /// Jump and Branch Instructions
+  def SWI  : JumpLink<0x2A, "swi">;
+  def JSUB : JumpLink<0x2B, "jsub">;
+  ...
+  def JALR : JumpLinkReg<0x2D, "jalr", CPURegs>;
+  ...
+  def : Pat<(Cpu0JmpLink (i32 tglobaladdr:$dst)),
+            (JSUB tglobaladdr:$dst)>;
+  ...
     
-    // Cpu0InstPrinter.cpp
+  // Cpu0InstPrinter.cpp
+  ...
+  static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
+    switch (Kind) {
     ...
-    static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
-      switch (Kind) {
-      ...
-      case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:  OS << "%call24("; break;
-      ...
-      }
+    case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:  OS << "%call24("; break;
     ...
     }
+  ...
+  }
     
-    // Cpu0MCCodeEmitter.cpp
-    …
-    unsigned Cpu0MCCodeEmitter::
-    getMachineOpValue(const MCInst &MI, const MCOperand &MO,
-                      SmallVectorImpl<MCFixup> &Fixups) const {
+  // Cpu0MCCodeEmitter.cpp
+  ...
+  unsigned Cpu0MCCodeEmitter::
+  getMachineOpValue(const MCInst &MI, const MCOperand &MO,
+                    SmallVectorImpl<MCFixup> &Fixups) const {
+  ...
+    switch(cast<MCSymbolRefExpr>(Expr)->getKind()) {
     ...
-      switch(cast<MCSymbolRefExpr>(Expr)->getKind()) {
-      ...
-      case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:
-        FixupKind = Cpu0::fixup_Cpu0_CALL24;
-        break;
-      ...
-      }
+    case MCSymbolRefExpr::VK_Cpu0_GOT_CALL:
+      FixupKind = Cpu0::fixup_Cpu0_CALL24;
+      break;
     ...
     }
+  ...
+  }
     
-    // Cpu0MachineFucntion.h
-    class Cpu0FunctionInfo : public MachineFunctionInfo {
-      ...
-        /// VarArgsFrameIndex - FrameIndex for start of varargs area.
-      int VarArgsFrameIndex;
-    
-      // Range of frame object indices.
-      // InArgFIRange: Range of indices of all frame objects created during call to
-      //               LowerFormalArguments.
-      // OutArgFIRange: Range of indices of all frame objects created during call to
-      //                LowerCall except for the frame object for restoring $gp.
-      std::pair<int, int> InArgFIRange, OutArgFIRange;
-      int GPFI; // Index of the frame object for restoring $gp
-      mutable int DynAllocFI; // Frame index of dynamically allocated stack area.
-      unsigned MaxCallFrameSize;
-    
-    public:
-      Cpu0FunctionInfo(MachineFunction& MF)
-      : MF(MF), GlobalBaseReg(0),
-        VarArgsFrameIndex(0), InArgFIRange(std::make_pair(-1, 0)),
-        OutArgFIRange(std::make_pair(-1, 0)), GPFI(0), DynAllocFI(0),
-        MaxCallFrameSize(0)
-        {}
+  // Cpu0MachineFucntion.h
+  class Cpu0FunctionInfo : public MachineFunctionInfo {
+    ...
+      /// VarArgsFrameIndex - FrameIndex for start of varargs area.
+    int VarArgsFrameIndex;
+  
+    // Range of frame object indices.
+    // InArgFIRange: Range of indices of all frame objects created during call to
+    //               LowerFormalArguments.
+    // OutArgFIRange: Range of indices of all frame objects created during call to
+    //                LowerCall except for the frame object for restoring $gp.
+    std::pair<int, int> InArgFIRange, OutArgFIRange;
+    int GPFI; // Index of the frame object for restoring $gp
+    mutable int DynAllocFI; // Frame index of dynamically allocated stack area.
+    unsigned MaxCallFrameSize;
+  
+  public:
+    Cpu0FunctionInfo(MachineFunction& MF)
+    : MF(MF), GlobalBaseReg(0),
+      VarArgsFrameIndex(0), InArgFIRange(std::make_pair(-1, 0)),
+      OutArgFIRange(std::make_pair(-1, 0)), GPFI(0), DynAllocFI(0),
+      MaxCallFrameSize(0)
+      {}
       
-      bool isInArgFI(int FI) const {
-        return FI <= InArgFIRange.first && FI >= InArgFIRange.second;
-      }
-      void setLastInArgFI(int FI) { InArgFIRange.second = FI; }
+    bool isInArgFI(int FI) const {
+      return FI <= InArgFIRange.first && FI >= InArgFIRange.second;
+    }
+    void setLastInArgFI(int FI) { InArgFIRange.second = FI; }
     
-      void extendOutArgFIRange(int FirstFI, int LastFI) {
-        if (!OutArgFIRange.second)
-          // this must be the first time this function was called.
-          OutArgFIRange.first = FirstFI;
-        OutArgFIRange.second = LastFI;
-      }
+    void extendOutArgFIRange(int FirstFI, int LastFI) {
+      if (!OutArgFIRange.second)
+        // this must be the first time this function was called.
+        OutArgFIRange.first = FirstFI;
+      OutArgFIRange.second = LastFI;
+    }
     
-      int getGPFI() const { return GPFI; }
-      void setGPFI(int FI) { GPFI = FI; }
-      bool needGPSaveRestore() const { return getGPFI(); }
-      bool isGPFI(int FI) const { return GPFI && GPFI == FI; }
+    int getGPFI() const { return GPFI; }
+    void setGPFI(int FI) { GPFI = FI; }
+    bool needGPSaveRestore() const { return getGPFI(); }
+    bool isGPFI(int FI) const { return GPFI && GPFI == FI; }
     
-      // The first call to this function creates a frame object for dynamically
-      // allocated stack area.
-      int getDynAllocFI() const {
-        if (!DynAllocFI)
-          DynAllocFI = MF.getFrameInfo()->CreateFixedObject(4, 0, true);
+    // The first call to this function creates a frame object for dynamically
+    // allocated stack area.
+    int getDynAllocFI() const {
+      if (!DynAllocFI)
+        DynAllocFI = MF.getFrameInfo()->CreateFixedObject(4, 0, true);
     
-        return DynAllocFI;
-      }
-      bool isDynAllocFI(int FI) const { return DynAllocFI && DynAllocFI == FI; }
-      ...
-      int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
-      void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
+      return DynAllocFI;
+    }
+    bool isDynAllocFI(int FI) const { return DynAllocFI && DynAllocFI == FI; }
+    ...
+    int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
+    void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
     
-      unsigned getMaxCallFrameSize() const { return MaxCallFrameSize; }
-      void setMaxCallFrameSize(unsigned S) { MaxCallFrameSize = S; }
-    };
+    unsigned getMaxCallFrameSize() const { return MaxCallFrameSize; }
+    void setMaxCallFrameSize(unsigned S) { MaxCallFrameSize = S; }
+  };
+
 
 After above changes, you can run 8/2/Cpu0 with ch8_1.cpp and see what happens 
 in the following,
@@ -827,7 +831,7 @@ LowerCall() is responsible to do this. The implementation as follows,
 
 
 Just like load incoming arguments from stack frame, we call 
-CCInfo(CallConv,..., ArgLocs, …) to get outgoing arguments information before 
+CCInfo(CallConv,..., ArgLocs, ...) to get outgoing arguments information before 
 enter **“for loop”** and set stack alignment with 8 bytes. 
 They're almost same in **“for loop”** with LowerFormalArguments(), except 
 LowerCall() create store DAG vector instead of load DAG vector. 
@@ -840,30 +844,30 @@ CALLSEQ_END, and translate into pseudo machine instructions !ADJCALLSTACKDOWN,
 
 .. code-block:: c++
 
-    // Cpu0InstrInfo.td
-    ...
-    def SDT_Cpu0CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>]>;
-    def SDT_Cpu0CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
-    ...
-    // These are target-independent nodes, but have target-specific formats.
-    def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_Cpu0CallSeqStart,
-                               [SDNPHasChain, SDNPOutGlue]>;
-    def callseq_end   : SDNode<"ISD::CALLSEQ_END", SDT_Cpu0CallSeqEnd,
-                               [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
+  // Cpu0InstrInfo.td
+  ...
+  def SDT_Cpu0CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>]>;
+  def SDT_Cpu0CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
+  ...
+  // These are target-independent nodes, but have target-specific formats.
+  def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_Cpu0CallSeqStart,
+                             [SDNPHasChain, SDNPOutGlue]>;
+  def callseq_end   : SDNode<"ISD::CALLSEQ_END", SDT_Cpu0CallSeqEnd,
+                             [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
     
-    //===----------------------------------------------------------------------===//
-    // Pseudo instructions
-    //===----------------------------------------------------------------------===//
+  //===----------------------------------------------------------------------===//
+  // Pseudo instructions
+  //===----------------------------------------------------------------------===//
     
-    // As stack alignment is always done with addiu, we need a 16-bit immediate
-    let Defs = [SP], Uses = [SP] in {
-    def ADJCALLSTACKDOWN : Cpu0Pseudo<(outs), (ins uimm16:$amt),
-                                      "!ADJCALLSTACKDOWN $amt",
-                                      [(callseq_start timm:$amt)]>;
-    def ADJCALLSTACKUP   : Cpu0Pseudo<(outs), (ins uimm16:$amt1, uimm16:$amt2),
-                                      "!ADJCALLSTACKUP $amt1",
-                                      [(callseq_end timm:$amt1, timm:$amt2)]>;
-    }
+  // As stack alignment is always done with addiu, we need a 16-bit immediate
+  let Defs = [SP], Uses = [SP] in {
+  def ADJCALLSTACKDOWN : Cpu0Pseudo<(outs), (ins uimm16:$amt),
+                                    "!ADJCALLSTACKDOWN $amt",
+                                    [(callseq_start timm:$amt)]>;
+  def ADJCALLSTACKUP   : Cpu0Pseudo<(outs), (ins uimm16:$amt1, uimm16:$amt2),
+                                    "!ADJCALLSTACKUP $amt1",
+                                    [(callseq_end timm:$amt1, timm:$amt2)]>;
+  }
     
     
 Like load incoming arguments, we need to implement storeRegToStackSlot() for 
@@ -871,33 +875,35 @@ store outgoing arguments to stack frame offset.
     
 .. code-block:: c++
     
-    // Cpu0InstrInfo.cpp
-    ...
-    //- st SrcReg, MMO(FI)
-    void Cpu0InstrInfo::
-    storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                        unsigned SrcReg, bool isKill, int FI,
-                        const TargetRegisterClass *RC,
-                        const TargetRegisterInfo *TRI) const {
-      DebugLoc DL;
-      if (I != MBB.end()) DL = I->getDebugLoc();
-      MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOStore);
+  // Cpu0InstrInfo.cpp
+  ...
+  //- st SrcReg, MMO(FI)
+  void Cpu0InstrInfo::
+  storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
+                      unsigned SrcReg, bool isKill, int FI,
+                      const TargetRegisterClass *RC,
+                      const TargetRegisterInfo *TRI) const {
+    DebugLoc DL;
+    if (I != MBB.end()) DL = I->getDebugLoc();
+    MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOStore);
     
-      unsigned Opc = 0;
+    unsigned Opc = 0;
     
-      if (RC == Cpu0::CPURegsRegisterClass)
-        Opc = Cpu0::ST;
-      assert(Opc && "Register class not handled!");
-      BuildMI(MBB, I, DL, get(Opc)).addReg(SrcReg, getKillRegState(isKill))
-        .addFrameIndex(FI).addImm(0).addMemOperand(MMO);
-    }
+    if (RC == Cpu0::CPURegsRegisterClass)
+      Opc = Cpu0::ST;
+    assert(Opc && "Register class not handled!");
+    BuildMI(MBB, I, DL, get(Opc)).addReg(SrcReg, getKillRegState(isKill))
+      .addFrameIndex(FI).addImm(0).addMemOperand(MMO);
+  }
 
 Now, let's run 8/3/Cpu0 with ch8_1.cpp to get result as follows (see comment 
 //),
 
 .. code-block:: bash
 
-  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o ch8_1.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
+  ch8_1.cpu0.s
   118-165-78-230:InputFiles Jonathan$ cat ch8_1.cpu0.s 
     .section .mdebug.abi32
     .previous
@@ -1339,7 +1345,7 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   add_llvm_target(Cpu0CodeGen
     ...
     Cpu0EmitGPRestore.cpp
-  …
+  ...
   
   // Cpu0TargetMachine.cpp
   ...
@@ -1500,7 +1506,7 @@ file Cpu0EmitGPRestore.cpp which run as a function pass.
   }
   
   //===-- Cpu0MachineFunctionInfo.h - Private data used for Cpu0 ----*- C++ -*-=//
-  …
+  ...
   class Cpu0FunctionInfo : public MachineFunctionInfo {
     ...
     bool EmitNOAT;
@@ -2240,7 +2246,8 @@ The qemu mips gcc result as follows,
 
   [Gamma@localhost InputFiles]$ qemu-mips ch8_3_3
   a = 21
-  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -g ch8_3_3.cpp -o ch8_3_3 -static
+  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -g ch8_3_3.cpp -o ch8_3_3 
+  -static
   [Gamma@localhost InputFiles]$ qemu-mips ch8_3_3
   a = 21
   [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -S ch8_3_3.cpp

@@ -472,7 +472,9 @@ Following diagram came from tricore_llvm.pdf.
 .. figure:: ../Fig/backendstructure/5.png
 	:align: center
 
-	tricore_llvm.pdf: Code generation sequence. On the path from LLVM code to assembly code, numerous passes are run through and several data structures are used to represent the intermediate results.
+	tricore_llvm.pdf: Code generation sequence. On the path from LLVM code to 
+	assembly code, numerous passes are run through and several data structures 
+	are used to represent the intermediate results.
 
 LLVM is a Static Single Assignment (SSA) based representation. 
 LLVM provides an infinite virtual registers which can hold values of primitive 
@@ -567,10 +569,14 @@ article for DAG and Instruction Selection.
 	
 6. Late Machine Code Optimizations
 
-    Any “last-minute” peephole optimizations of the final machine code can be applied during this phase. For example, replace x = x * 2 by x = x < 1 for integer operand.
+    Any “last-minute” peephole optimizations of the final machine code can be 
+    applied during this phase. 
+    For example, replace x = x * 2 by x = x < 1 for integer operand.
 	
 7. Code Emission
-	Finally, the completed machine code is emitted. For static compilation, the end result is an assembly code file; for JIT compilation, the opcodes of the machine instructions are written into memory. 
+	Finally, the completed machine code is emitted. For static compilation, 
+	the end result is an assembly code file; for JIT compilation, the opcodes 
+	of the machine instructions are written into memory. 
 
 DAG (Directed Acyclic Graph)
 ----------------------------
@@ -816,25 +822,55 @@ description – although that would be possible for the bulk of them in the case
 of the TriCore backend. 
 Among them are the following points:
 
-• Callee-saved registers. Normally, the ABI specifies a set of registers that a function must save on entry and restore on return if their contents are possibly modified during execution.
+• Callee-saved registers. Normally, the ABI specifies a set of registers that a 
+function must save on entry and restore on return if their contents are 
+possibly modified during execution.
 
-• Reserved registers. Although the set of unavailable registers is already defined in the TableGen file, TriCoreRegisterInfo contains a method that marks all non-allocatable register numbers in a bit vector. 
+• Reserved registers. Although the set of unavailable registers is already 
+defined in the TableGen file, TriCoreRegisterInfo contains a method that marks 
+all non-allocatable register numbers in a bit vector. 
 
 The following methods are implemented:
 
-• emitPrologue() inserts prologue code at the beginning of a function. Thanks to TriCore’s context model, this is a trivial task as it is not required to save any registers manually. The only thing that has to be done is reserving space for the function’s stack frame by decrementing the stack pointer. In addition, if the function needs a frame pointer, the frame register %a14 is set to the old value of the stack pointer beforehand.
+• emitPrologue() inserts prologue code at the beginning of a function. Thanks 
+to TriCore’s context model, this is a trivial task as it is not required to 
+save any registers manually. The only thing that has to be done is reserving 
+space for the function’s stack frame by decrementing the stack pointer. 
+In addition, if the function needs a frame pointer, the frame register %a14 is 
+set to the old value of the stack pointer beforehand.
 
-• emitEpilogue() is intended to emit instructions to destroy the stack frame and restore all previously saved registers before returning from a function. However, as %a10 (stack pointer), %a11 (return address), and %a14 (frame pointer, if any) are all part of the upper context, no epilogue code is needed at all. All cleanup operations are performed implicitly by the ret instruction. 
+• emitEpilogue() is intended to emit instructions to destroy the stack frame 
+and restore all previously saved registers before returning from a function. 
+However, as %a10 (stack pointer), %a11 (return address), and %a14 (frame 
+pointer, if any) are all part of the upper context, no epilogue code is needed 
+at all. All cleanup operations are performed implicitly by the ret instruction. 
 
-• eliminateFrameIndex() is called for each instruction that references a word of data in a stack slot. All previous passes of the code generator have been addressing stack slots through an abstract frame index and an immediate offset. The purpose of this function is to translate such a reference into a register–offset pair. Depending on whether the machine function that contains the instruction has a fixed or a variable stack frame, either the stack pointer %a10 or the frame pointer %a14 is used as the base register. The offset is computed accordingly. Figure 3.9 demonstrates for both cases how a stack slot is addressed. 
+• eliminateFrameIndex() is called for each instruction that references a word 
+of data in a stack slot. All previous passes of the code generator have been 
+addressing stack slots through an abstract frame index and an immediate offset. 
+The purpose of this function is to translate such a reference into a 
+register–offset pair. Depending on whether the machine function that contains 
+the instruction has a fixed or a variable stack frame, either the stack pointer 
+%a10 or the frame pointer %a14 is used as the base register. 
+The offset is computed accordingly. 
+Figure 3.9 demonstrates for both cases how a stack slot is addressed. 
 
-If the addressing mode of the affected instruction cannot handle the address because the offset is too large (the offset field has 10 bits for the BO addressing mode and 16 bits for the BOL mode), a sequence of instructions is emitted that explicitly computes the effective address. Interim results are put into an unused address register. If none is available, an already occupied address register is scavenged. For this purpose, LLVM’s framework offers a class named RegScavenger that takes care of all the details.
+If the addressing mode of the affected instruction cannot handle the address 
+because the offset is too large (the offset field has 10 bits for the BO 
+addressing mode and 16 bits for the BOL mode), a sequence of instructions is 
+emitted that explicitly computes the effective address. 
+Interim results are put into an unused address register. 
+If none is available, an already occupied address register is scavenged. 
+For this purpose, LLVM’s framework offers a class named RegScavenger that 
+takes care of all the details.
 
 .. _backendstructure_f9: 
 .. figure:: ../Fig/backendstructure/9.png
 	:align: center
 
-	Addressing of a variable a located on the stack. If the stack frame has a variable size, slot must be addressed relative to the frame pointer
+	Addressing of a variable a located on the stack. 
+	If the stack frame has a variable size, slot must be addressed relative to 
+	the frame pointer
 
 We will explain the Prologue and Epilogue further by example code. 
 So for the following llvm IR code, Cpu0 back end will emit the corresponding 
@@ -986,7 +1022,7 @@ as 123.
 
 
 
-.. [#] http://llvm.org/docs/WritingAnLLVMBackend.html#TargetMachine
+.. [#] http://llvm.org/docs/WritingAnLLVMBackend.html#target-machine
 
 .. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
 

@@ -19,10 +19,10 @@ follows,
 
 .. code-block:: bash
 
-	[Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
-	llc -march=cpu0 -relocation-model=pic -filetype=obj ch4_1_2.bc -o ch4_1_2.cpu0.o
-	/usr/local/llvm/test/cmake_debug_build/bin/llc: target does not 
-	support generation of this file type! 
+  [Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
+  llc -march=cpu0 -relocation-model=pic -filetype=obj ch4_1_2.bc -o ch4_1_2.cpu0.o
+  /usr/local/llvm/test/cmake_debug_build/bin/llc: target does not 
+  support generation of this file type! 
 	
 The 5/Cpu0 support obj file generated. 
 It can get result for big endian and little endian with command 
@@ -31,68 +31,68 @@ Run it will get the obj files as follows,
 
 .. code-block:: bash
 
-	[Gamma@localhost InputFiles]$ cat ch4_1_2.cpu0.s 
-	...
-		.set	nomacro 
-	# BB#0: 
-		addiu	$sp, $sp, -72
-		addiu	$2, $zero, 0
-		st	$2, 68($sp)
-		addiu	$3, $zero, 5
-		st	$3, 64($sp)
-	...
-	
-	[Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
-	llc -march=cpu0 -relocation-model=pic -filetype=obj ch4_2.bc -o ch4_2.cpu0.o
-	[Gamma@localhost InputFiles]$ objdump -s ch4_2.cpu0.o 
-	
-	ch4_2.cpu0.o:     file format elf32-big 
-	
-	Contents of section .text: 
-	 0000 09d0ffb8 09200000 012d0044 09300005  ..... ...-.D.0.. 
-	 0010 013d0040 09300002 013d003c 012d0038  .=.@.0...=.<.-.8 
-	 0020 012d0034 012d0014 0930fffb 013d0010  .-.4.-...0...=.. 
-	 0030 012d000c 012d0008 002d003c 003d0040  .-...-...-.<.=.@ 
-	 0040 13232000 012d0038 002d003c 003d0040  .# ..-.8.-.<.=.@ 
-	 0050 14232000 012d0034 002d003c 003d0040  .# ..-.4.-.<.=.@ 
-	 0060 15232000 012d0030 002d003c 003d0040  .# ..-.0.-.<.=.@ 
-	 0070 16232000 012d002c 002d003c 003d0040  .# ..-.,.-.<.=.@ 
-	 0080 18232000 012d0028 002d003c 003d0040  .# ..-.(.-.<.=.@ 
-	 0090 19232000 012d0024 002d003c 003d0040  .# ..-.$.-.<.=.@ 
-	 00a0 1a232000 012d0020 002d0040 1e220002  .# ..-. .-.@.".. 
-	 00b0 012d001c 002d0010 1e220002 012d0004  .-...-..."...-.. 
-	 00c0 002d0010 1f220002 012d000c 09d00048  .-..."...-.....H 
-	 00d0 2c00000e                                                     ,...            
-	Contents of section .eh_frame: 
-	 0000 00000010 00000000 017a5200 017c0e01  .........zR..|.. 
-	 0010 000c0d00 00000010 00000018 00000000  ................ 
-	 0020 000000d4 00440e48                                    .....D.H        
-	[Gamma@localhost InputFiles]$ /usr/local/llvm/test/
-	cmake_debug_build/bin/llc -march=cpu0el -relocation-model=pic -filetype=obj 
-	ch4_2.bc -o ch4_2.cpu0el.o 
-	[Gamma@localhost InputFiles]$ objdump -s ch4_2.cpu0el.o 
-	
-	ch4_2.cpu0el.o:     file format elf32-little 
-	
-	Contents of section .text: 
-	 0000 b8ffd009 00002009 44002d01 05003009  ...... .D.-...0. 
-	 0010 40003d01 02003009 3c003d01 38002d01  @.=...0.<.=.8.-. 
-	 0020 34002d01 14002d01 fbff3009 10003d01  4.-...-...0...=. 
-	 0030 0c002d01 08002d01 3c002d00 40003d00  ..-...-.<.-.@.=. 
-	 0040 00202313 38002d01 3c002d00 40003d00  . #.8.-.<.-.@.=. 
-	 0050 00202314 34002d01 3c002d00 40003d00  . #.4.-.<.-.@.=. 
-	 0060 00202315 30002d01 3c002d00 40003d00  . #.0.-.<.-.@.=. 
-	 0070 00202316 2c002d01 3c002d00 40003d00  . #.,.-.<.-.@.=. 
-	 0080 00202318 28002d01 3c002d00 40003d00  . #.(.-.<.-.@.=. 
-	 0090 00202319 24002d01 3c002d00 40003d00  . #.$.-.<.-.@.=. 
-	 00a0 0020231a 20002d01 40002d00 0200221e  . #. .-.@.-...". 
-	 00b0 1c002d01 10002d00 0200221e 04002d01  ..-...-..."...-. 
-	 00c0 10002d00 0200221f 0c002d01 4800d009  ..-..."...-.H... 
-	 00d0 0e00002c                                                     ...,            
-	Contents of section .eh_frame: 
-	 0000 10000000 00000000 017a5200 017c0e01  .........zR..|.. 
-	 0010 000c0d00 10000000 18000000 00000000  ................ 
-	 0020 d4000000 00440e48                                    .....D.H        
+  [Gamma@localhost InputFiles]$ cat ch4_1_2.cpu0.s 
+  ...
+    .set  nomacro 
+  # BB#0: 
+    addiu $sp, $sp, -72
+    addiu $2, $zero, 0
+    st  $2, 68($sp)
+    addiu $3, $zero, 5
+    st  $3, 64($sp)
+  ...
+  
+  [Gamma@localhost 3]$ /usr/local/llvm/test/cmake_debug_build/bin/
+  llc -march=cpu0 -relocation-model=pic -filetype=obj ch4_2.bc -o ch4_2.cpu0.o
+  [Gamma@localhost InputFiles]$ objdump -s ch4_2.cpu0.o 
+  
+  ch4_2.cpu0.o:     file format elf32-big 
+  
+  Contents of section .text: 
+   0000 09d0ffb8 09200000 012d0044 09300005  ..... ...-.D.0.. 
+   0010 013d0040 09300002 013d003c 012d0038  .=.@.0...=.<.-.8 
+   0020 012d0034 012d0014 0930fffb 013d0010  .-.4.-...0...=.. 
+   0030 012d000c 012d0008 002d003c 003d0040  .-...-...-.<.=.@ 
+   0040 13232000 012d0038 002d003c 003d0040  .# ..-.8.-.<.=.@ 
+   0050 14232000 012d0034 002d003c 003d0040  .# ..-.4.-.<.=.@ 
+   0060 15232000 012d0030 002d003c 003d0040  .# ..-.0.-.<.=.@ 
+   0070 16232000 012d002c 002d003c 003d0040  .# ..-.,.-.<.=.@ 
+   0080 18232000 012d0028 002d003c 003d0040  .# ..-.(.-.<.=.@ 
+   0090 19232000 012d0024 002d003c 003d0040  .# ..-.$.-.<.=.@ 
+   00a0 1a232000 012d0020 002d0040 1e220002  .# ..-. .-.@.".. 
+   00b0 012d001c 002d0010 1e220002 012d0004  .-...-..."...-.. 
+   00c0 002d0010 1f220002 012d000c 09d00048  .-..."...-.....H 
+   00d0 2c00000e                                                     ,...            
+  Contents of section .eh_frame: 
+   0000 00000010 00000000 017a5200 017c0e01  .........zR..|.. 
+   0010 000c0d00 00000010 00000018 00000000  ................ 
+   0020 000000d4 00440e48                                    .....D.H        
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/
+  cmake_debug_build/bin/llc -march=cpu0el -relocation-model=pic -filetype=obj 
+  ch4_2.bc -o ch4_2.cpu0el.o 
+  [Gamma@localhost InputFiles]$ objdump -s ch4_2.cpu0el.o 
+  
+  ch4_2.cpu0el.o:     file format elf32-little 
+  
+  Contents of section .text: 
+   0000 b8ffd009 00002009 44002d01 05003009  ...... .D.-...0. 
+   0010 40003d01 02003009 3c003d01 38002d01  @.=...0.<.=.8.-. 
+   0020 34002d01 14002d01 fbff3009 10003d01  4.-...-...0...=. 
+   0030 0c002d01 08002d01 3c002d00 40003d00  ..-...-.<.-.@.=. 
+   0040 00202313 38002d01 3c002d00 40003d00  . #.8.-.<.-.@.=. 
+   0050 00202314 34002d01 3c002d00 40003d00  . #.4.-.<.-.@.=. 
+   0060 00202315 30002d01 3c002d00 40003d00  . #.0.-.<.-.@.=. 
+   0070 00202316 2c002d01 3c002d00 40003d00  . #.,.-.<.-.@.=. 
+   0080 00202318 28002d01 3c002d00 40003d00  . #.(.-.<.-.@.=. 
+   0090 00202319 24002d01 3c002d00 40003d00  . #.$.-.<.-.@.=. 
+   00a0 0020231a 20002d01 40002d00 0200221e  . #. .-.@.-...". 
+   00b0 1c002d01 10002d00 0200221e 04002d01  ..-...-..."...-. 
+   00c0 10002d00 0200221f 0c002d01 4800d009  ..-..."...-.H... 
+   00d0 0e00002c                                                     ...,            
+  Contents of section .eh_frame: 
+   0000 10000000 00000000 017a5200 017c0e01  .........zR..|.. 
+   0010 000c0d00 10000000 18000000 00000000  ................ 
+   0020 d4000000 00440e48                                    .....D.H        
 
 The first instruction is **“addiu  $sp, -72”** and it's corresponding obj is 
 0x09d0ffb8. 
@@ -117,50 +117,50 @@ Now, let's examine Cpu0MCTargetDesc.cpp.
 
 .. code-block:: c++
 
-	// Cpu0MCTargetDesc.cpp
-	...
-	extern "C" void LLVMInitializeCpu0TargetMC() { 
-	  // Register the MC asm info. 
-	  RegisterMCAsmInfoFn X(TheCpu0Target, createCpu0MCAsmInfo); 
-	  RegisterMCAsmInfoFn Y(TheCpu0elTarget, createCpu0MCAsmInfo); 
-	
-	  // Register the MC codegen info. 
-	  TargetRegistry::RegisterMCCodeGenInfo(TheCpu0Target, 
+  // Cpu0MCTargetDesc.cpp
+  ...
+  extern "C" void LLVMInitializeCpu0TargetMC() { 
+    // Register the MC asm info. 
+    RegisterMCAsmInfoFn X(TheCpu0Target, createCpu0MCAsmInfo); 
+    RegisterMCAsmInfoFn Y(TheCpu0elTarget, createCpu0MCAsmInfo); 
+  
+    // Register the MC codegen info. 
+    TargetRegistry::RegisterMCCodeGenInfo(TheCpu0Target, 
                                             createCpu0MCCodeGenInfo); 
-	  TargetRegistry::RegisterMCCodeGenInfo(TheCpu0elTarget, 
+    TargetRegistry::RegisterMCCodeGenInfo(TheCpu0elTarget, 
                                             createCpu0MCCodeGenInfo); 
-	  // Register the MC instruction info. 
-	  TargetRegistry::RegisterMCInstrInfo(TheCpu0Target, createCpu0MCInstrInfo); 
-	  TargetRegistry::RegisterMCInstrInfo(TheCpu0elTarget, createCpu0MCInstrInfo); 
-	
-	  // Register the MC register info. 
-	  TargetRegistry::RegisterMCRegInfo(TheCpu0Target, createCpu0MCRegisterInfo); 
-	  TargetRegistry::RegisterMCRegInfo(TheCpu0elTarget, createCpu0MCRegisterInfo); 
-	  // Register the MC Code Emitter 
-	  TargetRegistry::RegisterMCCodeEmitter(TheCpu0Target, 
+    // Register the MC instruction info. 
+    TargetRegistry::RegisterMCInstrInfo(TheCpu0Target, createCpu0MCInstrInfo); 
+    TargetRegistry::RegisterMCInstrInfo(TheCpu0elTarget, createCpu0MCInstrInfo); 
+  
+    // Register the MC register info. 
+    TargetRegistry::RegisterMCRegInfo(TheCpu0Target, createCpu0MCRegisterInfo); 
+    TargetRegistry::RegisterMCRegInfo(TheCpu0elTarget, createCpu0MCRegisterInfo); 
+    // Register the MC Code Emitter 
+    TargetRegistry::RegisterMCCodeEmitter(TheCpu0Target, 
                                             createCpu0MCCodeEmitterEB); 
-	  TargetRegistry::RegisterMCCodeEmitter(TheCpu0elTarget, 
+    TargetRegistry::RegisterMCCodeEmitter(TheCpu0elTarget, 
                                             createCpu0MCCodeEmitterEL); 
 
-	  // Register the object streamer. 
-	  TargetRegistry::RegisterMCObjectStreamer(TheCpu0Target, createMCStreamer); 
-	  TargetRegistry::RegisterMCObjectStreamer(TheCpu0elTarget, createMCStreamer); 
-	  // Register the asm backend. 
-	  TargetRegistry::RegisterMCAsmBackend(TheCpu0Target, 
+    // Register the object streamer. 
+    TargetRegistry::RegisterMCObjectStreamer(TheCpu0Target, createMCStreamer); 
+    TargetRegistry::RegisterMCObjectStreamer(TheCpu0elTarget, createMCStreamer); 
+    // Register the asm backend. 
+    TargetRegistry::RegisterMCAsmBackend(TheCpu0Target, 
                                            createCpu0AsmBackendEB32); 
-	  TargetRegistry::RegisterMCAsmBackend(TheCpu0elTarget, 
+    TargetRegistry::RegisterMCAsmBackend(TheCpu0elTarget, 
                                            createCpu0AsmBackendEL32); 
-	  // Register the MC subtarget info. 
-	  TargetRegistry::RegisterMCSubtargetInfo(TheCpu0Target, 
+    // Register the MC subtarget info. 
+    TargetRegistry::RegisterMCSubtargetInfo(TheCpu0Target, 
                                               createCpu0MCSubtargetInfo); 
-	  TargetRegistry::RegisterMCSubtargetInfo(TheCpu0elTarget, 
+    TargetRegistry::RegisterMCSubtargetInfo(TheCpu0elTarget, 
                                               createCpu0MCSubtargetInfo); 
-	  // Register the MCInstPrinter. 
-	  TargetRegistry::RegisterMCInstPrinter(TheCpu0Target, 
+    // Register the MCInstPrinter. 
+    TargetRegistry::RegisterMCInstPrinter(TheCpu0Target, 
                                             createCpu0MCInstPrinter); 
-	  TargetRegistry::RegisterMCInstPrinter(TheCpu0elTarget, 
+    TargetRegistry::RegisterMCInstPrinter(TheCpu0elTarget, 
                                             createCpu0MCInstPrinter); 
-	}
+  }
 
 Cpu0MCTargetDesc.cpp do the target registration as mentioned in 
 "section Target Registration" [#]_ of the last chapter. 

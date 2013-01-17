@@ -307,29 +307,29 @@ order.
 
 .. code-block:: bash
 
-    118-165-78-60:InputFiles Jonathan$ diff ch_all.3.1.cpu0.s ch_all.3.2.cpu0.s 
-    262c262
-    <   jge $BB4_7
-    ---
-    >   jge $BB4_6
-    285d284
-    < # BB#6:                                 #   in Loop: Header=BB4_1 Depth=1
-    290c289
-    < $BB4_7:
-    ---
-    > $BB4_6:
-    295,297c294,296
-    <   jne $BB4_9
-    <   jmp $BB4_8
-    < $BB4_8:                                 # %SP_return
-    ---
-    >   jne $BB4_8
-    >   jmp $BB4_7
-    > $BB4_7:                                 # %SP_return
-    301c300
-    < $BB4_9:                                 # %CallStackCheckFailBlk
-    ---
-    > $BB4_8:                                 # %CallStackCheckFailBlk
+  118-165-78-60:InputFiles Jonathan$ diff ch_all.3.1.cpu0.s ch_all.3.2.cpu0.s 
+  262c262
+  <   jge $BB4_7
+  ---
+  >   jge $BB4_6
+  285d284
+  < # BB#6:                                 #   in Loop: Header=BB4_1 Depth=1
+  290c289
+  < $BB4_7:
+  ---
+  > $BB4_6:
+  295,297c294,296
+  <   jne $BB4_9
+  <   jmp $BB4_8
+  < $BB4_8:                                 # %SP_return
+  ---
+  >   jne $BB4_8
+  >   jmp $BB4_7
+  > $BB4_7:                                 # %SP_return
+  301c300
+  < $BB4_9:                                 # %CallStackCheckFailBlk
+  ---
+  > $BB4_8:                                 # %CallStackCheckFailBlk
 
 .. code-block:: bash
 

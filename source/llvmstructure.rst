@@ -343,7 +343,7 @@ are all caps) like this:
 
   def GR32 : RegisterClass<[i32], 32,
     [EAX, ECX, EDX, ESI, EDI, EBX, EBP, ESP,
-     R8D, R9D, R10D, R11D, R14D, R15D, R12D, R13D]> { … }
+     R8D, R9D, R10D, R11D, R14D, R15D, R12D, R13D]> { ... }
 
 
 Write td (Target Description)
@@ -1212,6 +1212,7 @@ Next step, transfer bitcode .bc to human readable text format as follows,
 Now, compile ch3.bc into ch3.cpu0.s, we get the error message as follows,
 
 .. code-block:: c++
+
   118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
   bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch3.bc -o 
   ch3.cpu0.s

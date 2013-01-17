@@ -267,40 +267,40 @@ and it's corresponding llvm IR. List them as follows,
 
 .. code-block:: c++
 
-    // ch4_2.cpp
-    int main()
-    {
-      int a = 5;
-      int b = 0;
+  // ch4_2.cpp
+  int main()
+  {
+    int a = 5;
+    int b = 0;
         
-      b = !a;
+    b = !a;
         
-      return b;
-    }
+    return b;
+  }
 
 .. code-block:: bash
 
-    ; ModuleID = 'ch4_2.bc'
-    target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
-    f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
-    target triple = "i386-apple-macosx10.8.0"
+  ; ModuleID = 'ch4_2.bc'
+  target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
+  f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
+  target triple = "i386-apple-macosx10.8.0"
     
-    define i32 @main() nounwind ssp {
-    entry:
-      %retval = alloca i32, align 4
-      %a = alloca i32, align 4
-      %b = alloca i32, align 4
-      store i32 0, i32* %retval
-      store i32 5, i32* %a, align 4
-      store i32 0, i32* %b, align 4
-      %0 = load i32* %a, align 4        // a = %0
-      %tobool = icmp ne i32 %0, 0   // ne: stand for not egual
-      %lnot = xor i1 %tobool, true
-      %conv = zext i1 %lnot to i32  
-      store i32 %conv, i32* %b, align 4
-      %1 = load i32* %b, align 4
-      ret i32 %1
-    }
+  define i32 @main() nounwind ssp {
+  entry:
+    %retval = alloca i32, align 4
+    %a = alloca i32, align 4
+    %b = alloca i32, align 4
+    store i32 0, i32* %retval
+    store i32 5, i32* %a, align 4
+    store i32 0, i32* %b, align 4
+    %0 = load i32* %a, align 4        // a = %0
+    %tobool = icmp ne i32 %0, 0   // ne: stand for not egual
+    %lnot = xor i1 %tobool, true
+    %conv = zext i1 %lnot to i32  
+    store i32 %conv, i32* %b, align 4
+    %1 = load i32* %b, align 4
+    ret i32 %1
+  }
 
 As above comment, b = !a, translate to (xor (icmp ne i32 %0, 0), true). 
 The %0 is the virtual register of variable **a** and the result of 
@@ -452,27 +452,27 @@ the final result.
 
 .. code-block:: bash
 
-    118-165-16-22:InputFiles Jonathan$ cat ch4_2.cpu0.s
-    ...
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -16
-	$tmp1:
-		.cfi_def_cfa_offset 16
-        addiu   $2, $zero, 0
-        st  $2, 12($sp)
-        addiu   $3, $zero, 5
-        st  $3, 8($sp)
-        st  $2, 4($sp)
-        ld  $3, 8($sp)
-        xor $2, $3, $2
-        ldi $3, 1
-        xor $2, $2, $3
-        addiu   $3, $zero, 1
-        and $2, $2, $3
-        st  $2, 4($sp)
-        addiu   $sp, $sp, 16
-        ret $lr
-    ...
+  118-165-16-22:InputFiles Jonathan$ cat ch4_2.cpu0.s
+  ...
+  # BB#0:                                 # %entry
+      addiu   $sp, $sp, -16
+  tmp1:
+      .cfi_def_cfa_offset 16
+      addiu   $2, $zero, 0
+      st  $2, 12($sp)
+      addiu   $3, $zero, 5
+      st  $3, 8($sp)
+      st  $2, 4($sp)
+      ld  $3, 8($sp)
+      xor $2, $3, $2
+      ldi $3, 1
+      xor $2, $2, $3
+      addiu   $3, $zero, 1
+      and $2, $2, $3
+      st  $2, 4($sp)
+      addiu   $sp, $sp, 16
+      ret $lr
+  ...
 
 
 Display llvm IR nodes with Graphviz
@@ -492,32 +492,32 @@ Instruction Selection Process" of web [#]_ as follows,
 
 .. note:: The ``llc`` Graphviz DAG display options
 
-    -view-dag-combine1-dags displays the DAG after being built, before the 
-    first optimization pass. 
+  -view-dag-combine1-dags displays the DAG after being built, before the 
+  first optimization pass. 
     
-    -view-legalize-dags displays the DAG before Legalization. 
+  -view-legalize-dags displays the DAG before Legalization. 
     
-    -view-dag-combine2-dags displays the DAG before the second optimization 
-    pass. 
+  -view-dag-combine2-dags displays the DAG before the second optimization 
+  pass. 
     
-    -view-isel-dags displays the DAG before the Select phase. 
+  -view-isel-dags displays the DAG before the Select phase. 
     
-    -view-sched-dags displays the DAG before Scheduling. 
+  -view-sched-dags displays the DAG before Scheduling. 
     
 By tracking ``llc -debug``, you can see the DAG translation steps as follows,
 
 .. code-block:: bash
 
-    Initial selection DAG
-    Optimized lowered selection DAG
-    Type-legalized selection DAG
-    Optimized type-legalized selection DAG
-    Legalized selection DAG
-    Optimized legalized selection DAG
-    Instruction selection
-    Selected selection DAG
-    Scheduling
-    …
+  Initial selection DAG
+  Optimized lowered selection DAG
+  Type-legalized selection DAG
+  Optimized type-legalized selection DAG
+  Legalized selection DAG
+  Optimized legalized selection DAG
+  Instruction selection
+  Selected selection DAG
+  Scheduling
+  ...
 
 
 Let's run ``llc`` with option -view-dag-combine1-dags, and open the output 
@@ -525,11 +525,11 @@ result with Graphviz as follows,
 
 .. code-block:: bash
 
-    118-165-12-177:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -view-dag-combine1-dags -march=cpu0 
-    -relocation-model=pic -filetype=asm ch4_2.bc -o ch4_2.cpu0.s
-    Writing '/tmp/llvm_84ibpm/dag.main.dot'...  done. 
-    118-165-12-177:InputFiles Jonathan$ Graphviz /tmp/llvm_84ibpm/dag.main.dot 
+  118-165-12-177:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -view-dag-combine1-dags -march=cpu0 
+  -relocation-model=pic -filetype=asm ch4_2.bc -o ch4_2.cpu0.s
+  Writing '/tmp/llvm_84ibpm/dag.main.dot'...  done. 
+  118-165-12-177:InputFiles Jonathan$ Graphviz /tmp/llvm_84ibpm/dag.main.dot 
 
 It will show the /tmp/llvm_84ibpm/dag.main.dot as :ref:`otherinst_f1`.
 
@@ -547,13 +547,17 @@ Initial selection DAG.
 We list the other view options and their corresponding DAG translation stage as 
 follows,
 
-.. code-block:: bash
+.. note:: ``llc`` Graphviz options and corresponding DAG translation stage
 
-    -view-dag-combine1-dags: Initial selection DAG
-    -view-legalize-dags: Optimized type-legalized selection DAG
-    -view-dag-combine2-dags: Legalized selection DAG
-    -view-isel-dags: Optimized legalized selection DAG
-    -view-sched-dags: Selected selection DAG
+  -view-dag-combine1-dags: Initial selection DAG
+  
+  -view-legalize-dags: Optimized type-legalized selection DAG
+  
+  -view-dag-combine2-dags: Legalized selection DAG
+  
+  -view-isel-dags: Optimized legalized selection DAG
+  
+  -view-sched-dags: Selected selection DAG
 
 The -view-isel-dags is important and often used by an llvm backend writer 
 because it is the DAG before instruction selection. 
@@ -571,13 +575,13 @@ Cpu0InstrInfo.td as follows,
 
 .. code-block:: c++
 
-    //  Cpu0InstsInfo.td
-    ...
-    def UDIV    : ArithLogicR<0x17, "udiv", udiv, IIIdiv, CPURegs, 1>;
-    …
-    /// Shift Instructions
-    // work, sra for ashr llvm IR instruction
-    def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
+  //  Cpu0InstsInfo.td
+  ...
+  def UDIV    : ArithLogicR<0x17, "udiv", udiv, IIIdiv, CPURegs, 1>;
+  ...
+  /// Shift Instructions
+  // work, sra for ashr llvm IR instruction
+  def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
 
 To use addiu only instead of ldi, change Cpu0InstrInfo.td as follows,
 
@@ -601,36 +605,36 @@ instead of ldi, will get the result as follows,
 
 .. code-block:: c++
     
-    // ch4_4.cpp
-    int main()
-    {
-        int a = 1;
-        int b = 2;
-        int k = 0;
-        unsigned int a1 = -5, f1 = 0;
+  // ch4_4.cpp
+  int main()
+  {
+      int a = 1;
+      int b = 2;
+      int k = 0;
+      unsigned int a1 = -5, f1 = 0;
         
-        f1 = a1 / b;
-        k = (a >> 2);
+      f1 = a1 / b;
+      k = (a >> 2);
     
-        return k;
-    }
+      return k;
+  }
 
 .. code-block:: bash
 
-    118-165-13-40:InputFiles Jonathan$ clang -c ch4_4.cpp -emit-llvm -o ch4_4.bc
-    118-165-13-40:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch4_4.bc -o ch4_4.cpu0.s
-    118-165-13-40:InputFiles Jonathan$ cat ch4_4.cpu0.s
-        …
-        addiu   $sp, $sp, -24
-        addiu   $2, $zero, 0
-        ...
-        udiv    $2, $3, $2
-        st  $2, 0($sp)
-        ld  $2, 16($sp)
-        sra $2, $2, 2
-        ...
+  118-165-13-40:InputFiles Jonathan$ clang -c ch4_4.cpp -emit-llvm -o ch4_4.bc
+  118-165-13-40:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch4_4.bc -o ch4_4.cpu0.s
+  118-165-13-40:InputFiles Jonathan$ cat ch4_4.cpu0.s
+      ...
+      addiu   $sp, $sp, -24
+      addiu   $2, $zero, 0
+      ...
+      udiv    $2, $3, $2
+      st  $2, 0($sp)
+      ld  $2, 16($sp)
+      sra $2, $2, 2
+      ...
 
 
 Use cpu0 official LDI instead of ADDiu
@@ -649,64 +653,64 @@ Cpu0FrameLowering.cpp as follows,
 
 .. code-block:: c++
 
-    // Cpu0InstrInfo.td
+  // Cpu0InstrInfo.td
+  ...
+    
+  /// Arithmetic Instructions (ALU Immediate)
+  def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+  // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+  //def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+  ...
+    
+  // Small immediates
+    
+  def : Pat<(i32 immSExt16:$in),
+            (LDI ZERO, imm:$in)>;
+    
+  // hi/lo relocs
+  def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (LDI ZERO, tglobaladdr:$in), 16)>;
+  // Expect cpu0 add LUi support, like Mips
+  //def : Pat<(Cpu0Hi tglobaladdr:$in), (LUi tglobaladdr:$in)>;
+  def : Pat<(Cpu0Lo tglobaladdr:$in), (LDI ZERO, tglobaladdr:$in)>;
+    
+  def : Pat<(add CPURegs:$hi, (Cpu0Lo tglobaladdr:$lo)),
+            (ADD CPURegs:$hi, (LDI ZERO, tglobaladdr:$lo))>;
+    
+  // gp_rel relocs
+  def : Pat<(add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)),
+            (ADD CPURegs:$gp, (LDI ZERO, tglobaladdr:$in))>;
+    
+  def : Pat<(not CPURegs:$in),
+             (XOR CPURegs:$in, (LDI ZERO, 1))>;
+    
+  // Cpu0FrameLowering.cpp
+  ...
+  void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
     ...
-    
-    /// Arithmetic Instructions (ALU Immediate)
-    def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
-    // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
-    //def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
-    ...
-    
-    // Small immediates
-    
-    def : Pat<(i32 immSExt16:$in),
-              (LDI ZERO, imm:$in)>;
-    
-    // hi/lo relocs
-    def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (LDI ZERO, tglobaladdr:$in), 16)>;
-    // Expect cpu0 add LUi support, like Mips
-    //def : Pat<(Cpu0Hi tglobaladdr:$in), (LUi tglobaladdr:$in)>;
-    def : Pat<(Cpu0Lo tglobaladdr:$in), (LDI ZERO, tglobaladdr:$in)>;
-    
-    def : Pat<(add CPURegs:$hi, (Cpu0Lo tglobaladdr:$lo)),
-              (ADD CPURegs:$hi, (LDI ZERO, tglobaladdr:$lo))>;
-    
-    // gp_rel relocs
-    def : Pat<(add CPURegs:$gp, (Cpu0GPRel tglobaladdr:$in)),
-              (ADD CPURegs:$gp, (LDI ZERO, tglobaladdr:$in))>;
-    
-    def : Pat<(not CPURegs:$in),
-               (XOR CPURegs:$in, (LDI ZERO, 1))>;
-    
-    // Cpu0FrameLowering.cpp
-    ...
-    void Cpu0FrameLowering::emitPrologue(MachineFunction &MF) const {
-      ...
-      // Adjust stack.
-      if (isInt<16>(-StackSize)) {
-        // ldi fp, (-stacksize)
-        // add sp, sp, fp
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
-                                                            .addImm(-StackSize);
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
-      }
-      …
+    // Adjust stack.
+    if (isInt<16>(-StackSize)) {
+      // ldi fp, (-stacksize)
+      // add sp, sp, fp
+      BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
+                                                          .addImm(-StackSize);
+      BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
     }
+    ...
+  }
     
-    void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,
-                                     MachineBasicBlock &MBB) const {
-      …
-      // Adjust stack.
-      if (isInt<16>(-StackSize)) {
-        // ldi fp, (-stacksize)
-        // add sp, sp, fp
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
-                                                            .addImm(-StackSize);
-        BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
-      }
-      …
+  void Cpu0FrameLowering::emitEpilogue(MachineFunction &MF,
+                                   MachineBasicBlock &MBB) const {
+    ...
+    // Adjust stack.
+    if (isInt<16>(-StackSize)) {
+      // ldi fp, (-stacksize)
+      // add sp, sp, fp
+      BuildMI(MBB, MBBI, dl, TII.get(Cpu0::LDI), Cpu0::FP).addReg(Cpu0::FP)
+                                                          .addImm(-StackSize);
+      BuildMI(MBB, MBBI, dl, TII.get(Cpu0::ADD), SP).addReg(SP).addReg(Cpu0::FP);
     }
+    ...
+  }
 
 As above code, we use **add** IR binary instruction (1 register operand and 1 
 immediate operand, and the register operand is fixed with ZERO) in our solution 
@@ -791,37 +795,37 @@ Cpu0InstrInfo.td and Cpu0InstPrinter.cpp as follows,
 
 .. code-block:: c++
 
-    // Cpu0InstrInfo.td
-    ...
-    def mem_ea : Operand<i32> {
-      let PrintMethod = "printMemOperandEA";
-      let MIOperandInfo = (ops CPURegs, simm16);
-      let EncoderMethod = "getMemEncoding";
-    }
-    ...
-    class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
-      FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
-         instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
-    ...
-    // FrameIndexes are legalized when they are operands from load/store
-    // instructions. The same not happens for stack address copies, so an
-    // add op with mem ComplexPattern is used and the stack address copy
-    // can be matched. It's similar to Sparc LEA_ADDRi
-    def LEA_ADDiu : EffectiveAddress<"addiu\t$ra, $addr", CPURegs, mem_ea> {
-      let isCodeGenOnly = 1;
-    }
+  // Cpu0InstrInfo.td
+  ...
+  def mem_ea : Operand<i32> {
+    let PrintMethod = "printMemOperandEA";
+    let MIOperandInfo = (ops CPURegs, simm16);
+    let EncoderMethod = "getMemEncoding";
+  }
+  ...
+  class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
+    FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
+       instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
+  ...
+  // FrameIndexes are legalized when they are operands from load/store
+  // instructions. The same not happens for stack address copies, so an
+  // add op with mem ComplexPattern is used and the stack address copy
+  // can be matched. It's similar to Sparc LEA_ADDRi
+  def LEA_ADDiu : EffectiveAddress<"addiu\t$ra, $addr", CPURegs, mem_ea> {
+    let isCodeGenOnly = 1;
+  }
     
-    // Cpu0InstPrinter.cpp
-    ...
-    void Cpu0InstPrinter::
-    printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O) {
-      // when using stack locations for not load/store instructions
-      // print the same way as all normal 3 operand instructions.
-      printOperand(MI, opNum, O);
-      O << ", ";
-      printOperand(MI, opNum+1, O);
-      return;
-    }
+  // Cpu0InstPrinter.cpp
+  ...
+  void Cpu0InstPrinter::
+  printMemOperandEA(const MCInst *MI, int opNum, raw_ostream &O) {
+    // when using stack locations for not load/store instructions
+    // print the same way as all normal 3 operand instructions.
+    printOperand(MI, opNum, O);
+    O << ", ";
+    printOperand(MI, opNum+1, O);
+    return;
+  }
 
 Run ch4_5.cpp with code 4/5/Cpu0 which support pointer to local variable, 
 will get result as follows,
@@ -923,44 +927,44 @@ corresponding llvm IR, as follows,
   }
 
 
-LLVM **srem** is the IR corresponding **“%”**, reference sub-section "srem instruction" 
-of [3]_. 
+LLVM **srem** is the IR corresponding **“%”**, reference sub-section 
+"srem instruction" of [3]_. 
 Copy the reference as follows,
 
 .. note:: **'srem'** Instruction 
 
-    Syntax:
-      **<result> = srem <ty> <op1>, <op2>   ; yields {ty}:result**
+  Syntax:
+    **<result> = srem <ty> <op1>, <op2>   ; yields {ty}:result**
       
-    Overview:
-    The **'srem'** instruction returns the remainder from the signed division of its 
-    two operands. This instruction can also take vector versions of the values in 
-    which case the elements must be integers.
+  Overview:
+  The **'srem'** instruction returns the remainder from the signed division of its 
+  two operands. This instruction can also take vector versions of the values in 
+  which case the elements must be integers.
     
-    Arguments:
-    The two arguments to the **'srem'** instruction must be integer or vector of 
-    integer values. Both arguments must have identical types.
+  Arguments:
+  The two arguments to the **'srem'** instruction must be integer or vector of 
+  integer values. Both arguments must have identical types.
+  
+  Semantics:
+  This instruction returns the remainder of a division (where the result is 
+  either zero or has the same sign as the dividend, op1), not the modulo operator 
+  (where the result is either zero or has the same sign as the divisor, op2) of 
+  a value. For more information about the difference, see The Math Forum. For a 
+  table of how this is implemented in various languages, please see Wikipedia: 
+  modulo operation.
     
-    Semantics:
-    This instruction returns the remainder of a division (where the result is 
-    either zero or has the same sign as the dividend, op1), not the modulo operator 
-    (where the result is either zero or has the same sign as the divisor, op2) of 
-    a value. For more information about the difference, see The Math Forum. For a 
-    table of how this is implemented in various languages, please see Wikipedia: 
-    modulo operation.
+  Note that signed integer remainder and unsigned integer remainder are distinct 
+  operations; for unsigned integer remainder, use **'urem'**.
     
-    Note that signed integer remainder and unsigned integer remainder are distinct 
-    operations; for unsigned integer remainder, use **'urem'**.
+  Taking the remainder of a division by zero leads to undefined behavior. 
+  Overflow also leads to undefined behavior; this is a rare case, but can occur, 
+  for example, by taking the remainder of a 32-bit division of -2147483648 by -1. 
+  (The remainder doesn't actually overflow, but this rule lets srem be 
+  implemented using instructions that return both the result of the division and 
+  the remainder.)
     
-    Taking the remainder of a division by zero leads to undefined behavior. 
-    Overflow also leads to undefined behavior; this is a rare case, but can occur, 
-    for example, by taking the remainder of a 32-bit division of -2147483648 by -1. 
-    (The remainder doesn't actually overflow, but this rule lets srem be 
-    implemented using instructions that return both the result of the division and 
-    the remainder.)
-    
-    Example:
-      <result> = **srem i32 4, %var**          ; yields {i32}:result = 4 % %var
+  Example:
+    <result> = **srem i32 4, %var**          ; yields {i32}:result = 4 % %var
 
 
 Run 4/5/Cpu0 with input file ch4_6_1.bc and ``llc`` option –view-isel-dags as 
@@ -969,14 +973,14 @@ follows, will get the error message as follows and the llvm DAG of
 
 .. code-block:: bash
 
-    118-165-79-37:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -view-isel-dags -relocation-model=
-    pic -filetype=asm ch4_6_1.bc -o ch4_6.cpu0.s
-    ...
-    LLVM ERROR: Cannot select: 0x7fa73a02ea10: i32 = mulhs 0x7fa73a02c610, 
-    0x7fa73a02e910 [ID=12]
-      0x7fa73a02c610: i32 = Constant<12> [ORD=5] [ID=7]
-      0x7fa73a02e910: i32 = Constant<715827883> [ID=9]
+  118-165-79-37:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -view-isel-dags -relocation-model=
+  pic -filetype=asm ch4_6_1.bc -o ch4_6.cpu0.s
+  ...
+  LLVM ERROR: Cannot select: 0x7fa73a02ea10: i32 = mulhs 0x7fa73a02c610, 
+  0x7fa73a02e910 [ID=12]
+    0x7fa73a02c610: i32 = Constant<12> [ORD=5] [ID=7]
+    0x7fa73a02e910: i32 = Constant<715827883> [ID=9]
 
 
 .. _otherinst_f2:
@@ -1020,49 +1024,50 @@ Follows is the result of run 4/6_1/Cpu0 with ch4_6.bc.
 
 .. code-block:: bash
 
-    118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
-    debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
-    ch4_6.bc -o ch4_6.cpu0.s
-    118-165-71-252:InputFiles Jonathan$ cat ch4_6.cpu0.s 
-        .section .mdebug.abi32
-        .previous
-        .file   "ch4_6.bc"
-        .text
-        .globl  main
-        .align  2
-        .type   main,@function
-        .ent    main                    # @main
-    main:
-        .frame  $sp,8,$lr
-        .mask   0x00000000,0
-        .set    noreorder
-        .set    nomacro
-    # BB#0:                                 # %entry
-        addiu   $sp, $sp, -8
-        addiu   $2, $zero, 0
-        st  $2, 4($sp)
-        addiu   $2, $zero, 11
-        st  $2, 0($sp)
-        addiu   $2, $zero, 10922
-        shl $2, $2, 16
-        addiu   $3, $zero, 43691
-        or  $3, $2, $3
-        addiu   $2, $zero, 12
-        smmul   $3, $2, $3
-        shr $4, $3, 31
-        sra $3, $3, 1
-        add $3, $3, $4
-        mul $3, $3, $2
-        sub $2, $2, $3
-        st  $2, 0($sp)
-        addiu   $sp, $sp, 8
-        ret $lr
-        .set    macro
-        .set    reorder
-        .end    main
-    $tmp1:
-        .size   main, ($tmp1)-main
-    
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
+  debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch4_6.bc -o ch4_6.cpu0.s
+  118-165-71-252:InputFiles Jonathan$ cat ch4_6.cpu0.s 
+      .section .mdebug.abi32
+      .previous
+      .file   "ch4_6.bc"
+      .text
+      .globl  main
+      .align  2
+      .type   main,@function
+      .ent    main                    # @main
+  main:
+      .frame  $sp,8,$lr
+      .mask   0x00000000,0
+      .set    noreorder
+      .set    nomacro
+  # BB#0:                                 # %entry
+      addiu   $sp, $sp, -8
+      addiu   $2, $zero, 0
+      st  $2, 4($sp)
+      addiu   $2, $zero, 11
+      st  $2, 0($sp)
+      addiu   $2, $zero, 10922
+      shl $2, $2, 16
+      addiu   $3, $zero, 43691
+      or  $3, $2, $3
+      addiu   $2, $zero, 12
+      smmul   $3, $2, $3
+      shr $4, $3, 31
+      sra $3, $3, 1
+      add $3, $3, $4
+      mul $3, $3, $2
+      sub $2, $2, $3
+      st  $2, 0($sp)
+      addiu   $sp, $sp, 8
+      ret $lr
+      .set    macro
+      .set    reorder
+      .end    main
+  $tmp1:
+      .size   main, ($tmp1)-main
+
+
 The other instruction UMMUL and llvm IR mulhu are unsigned int type for 
 operator %. 
 You can check it by unmark the **“unsigned int b = 11;”** in ch4_6.cpp.
@@ -1075,7 +1080,7 @@ With this solution, the following code is needed.
 .. code-block:: c++
 
   // Cpu0InstrInfo.td
-  …
+  ...
   // Transformation Function - get the lower 16 bits.
   def LO16 : SDNodeXForm<imm, [{
     return getImm(N, N->getZExtValue() & 0xFFFF);
@@ -1085,10 +1090,10 @@ With this solution, the following code is needed.
   def HI16 : SDNodeXForm<imm, [{
     return getImm(N, (N->getZExtValue() >> 16) & 0xFFFF);
   }]>;
-  …
+  ...
   def SMMUL   : ArithLogicR<0x50, "smmul", mulhs, IIImul, CPURegs, 1>;
   def UMMUL   : ArithLogicR<0x51, "ummul", mulhu, IIImul, CPURegs, 1>;
-  …
+  ...
   // Arbitrary immediates
   def : Pat<(i32 imm:$imm),
         (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 imm:$imm)))>;
@@ -1130,7 +1135,7 @@ from TargetSelectionDAG.td.
   def Cpu0GenericItineraries : ProcessorItineraries<[ALU, IMULDIV], [], [
     ...
     InstrItinData<IIHiLo             , [InstrStage<1,  [IMULDIV]>]>,
-    …
+    ...
   ]>;
 
   // Cpu0InstrInfo.td
@@ -1393,7 +1398,7 @@ The code added in 4/6_4/Cpu0 as follows,
   def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
   
   // Cpu0ISelLowering.cpp
-  …
+  ...
   Cpu0TargetLowering::
   Cpu0TargetLowering(Cpu0TargetMachine &TM)
     : TargetLowering(TM, new TargetLoweringObjectFileELF()),
@@ -1494,9 +1499,9 @@ like to verify it now.
   // ch4_1_2.cpp
   int main()
   {
-    …
+    ...
     f = a / b;
-    …
+    ...
   }
 
 .. code-block:: bash
@@ -1508,7 +1513,7 @@ like to verify it now.
   118-165-77-79:InputFiles Jonathan$ cat ch4_1_2.cpu0.s 
     div $zero, $3, $2
     mflo  $2
-    …
+    ...
   
   // ch4_6_1.cpp
   int main()

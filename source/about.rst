@@ -34,8 +34,10 @@ With his help, we can finish this book and put on web with sphinx tool.
 Revision history
 ----------------
 
-Version 4.0, Not Released Yet
+Version 3.2.4, Released January 17, 2013
 	Update for LLVM 3.2.
+	Change title (book name) from "Write An LLVM Backend Tutorial For Cpu0" to 
+	"Tutorial: Creating an LLVM Backend for the Cpu0 Architecture".
 Version 3.2.3, Released January 12, 2013
 	Add chapter "Porting to LLVM 3.2".
 Version 3.2.2, Released January 10, 2013

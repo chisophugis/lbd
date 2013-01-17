@@ -279,7 +279,7 @@ following pattern,
     multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
       Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
       Instruction CMPOp> {
-    …
+    ...
     def : Pat<(brcond (i32 (setne RC:$lhs, RC:$rhs)), bb:$dst),
               (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
     ...
@@ -287,8 +287,8 @@ following pattern,
               (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;
 
 Above definition support (setne RC:$lhs, RC:$rhs) register to register compare. 
-There are other compare pattern like, seteq, setlt, … . In addition to seteq, 
-setne, …, we define setueq, setune, …,  by reference Mips code even though we 
+There are other compare pattern like, seteq, setlt, ... . In addition to seteq, 
+setne, ..., we define setueq, setune, ...,  by reference Mips code even though we 
 didn't find how setune came from. 
 We have tried to define unsigned int type, but clang still generate setne 
 instead of setune. 
@@ -363,7 +363,7 @@ and dump it's content by hexdump as follows,
 .. code-block:: c++
 
     118-165-79-206:InputFiles Jonathan$ cat ch7_1_1.cpu0.s 
-    …
+    ...
         ld  $3, 32($sp)
         cmp $3, $2
         jne $BB0_2
@@ -374,7 +374,7 @@ and dump it's content by hexdump as follows,
         st  $2, 32($sp)
     $BB0_2:                                 # %if.end
         ld  $2, 28($sp)
-    …
+    ...
 
 .. code-block:: bash
     
@@ -384,9 +384,9 @@ and dump it's content by hexdump as follows,
 
     118-165-79-206:InputFiles Jonathan$ hexdump ch7_1_1.cpu0.o 
         // jmp offset is 0x10=16 bytes which is correct
-    0000080 …......................... 10 20 20 02 21 00 00 10
+    0000080 ............................ 10 20 20 02 21 00 00 10
     
-    0000090 26 00 00 00 …............................................
+    0000090 26 00 00 00 ...............................................
 
 The immediate value of jne (op 0x21) is 16; The offset between jne and $BB0_2 
 is 20 (5 words = 5*4 bytes). Suppose the jne address is X, then the label 
@@ -451,18 +451,18 @@ Finally we list the code added for full support of control flow statement,
     MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                                   MachineOperandType MOTy,
                                                   unsigned Offset) const {
-      …
+      ...
       switch(MO.getTargetFlags()) {
       default:                   llvm_unreachable("Invalid target flag!");
       case Cpu0II::MO_NO_FLAG:   Kind = MCSymbolRefExpr::VK_None; break;
-      …
+      ...
       }
       ...
       switch (MOTy) {
       case MachineOperand::MO_MachineBasicBlock:
         Symbol = MO.getMBB()->getSymbol();
         break;
-      …
+      ...
     }
     
     MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
@@ -476,9 +476,9 @@ Finally we list the code added for full support of control flow statement,
       case MachineOperand::MO_MachineBasicBlock:
       case MachineOperand::MO_GlobalAddress:
       case MachineOperand::MO_BlockAddress:
-      …
+      ...
       }
-      …
+      ...
     }
     
     // Cpu0ISelLowering.cpp
@@ -497,7 +497,7 @@ Finally we list the code added for full support of control flow statement,
       
       // Operations not directly supported by Cpu0.
       setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
-      …
+      ...
     }
     
     // Cpu0InstrFormats.td
@@ -715,7 +715,9 @@ follows,
 .. code-block:: bash
 
   118-165-78-230:InputFiles Jonathan$ clang -c ch7_1_5.cpp -emit-llvm -o ch7_1_5.bc
-  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1_5.bc -o ch7_1_5.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1_5.bc -o 
+  ch7_1_5.cpu0.s
   118-165-78-230:InputFiles Jonathan$ cat ch7_1_5.cpu0.s 
     .section .mdebug.abi32
     .previous
