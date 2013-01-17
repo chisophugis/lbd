@@ -17,9 +17,27 @@ Anoushe Jamshidi
 	ajamshidi@gmail.com
 
 
+Contributors
+------------
+
+Chen Wei-Ren, chenwj@iis.sinica.edu.tw>, in text format.
+
+
+Thanks
+------
+
+Very thank Sean, silvas@purdue.edu, for his help in this book and 
+encouragement. 
+With his help, we can finish this book and put on web with sphinx tool. 
+
+
 Revision history
 ----------------
 
+Version 3.2.4, Released January 17, 2013
+	Update for LLVM 3.2.
+	Change title (book name) from "Write An LLVM Backend Tutorial For Cpu0" to 
+	"Tutorial: Creating an LLVM Backend for the Cpu0 Architecture".
 Version 3.2.3, Released January 12, 2013
 	Add chapter "Porting to LLVM 3.2".
 Version 3.2.2, Released January 10, 2013
@@ -166,15 +184,14 @@ format and binutils tools are not a part of LLVM, but are introduced.  This chap
 details how to use the ELF tools to verify and analyze the object files created by the 
 Cpu0 backend.
 
-:ref:`sec-porting32`:
-
-Introduces the changes of the LLVM APIs used by Cpu0 and Mips when updating this guide 
-from LLVM 3.1 to 3.2.  
-
 :ref:`sec-appendix-installing`:
 
 Details how to set up the LLVM source code, development tools, and environment
 setting for Mac OS X and Linux platforms.
 
+:ref:`sec-appendix-old-llvm-ver`:
+
+Introduces the difference of the LLVM APIs used by Cpu0 and Mips when updating 
+this guide between LLVM different version.  
 
 

@@ -24,16 +24,16 @@ first, and explain the code changes after that.
 
 .. code-block:: c++
 
-    // ch6_1.cpp
-    int gI = 100; 
-    int main() 
-    { 
-      int c = 0; 
+  // ch6_1.cpp
+  int gI = 100; 
+  int main() 
+  { 
+    int c = 0; 
     
-      c = gI; 
+    c = gI; 
     
-      return c; 
-    } 
+    return c; 
+  } 
 
 .. code-block:: bash
 
@@ -58,7 +58,7 @@ first, and explain the code changes after that.
     ret i32 %3
   }
   
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch6_1.bc -o ch6_1.cpu0.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_1.cpu0.s
@@ -119,7 +119,7 @@ We can also translate it with absolute address mode by following command,
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=asm 
   ch6_1.bc -o ch6_1.cpu0.static.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_1.cpu0.static.s 
@@ -141,7 +141,7 @@ In this mode, you can also translate code with the following command,
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -cpu0-islinux-f
   ormat=false -filetype=asm ch6_1.bc -o ch6_1.cpu0.islinux-format-false.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_1.cpu0.islinux-format-false.s 
@@ -183,86 +183,90 @@ About the **cl** command variable, you can refer to [#]_ further.
 
 .. code-block:: c++
 
-    //  Cpu0Subtarget.cpp
-    static cl::opt<bool>
-    IsLinuxOpt("cpu0-islinux-format", cl::Hidden, cl::init(true),
-                     cl::desc("Always use linux format."));
+  //  Cpu0Subtarget.cpp
+  static cl::opt<bool>
+  IsLinuxOpt("cpu0-islinux-format", cl::Hidden, cl::init(true),
+                   cl::desc("Always use linux format."));
     
-        Next add the following code to Cpu0ISelLowering.cpp.
-    //  Cpu0ISelLowering.cpp
-    Cpu0TargetLowering::
-    Cpu0TargetLowering(Cpu0TargetMachine &TM)
-      : TargetLowering(TM, new Cpu0TargetObjectFile()),
-        Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
-       ...
-      // Cpu0 Custom Operations
-      setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
-       ...
-    }
-    SDValue Cpu0TargetLowering::
-    LowerOperation(SDValue Op, SelectionDAG &DAG) const
+Next add the following code to Cpu0ISelLowering.cpp.
+
+.. code-block:: c++
+
+  //  Cpu0ISelLowering.cpp
+  Cpu0TargetLowering::
+  Cpu0TargetLowering(Cpu0TargetMachine &TM)
+    : TargetLowering(TM, new Cpu0TargetObjectFile()),
+      Subtarget(&TM.getSubtarget<Cpu0Subtarget>()) {
+     ...
+    // Cpu0 Custom Operations
+    setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
+    ...
+  }
+  ...
+  SDValue Cpu0TargetLowering::
+  LowerOperation(SDValue Op, SelectionDAG &DAG) const
+  {
+    switch (Op.getOpcode())
     {
-      switch (Op.getOpcode())
-      {
-        case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
+      case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
+    }
+    return SDValue();
+  }
+    
+  //===----------------------------------------------------------------------===//
+  //  Lower helper functions
+  //===----------------------------------------------------------------------===//
+    
+  //===----------------------------------------------------------------------===//
+  //  Misc Lower Operation implementation
+  //===----------------------------------------------------------------------===//
+    
+  SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
+                                                 SelectionDAG &DAG) const {
+    // FIXME there isn't actually debug info here
+    DebugLoc dl = Op.getDebugLoc();
+    const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
+    
+    if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
+      SDVTList VTs = DAG.getVTList(MVT::i32);
+    
+      Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
+    
+      // %gp_rel relocation
+      if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
+        SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+                                                Cpu0II::MO_GPREL);
+        SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
+        SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
+        return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
       }
-      return SDValue();
+      // %hi/%lo relocation
+      SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+                                                Cpu0II::MO_ABS_HI);
+      SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+                                                Cpu0II::MO_ABS_LO);
+      SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
+      SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
+      return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
     }
     
-    //===----------------------------------------------------------------------===//
-    //  Lower helper functions
-    //===----------------------------------------------------------------------===//
-    
-    //===----------------------------------------------------------------------===//
-    //  Misc Lower Operation implementation
-    //===----------------------------------------------------------------------===//
-    
-    SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
-                                                   SelectionDAG &DAG) const {
-      // FIXME there isn't actually debug info here
-      DebugLoc dl = Op.getDebugLoc();
-      const GlobalValue *GV = cast<GlobalAddressSDNode>(Op)->getGlobal();
-    
-      if (getTargetMachine().getRelocationModel() != Reloc::PIC_) {
-        SDVTList VTs = DAG.getVTList(MVT::i32);
-    
-        Cpu0TargetObjectFile &TLOF = (Cpu0TargetObjectFile&)getObjFileLowering();
-    
-        // %gp_rel relocation
-        if (TLOF.IsGlobalInSmallSection(GV, getTargetMachine())) {
-          SDValue GA = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
-                                                  Cpu0II::MO_GPREL);
-          SDValue GPRelNode = DAG.getNode(Cpu0ISD::GPRel, dl, VTs, &GA, 1);
-          SDValue GOT = DAG.getGLOBAL_OFFSET_TABLE(MVT::i32);
-          return DAG.getNode(ISD::ADD, dl, MVT::i32, GOT, GPRelNode);
-        }
-        // %hi/%lo relocation
-        SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
-                                                  Cpu0II::MO_ABS_HI);
-        SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
-                                                  Cpu0II::MO_ABS_LO);
-        SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
-        SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
-        return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
-      }
-    
-      EVT ValTy = Op.getValueType();
-      bool HasGotOfst = (GV->hasInternalLinkage() ||
-                         (GV->hasLocalLinkage() && !isa<Function>(GV)));
-      unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
-      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
-      GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
-      SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
-                                    MachinePointerInfo(), false, false, false, 0);
-      // On functions and global targets not internal linked only
-      // a load from got/GP is necessary for PIC to work.
-      if (!HasGotOfst)
-        return ResNode;
-      SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
-                                                            Cpu0II::MO_ABS_LO);
-      SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
-      return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
-    }
+    EVT ValTy = Op.getValueType();
+    bool HasGotOfst = (GV->hasInternalLinkage() ||
+                       (GV->hasLocalLinkage() && !isa<Function>(GV)));
+    unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16);
+    SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag);
+    GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA);
+    SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA,
+                                  MachinePointerInfo(), false, false, false, 0);
+    // On functions and global targets not internal linked only
+    // a load from got/GP is necessary for PIC to work.
+    if (!HasGotOfst)
+      return ResNode;
+    SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0,
+                                                          Cpu0II::MO_ABS_LO);
+    SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, ValTy, GALo);
+    return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
+  }
 
 The setOperationAction(ISD::GlobalAddress, MVT::i32, Custom) tells ``llc`` that 
 we implement global address operation in C++ function 
@@ -303,13 +307,15 @@ Cpu0InstrInfo.td as follows,
 
 .. code-block:: c++
 
-    //  Cpu0InstrInfo.td
-    // Hi and Lo nodes are used to handle global addresses. Used on
-    // Cpu0ISelLowering to lower stuff like GlobalAddress, ExternalSymbol
-    // static model. (nothing to do with Cpu0 Registers Hi and Lo)
-    def Cpu0Hi    : SDNode<"Cpu0ISD::Hi", SDTIntUnaryOp>;
-    def Cpu0Lo    : SDNode<"Cpu0ISD::Lo", SDTIntUnaryOp>;
-    ...
+  //  Cpu0InstrInfo.td
+  ...
+  // Hi and Lo nodes are used to handle global addresses. Used on
+  // Cpu0ISelLowering to lower stuff like GlobalAddress, ExternalSymbol
+  // static model. (nothing to do with Cpu0 Registers Hi and Lo)
+  def Cpu0Hi    : SDNode<"Cpu0ISD::Hi", SDTIntUnaryOp>;
+  def Cpu0Lo    : SDNode<"Cpu0ISD::Lo", SDTIntUnaryOp>;
+  def Cpu0GPRel : SDNode<"Cpu0ISD::GPRel", SDTIntUnaryOp>;
+  ...
   // hi/lo relocs
   def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (ADDiu ZERO, tglobaladdr:$in), 16)>;
   // Expect cpu0 add LUi support, like Mips
@@ -419,38 +425,40 @@ the code in Cpu0ISeleDAGToDAG.cpp as follows,
 
 .. code-block:: c++
 
-      bool HasGotOfst = (GV->hasInternalLinkage() || 
-                         (GV->hasLocalLinkage() && !isa<Function>(GV))); 
-      unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16); 
-      SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag); 
-      GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA); 
-      SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA, 
-                                    MachinePointerInfo(), false, false, false, 0); 
-      // On functions and global targets not internal linked only 
-      // a load from got/GP is necessary for PIC to work. 
-      if (!HasGotOfst) 
-        return ResNode;
+    ...
+    bool HasGotOfst = (GV->hasInternalLinkage() || 
+                       (GV->hasLocalLinkage() && !isa<Function>(GV))); 
+    unsigned GotFlag = (HasGotOfst ? Cpu0II::MO_GOT : Cpu0II::MO_GOT16); 
+    SDValue GA = DAG.getTargetGlobalAddress(GV, dl, ValTy, 0, GotFlag); 
+    GA = DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA); 
+    SDValue ResNode = DAG.getLoad(ValTy, dl, DAG.getEntryNode(), GA, 
+                                  MachinePointerInfo(), false, false, false, 0); 
+    // On functions and global targets not internal linked only 
+    // a load from got/GP is necessary for PIC to work. 
+    if (!HasGotOfst) 
+      return ResNode;
+    ...
     
-    // Cpu0ISelDAGToDAG.cpp
-    /// ComplexPattern used on Cpu0InstrInfo
-    /// Used on Cpu0 Load/Store instructions
-    bool Cpu0DAGToDAGISel::
-    SelectAddr(SDNode *Parent, SDValue Addr, SDValue &Base, SDValue &Offset) {
-      ...
-      // on PIC code Load GA
-      if (Addr.getOpcode() == Cpu0ISD::Wrapper) {
-        Base   = Addr.getOperand(0);
-        Offset = Addr.getOperand(1);
-        return true;
-      }
-      ...
+  // Cpu0ISelDAGToDAG.cpp
+  /// ComplexPattern used on Cpu0InstrInfo
+  /// Used on Cpu0 Load/Store instructions
+  bool Cpu0DAGToDAGISel::
+  SelectAddr(SDNode *Parent, SDValue Addr, SDValue &Base, SDValue &Offset) {
+    ...
+    // on PIC code Load GA
+    if (Addr.getOpcode() == Cpu0ISD::Wrapper) {
+      Base   = Addr.getOperand(0);
+      Offset = Addr.getOperand(1);
+      return true;
     }
+    ...
+  }
 
 Then it translate into the following code,
 
 .. code-block:: c++
 
-    ld  $2, %got(gI)($gp) 
+  ld  $2, %got(gI)($gp) 
 
 Where DAG.getEntryNode() is the register $2 which decided by Register Allocator
 ; DAG.getNode(Cpu0ISD::Wrapper, dl, ValTy, GetGlobalReg(DAG, ValTy), GA) is 
@@ -461,23 +469,23 @@ emit .cpload asm pseudo instruction,
 
 .. code-block:: c++
 
-    // Cpu0AsmPrinter.cpp
-    /// EmitFunctionBodyStart - Targets can override this to emit stuff before
-    /// the first basic block in the function.
-    void Cpu0AsmPrinter::EmitFunctionBodyStart() {
-    ...
-        // Emit .cpload directive if needed.
-        if (EmitCPLoad)
-        //- .cpload $t9
-          OutStreamer.EmitRawText(StringRef("\t.cpload\t$t9"));
-    ...
-    }
+  // Cpu0AsmPrinter.cpp
+  /// EmitFunctionBodyStart - Targets can override this to emit stuff before
+  /// the first basic block in the function.
+  void Cpu0AsmPrinter::EmitFunctionBodyStart() {
+  ...
+      // Emit .cpload directive if needed.
+      if (EmitCPLoad)
+      //- .cpload $t9
+        OutStreamer.EmitRawText(StringRef("\t.cpload\t$t9"));
+  ...
+  }
     
-    // ch6_1.cpu0.s
-        .cpload $t9 
-        .set    nomacro 
-    # BB#0: 
-        ldi $sp, -8
+  // ch6_1.cpu0.s
+      .cpload $t9 
+      .set    nomacro 
+  # BB#0: 
+      ldi $sp, -8
 
 According Mips Application Binary Interface (ABI), $t9 ($25) is the register 
 used in jalr $25 for long distance function pointer (far subroutine call). 
@@ -504,70 +512,88 @@ Global variable print support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Above code is for global address DAG translation. 
-Next, add the following code to Cpu0MCInstLower.cpp and Cpu0InstPrinter.cpp 
-for global variable printing operand function.
+Next, add the following code to Cpu0MCInstLower.cpp, Cpu0InstPrinter.cpp and 
+Cpu0ISelLowering.cpp for global variable printing operand function.
 
 .. code-block:: c++
 
-    // Cpu0MCInstLower.cpp
-    MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
-                                                  MachineOperandType MOTy,
-                                                  unsigned Offset) const {
-      MCSymbolRefExpr::VariantKind Kind;
-      const MCSymbol *Symbol;
+  // Cpu0MCInstLower.cpp
+  MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
+                                                MachineOperandType MOTy,
+                                                unsigned Offset) const {
+    MCSymbolRefExpr::VariantKind Kind;
+    const MCSymbol *Symbol;
     
-      switch(MO.getTargetFlags()) {
-      default:                   llvm_unreachable("Invalid target flag!"); 
-    // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static 
-    //  -cpu0-islinux-format=false (global var in .sdata) 
-      case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break; 
+    switch(MO.getTargetFlags()) {
+    default:                   llvm_unreachable("Invalid target flag!"); 
+  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static 
+  //  -cpu0-islinux-format=false (global var in .sdata) 
+    case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break; 
     
-      case Cpu0II::MO_GOT16:     Kind = MCSymbolRefExpr::VK_Cpu0_GOT16; break; 
-      case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break; 
-    // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static 
-    //  (global var in .data) 
-      case Cpu0II::MO_ABS_HI:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_HI; break; 
-      case Cpu0II::MO_ABS_LO:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_LO; break;
-      }
-    
-      switch (MOTy) {
-      case MachineOperand::MO_GlobalAddress:
-        Symbol = Mang->getSymbol(MO.getGlobal());
-        break;
-    
-      default:
-        llvm_unreachable("<unknown operand type>");
-      }
-      ...
+    case Cpu0II::MO_GOT16:     Kind = MCSymbolRefExpr::VK_Cpu0_GOT16; break; 
+    case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break; 
+  // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static 
+  //  (global var in .data) 
+    case Cpu0II::MO_ABS_HI:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_HI; break; 
+    case Cpu0II::MO_ABS_LO:    Kind = MCSymbolRefExpr::VK_Cpu0_ABS_LO; break;
     }
     
-    MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
-                                            unsigned offset) const {
-      MachineOperandType MOTy = MO.getType();
+    switch (MOTy) {
+    case MachineOperand::MO_GlobalAddress:
+      Symbol = Mang->getSymbol(MO.getGlobal());
+      break;
     
-      switch (MOTy) {
-      ...
-      case MachineOperand::MO_GlobalAddress:
-        return LowerSymbolOperand(MO, MOTy, offset);
-      ...
-     }
-    
-    // Cpu0InstPrinter.cpp
+    default:
+      llvm_unreachable("<unknown operand type>");
+    }
     ...
-    static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
-      ...
-      switch (Kind) {
-      default:                                 llvm_unreachable("Invalid kind!");
-      case MCSymbolRefExpr::VK_None:           break;
-    // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
-      case MCSymbolRefExpr::VK_Cpu0_GPREL:     OS << "%gp_rel("; break;
-      case MCSymbolRefExpr::VK_Cpu0_GOT16:     OS << "%got(";    break;
-      case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
-      case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
-      case MCSymbolRefExpr::VK_Cpu0_ABS_LO:    OS << "%lo(";     break;
-      }
-      ...
+  }
+    
+  MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
+                                            unsigned offset) const {
+    MachineOperandType MOTy = MO.getType();
+    
+    switch (MOTy) {
+    ...
+    case MachineOperand::MO_GlobalAddress:
+      return LowerSymbolOperand(MO, MOTy, offset);
+    ...
+   }
+    
+  // Cpu0InstPrinter.cpp
+  ...
+  static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
+    ...
+    switch (Kind) {
+    default:                                 llvm_unreachable("Invalid kind!");
+    case MCSymbolRefExpr::VK_None:           break;
+  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
+    case MCSymbolRefExpr::VK_Cpu0_GPREL:     OS << "%gp_rel("; break;
+    case MCSymbolRefExpr::VK_Cpu0_GOT16:     OS << "%got(";    break;
+    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
+    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
+    case MCSymbolRefExpr::VK_Cpu0_ABS_LO:    OS << "%lo(";     break;
     }
+    ...
+  }
+
+  Cpu0ISelLowering.cpp
+  ...
+  // The following function is for llc -debug DAG node name printing.
+  const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
+    switch (Opcode) {
+    case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
+    case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
+    case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
+    case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
+    case Cpu0ISD::Ret:               return "Cpu0ISD::Ret";
+    case Cpu0ISD::DivRem:            return "MipsISD::DivRem";
+    case Cpu0ISD::DivRemU:           return "MipsISD::DivRemU";
+    case Cpu0ISD::Wrapper:           return "Cpu0ISD::Wrapper";
+    default:                         return NULL;
+    }
+  }
+
 
 
 OS is the output stream which output to the assembly file.
@@ -595,68 +621,64 @@ The section "Instruction Selector" of [#]_ is the references.
 Array and struct support
 -------------------------
 
-Shifting our work to iMac at this point. 
-The Linux platform is fine. 
-The reason we do the shift is for new platform using experience.
-
 LLVM use getelementptr to represent the array and struct type in C. 
 Please reference section getelementptr of [#]_. 
 For ch6_2.cpp, the llvm IR as follows,
 
 .. code-block:: c++
 
-    // ch6_2.cpp
-    struct Date
-    {
-        int year;
-        int month;
-        int day;
-    };
+  // ch6_2.cpp
+  struct Date
+  {
+      int year;
+      int month;
+      int day;
+  };
     
-    Date date = {2012, 10, 12};
-    int a[3] = {2012, 10, 12};
+  Date date = {2012, 10, 12};
+  int a[3] = {2012, 10, 12};
     
-    int main()
-    {
-        int day = date.day;
-        int i = a[1];
+  int main()
+  {
+      int day = date.day;
+      int i = a[1];
     
-        return 0;
-    }
+      return 0;
+  }
 
 .. code-block:: bash
 
-    // ch6_2.ll
-    ; ModuleID = 'ch6_2.bc'
-    target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
-    f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
-    target triple = "i386-apple-macosx10.8.0"
+  // ch6_2.ll
+  ; ModuleID = 'ch6_2.bc'
+  target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-
+  f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32-S128"
+  target triple = "i386-apple-macosx10.8.0"
     
-    %struct.Date = type { i32, i32, i32 }
+  %struct.Date = type { i32, i32, i32 }
     
-    @date = global %struct.Date { i32 2012, i32 10, i32 12 }, align 4
-    @a = global [3 x i32] [i32 2012, i32 10, i32 12], align 4
+  @date = global %struct.Date { i32 2012, i32 10, i32 12 }, align 4
+  @a = global [3 x i32] [i32 2012, i32 10, i32 12], align 4
     
-    define i32 @main() nounwind ssp {
-    entry:
-      %retval = alloca i32, align 4
-      %day = alloca i32, align 4
-      %i = alloca i32, align 4
-      store i32 0, i32* %retval
-      %0 = load i32* getelementptr inbounds (%struct.Date* @date, i32 0, i32 2), 
-      align 4
-      store i32 %0, i32* %day, align 4
-      %1 = load i32* getelementptr inbounds ([3 x i32]* @a, i32 0, i32 1), align 4
-      store i32 %1, i32* %i, align 4
-      ret i32 0
-    }
+  define i32 @main() nounwind ssp {
+  entry:
+    %retval = alloca i32, align 4
+    %day = alloca i32, align 4
+    %i = alloca i32, align 4
+    store i32 0, i32* %retval
+    %0 = load i32* getelementptr inbounds (%struct.Date* @date, i32 0, i32 2), 
+    align 4
+    store i32 %0, i32* %day, align 4
+    %1 = load i32* getelementptr inbounds ([3 x i32]* @a, i32 0, i32 1), align 4
+    store i32 %1, i32* %i, align 4
+    ret i32 0
+  }
     
 Run 6/1/Cpu0 with ch6_2.bc on static mode will get the incorrect asm file as 
 follows,
 
 .. code-block:: bash
 
-  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_
+  118-165-66-82:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_
   debug_build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=asm 
   ch6_2.bc -o ch6_2.cpu0.static.s
   118-165-66-82:InputFiles Jonathan$ cat ch6_2.cpu0.static.s 
@@ -727,105 +749,106 @@ Let use debug option in llc to see what's wrong,
 
 .. code-block:: bash
 
-    jonathantekiimac:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
-    cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=static 
-    -filetype=asm ch6_2.bc -o ch6_2.cpu0.static.s
-    ...
-    === main
-    Initial selection DAG: BB#0 'main:entry'
-    SelectionDAG has 20 nodes:
-      0x7f7f5b02d210: i32 = undef [ORD=1]
+  jonathantekiimac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -debug -relocation-model=static 
+  -filetype=asm ch6_2.bc -o ch6_2.cpu0.static.s
+  ...
+  === main
+  Initial selection DAG: BB#0 'main:entry'
+  SelectionDAG has 20 nodes:
+    0x7f7f5b02d210: i32 = undef [ORD=1]
     
-          0x7f7f5ac10590: ch = EntryToken [ORD=1]
+        0x7f7f5ac10590: ch = EntryToken [ORD=1]
     
-          0x7f7f5b02d010: i32 = Constant<0> [ORD=1]
+        0x7f7f5b02d010: i32 = Constant<0> [ORD=1]
     
-          0x7f7f5b02d110: i32 = FrameIndex<0> [ORD=1]
-    
-          0x7f7f5b02d210: <multiple use>
-        0x7f7f5b02d310: ch = store 0x7f7f5ac10590, 0x7f7f5b02d010, 0x7f7f5b02d110, 
-        0x7f7f5b02d210<ST4[%retval]> [ORD=1]
-    
-          0x7f7f5b02d410: i32 = GlobalAddress<%struct.Date* @date> 0 [ORD=2]
-    
-          0x7f7f5b02d510: i32 = Constant<8> [ORD=2]
-    
-        0x7f7f5b02d610: i32 = add 0x7f7f5b02d410, 0x7f7f5b02d510 [ORD=2]
+        0x7f7f5b02d110: i32 = FrameIndex<0> [ORD=1]
     
         0x7f7f5b02d210: <multiple use>
-      0x7f7f5b02d710: i32,ch = load 0x7f7f5b02d310, 0x7f7f5b02d610, 0x7f7f5b02d210
-      <LD4[getelementptr inbounds (%struct.Date* @date, i32 0, i32 2)]> [ORD=3]
+      0x7f7f5b02d310: ch = store 0x7f7f5ac10590, 0x7f7f5b02d010, 0x7f7f5b02d110, 
+      0x7f7f5b02d210<ST4[%retval]> [ORD=1]
     
-      0x7f7f5b02db10: i64 = Constant<4>
+        0x7f7f5b02d410: i32 = GlobalAddress<%struct.Date* @date> 0 [ORD=2]
     
-          0x7f7f5b02d710: <multiple use>
-          0x7f7f5b02d710: <multiple use>
-          0x7f7f5b02d810: i32 = FrameIndex<1> [ORD=4]
+        0x7f7f5b02d510: i32 = Constant<8> [ORD=2]
     
-          0x7f7f5b02d210: <multiple use>
-        0x7f7f5b02d910: ch = store 0x7f7f5b02d710:1, 0x7f7f5b02d710, 0x7f7f5b02d810,
-         0x7f7f5b02d210<ST4[%day]> [ORD=4]
+      0x7f7f5b02d610: i32 = add 0x7f7f5b02d410, 0x7f7f5b02d510 [ORD=2]
     
-          0x7f7f5b02da10: i32 = GlobalAddress<[3 x i32]* @a> 0 [ORD=5]
+      0x7f7f5b02d210: <multiple use>
+    0x7f7f5b02d710: i32,ch = load 0x7f7f5b02d310, 0x7f7f5b02d610, 0x7f7f5b02d210
+    <LD4[getelementptr inbounds (%struct.Date* @date, i32 0, i32 2)]> [ORD=3]
     
-          0x7f7f5b02dc10: i32 = Constant<4> [ORD=5]
+    0x7f7f5b02db10: i64 = Constant<4>
     
-        0x7f7f5b02dd10: i32 = add 0x7f7f5b02da10, 0x7f7f5b02dc10 [ORD=5]
+        0x7f7f5b02d710: <multiple use>
+        0x7f7f5b02d710: <multiple use>
+        0x7f7f5b02d810: i32 = FrameIndex<1> [ORD=4]
+  
+        0x7f7f5b02d210: <multiple use>
+      0x7f7f5b02d910: ch = store 0x7f7f5b02d710:1, 0x7f7f5b02d710, 0x7f7f5b02d810,
+       0x7f7f5b02d210<ST4[%day]> [ORD=4]
+  
+        0x7f7f5b02da10: i32 = GlobalAddress<[3 x i32]* @a> 0 [ORD=5]
+    
+        0x7f7f5b02dc10: i32 = Constant<4> [ORD=5]
+    
+      0x7f7f5b02dd10: i32 = add 0x7f7f5b02da10, 0x7f7f5b02dc10 [ORD=5]
+    
+      0x7f7f5b02d210: <multiple use>
+    0x7f7f5b02de10: i32,ch = load 0x7f7f5b02d910, 0x7f7f5b02dd10, 0x7f7f5b02d210
+    <LD4[getelementptr inbounds ([3 x i32]* @a, i32 0, i32 1)]> [ORD=6]
+    
+  ...
+    
+    
+  Replacing.3 0x7f7f5b02dd10: i32 = add 0x7f7f5b02da10, 0x7f7f5b02dc10 [ORD=5]
+    
+  With: 0x7f7f5b030010: i32 = GlobalAddress<[3 x i32]* @a> + 4
+    
+    
+  Replacing.3 0x7f7f5b02d610: i32 = add 0x7f7f5b02d410, 0x7f7f5b02d510 [ORD=2]
+    
+  With: 0x7f7f5b02db10: i32 = GlobalAddress<%struct.Date* @date> + 8
+    
+  Optimized lowered selection DAG: BB#0 'main:entry'
+  SelectionDAG has 15 nodes:
+    0x7f7f5b02d210: i32 = undef [ORD=1]
+    
+        0x7f7f5ac10590: ch = EntryToken [ORD=1]
+    
+        0x7f7f5b02d010: i32 = Constant<0> [ORD=1]
+    
+        0x7f7f5b02d110: i32 = FrameIndex<0> [ORD=1]
     
         0x7f7f5b02d210: <multiple use>
-      0x7f7f5b02de10: i32,ch = load 0x7f7f5b02d910, 0x7f7f5b02dd10, 0x7f7f5b02d210
-      <LD4[getelementptr inbounds ([3 x i32]* @a, i32 0, i32 1)]> [ORD=6]
+      0x7f7f5b02d310: ch = store 0x7f7f5ac10590, 0x7f7f5b02d010, 0x7f7f5b02d110, 
+      0x7f7f5b02d210<ST4[%retval]> [ORD=1]
     
-    ...
+      0x7f7f5b02db10: i32 = GlobalAddress<%struct.Date* @date> + 8
     
+      0x7f7f5b02d210: <multiple use>
+    0x7f7f5b02d710: i32,ch = load 0x7f7f5b02d310, 0x7f7f5b02db10, 0x7f7f5b02d210
+    <LD4[getelementptr inbounds (%struct.Date* @date, i32 0, i32 2)]> [ORD=3]
     
-    Replacing.3 0x7f7f5b02dd10: i32 = add 0x7f7f5b02da10, 0x7f7f5b02dc10 [ORD=5]
-    
-    With: 0x7f7f5b030010: i32 = GlobalAddress<[3 x i32]* @a> + 4
-    
-    
-    Replacing.3 0x7f7f5b02d610: i32 = add 0x7f7f5b02d410, 0x7f7f5b02d510 [ORD=2]
-    
-    With: 0x7f7f5b02db10: i32 = GlobalAddress<%struct.Date* @date> + 8
-    
-    Optimized lowered selection DAG: BB#0 'main:entry'
-    SelectionDAG has 15 nodes:
-      0x7f7f5b02d210: i32 = undef [ORD=1]
-    
-          0x7f7f5ac10590: ch = EntryToken [ORD=1]
-    
-          0x7f7f5b02d010: i32 = Constant<0> [ORD=1]
-    
-          0x7f7f5b02d110: i32 = FrameIndex<0> [ORD=1]
-    
-          0x7f7f5b02d210: <multiple use>
-        0x7f7f5b02d310: ch = store 0x7f7f5ac10590, 0x7f7f5b02d010, 0x7f7f5b02d110, 
-        0x7f7f5b02d210<ST4[%retval]> [ORD=1]
-    
-        0x7f7f5b02db10: i32 = GlobalAddress<%struct.Date* @date> + 8
+        0x7f7f5b02d710: <multiple use>
+        0x7f7f5b02d710: <multiple use>
+        0x7f7f5b02d810: i32 = FrameIndex<1> [ORD=4]
     
         0x7f7f5b02d210: <multiple use>
-      0x7f7f5b02d710: i32,ch = load 0x7f7f5b02d310, 0x7f7f5b02db10, 0x7f7f5b02d210
-      <LD4[getelementptr inbounds (%struct.Date* @date, i32 0, i32 2)]> [ORD=3]
+      0x7f7f5b02d910: ch = store 0x7f7f5b02d710:1, 0x7f7f5b02d710, 0x7f7f5b02d810,
+       0x7f7f5b02d210<ST4[%day]> [ORD=4]
     
-          0x7f7f5b02d710: <multiple use>
-          0x7f7f5b02d710: <multiple use>
-          0x7f7f5b02d810: i32 = FrameIndex<1> [ORD=4]
+      0x7f7f5b030010: i32 = GlobalAddress<[3 x i32]* @a> + 4
     
-          0x7f7f5b02d210: <multiple use>
-        0x7f7f5b02d910: ch = store 0x7f7f5b02d710:1, 0x7f7f5b02d710, 0x7f7f5b02d810,
-         0x7f7f5b02d210<ST4[%day]> [ORD=4]
+      0x7f7f5b02d210: <multiple use>
+    0x7f7f5b02de10: i32,ch = load 0x7f7f5b02d910, 0x7f7f5b030010, 0x7f7f5b02d210
+    <LD4[getelementptr inbounds ([3 x i32]* @a, i32 0, i32 1)]> [ORD=6]
     
-        0x7f7f5b030010: i32 = GlobalAddress<[3 x i32]* @a> + 4
-    
-        0x7f7f5b02d210: <multiple use>
-      0x7f7f5b02de10: i32,ch = load 0x7f7f5b02d910, 0x7f7f5b030010, 0x7f7f5b02d210
-      <LD4[getelementptr inbounds ([3 x i32]* @a, i32 0, i32 1)]> [ORD=6]
-    
-    …
+  ...
 
 
-By llc -debug, you can see the DAG translation process. As above, the DAG list 
+By ``llc -debug``, you can see the DAG translation process. 
+As above, the DAG list 
 for date.day (add GlobalAddress<[3 x i32]* @a> 0, Constant<8>) with 3 nodes is 
 replaced by 1 node GlobalAddress<%struct.Date* @date> + 8. 
 The DAG list for a[1] is same. 
@@ -838,58 +861,58 @@ mechanism as below.
 
 .. code-block:: c++
 
-    // TargetLowering.cpp
-    bool
-    TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
-      // Assume that everything is safe in static mode.
-      if (getTargetMachine().getRelocationModel() == Reloc::Static)
-        return true;
-    
-      // In dynamic-no-pic mode, assume that known defined values are safe.
-      if (getTargetMachine().getRelocationModel() == Reloc::DynamicNoPIC &&
-         GA &&
-         !GA->getGlobal()->isDeclaration() &&
-         !GA->getGlobal()->isWeakForLinker())
+  // TargetLowering.cpp
+  bool
+  TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
+    // Assume that everything is safe in static mode.
+    if (getTargetMachine().getRelocationModel() == Reloc::Static)
       return true;
     
-      // Otherwise assume nothing is safe.
-      return false;
-    }
+    // In dynamic-no-pic mode, assume that known defined values are safe.
+    if (getTargetMachine().getRelocationModel() == Reloc::DynamicNoPIC &&
+       GA &&
+       !GA->getGlobal()->isDeclaration() &&
+       !GA->getGlobal()->isWeakForLinker())
+    return true;
     
-    // Cpu0TargetLowering.cpp
-    bool
-    Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
-      // The Cpu0 target isn't yet aware of offsets.
-      return false;
-    }
+    // Otherwise assume nothing is safe.
+    return false;
+  }
+    
+  // Cpu0TargetLowering.cpp
+  bool
+  Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
+    // The Cpu0 target isn't yet aware of offsets.
+    return false;
+  }
 
 Beyond that, we need to add the following code fragment to Cpu0ISelDAGToDAG.cpp,
 
 .. code-block:: c++
 
-    //  Cpu0ISelDAGToDAG.cpp
-    /// ComplexPattern used on Cpu0InstrInfo
-    /// Used on Cpu0 Load/Store instructions
-    bool Cpu0DAGToDAGISel::
-    SelectAddr(SDNode *Parent, SDValue Addr, SDValue &Base, SDValue &Offset) {
-    ...
-      // Addresses of the form FI+const or FI|const
-      if (CurDAG->isBaseWithConstantOffset(Addr)) {
-        ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
-        if (isInt<16>(CN->getSExtValue())) {
+  //  Cpu0ISelDAGToDAG.cpp
+  /// ComplexPattern used on Cpu0InstrInfo
+  /// Used on Cpu0 Load/Store instructions
+  bool Cpu0DAGToDAGISel::
+  SelectAddr(SDNode *Parent, SDValue Addr, SDValue &Base, SDValue &Offset) {
+  ...
+    // Addresses of the form FI+const or FI|const
+    if (CurDAG->isBaseWithConstantOffset(Addr)) {
+      ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
+      if (isInt<16>(CN->getSExtValue())) {
     
-          // If the first operand is a FI, get the TargetFI Node
-          if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>
-                                              (Addr.getOperand(0)))
-            Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
-          else
-            Base = Addr.getOperand(0);
+        // If the first operand is a FI, get the TargetFI Node
+        if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>
+                                            (Addr.getOperand(0)))
+          Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
+        else
+          Base = Addr.getOperand(0);
     
-          Offset = CurDAG->getTargetConstant(CN->getZExtValue(), ValTy);
-          return true;
-        }
+        Offset = CurDAG->getTargetConstant(CN->getZExtValue(), ValTy);
+        return true;
       }
     }
+  }
 
 Recall we have translated DAG list for date.day 
 (add GlobalAddress<[3 x i32]* @a> 0, Constant<8>) into 
@@ -898,20 +921,20 @@ Constant<8>) by the following code in Cpu0ISelLowering.cpp.
 
 .. code-block:: c++
 
-    // Cpu0ISelLowering.cpp
-    SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
-                                        SelectionDAG &DAG) const {
-      ...
-        // %hi/%lo relocation
-        SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
-                                                  Cpu0II::MO_ABS_HI);
-        SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
-                                                  Cpu0II::MO_ABS_LO);
-        SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
-        SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
-        return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
-      …
-    }
+  // Cpu0ISelLowering.cpp
+  SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
+                                      SelectionDAG &DAG) const {
+    ...
+      // %hi/%lo relocation
+      SDValue GAHi = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+                                                Cpu0II::MO_ABS_HI);
+      SDValue GALo = DAG.getTargetGlobalAddress(GV, dl, MVT::i32, 0,
+                                                Cpu0II::MO_ABS_LO);
+      SDValue HiPart = DAG.getNode(Cpu0ISD::Hi, dl, VTs, &GAHi, 1);
+      SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, MVT::i32, GALo);
+      return DAG.getNode(ISD::ADD, dl, MVT::i32, HiPart, Lo);
+    ...
+  }
 
 So, when the SelectAddr(...) of Cpu0ISelDAGToDAG.cpp is called. 
 The Addr SDValue in SelectAddr(..., Addr, ...) is DAG list for date.day 

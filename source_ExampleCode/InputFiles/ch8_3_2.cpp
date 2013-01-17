@@ -1,6 +1,6 @@
 // clang -c ch8_3_2.cpp -emit-llvm -o ch8_3_2.bc
-// /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_3_2.bc -o ch8_3_2.cpu0.s
-// /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch8_3_2.bc -o ch8_3_2.mips.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_3_2.bc -o ch8_3_2.cpu0.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch8_3_2.bc -o ch8_3_2.mips.s
 
 //#include <stdio.h>
 #include <stdarg.h>

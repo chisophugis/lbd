@@ -1,5 +1,5 @@
 // clang -c ch8_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch8_3_3.bc
-// /Users/Jonathan/llvm/3.1.test/cpu0/1/cmake_debug_build/bin/Debug/llc ch8_3_3.bc -o ch8_3_3.s
+// /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc ch8_3_3.bc -o ch8_3_3.s
 // clang++ ch8_3_3.s -o ch8_3_3.native
 // ./ch8_3_3.native
 // lldb -- ch7_3_3.native

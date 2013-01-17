@@ -15,7 +15,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 # Custom
-GH_PAGES_SOURCES = code_fragment Fig source Table terminal_io source_ExampleCode Makefile genexample.sh
+GH_PAGES_SOURCES = Fig source Table source_ExampleCode Makefile genexample.sh
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext gh-pages
 
@@ -165,8 +165,8 @@ gh-pages:
 	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
 	make html latexpdf epub
 	mv -fv build/html/* ./
-	mv -fv build/latex/WriteAnLLVMBackendTutorialForCpu0.pdf "./WriteAnLLVMBackendTutorialForCpu0.pdf"
-	mv -fv build/epub/WriteAnLLVMBackendTutorialForCpu0.epub "./WriteAnLLVMBackendTutorialForCpu0.epub"
+	mv -fv build/latex/TutorialLLVMBackendCpu0.pdf "./TutorialLLVMBackendCpu0.pdf"
+	mv -fv build/epub/TutorialLLVMBackendCpu0.epub "./TutorialLLVMBackendCpu0.epub"
 	rm -rf $(GH_PAGES_SOURCES) build LLVMBackendTutorialExampleCode
 	git add -A
 	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master

@@ -1,3 +1,0 @@
-def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
-
-Pattern = [(set CPURegs:$ra, (add RC:$rb, immSExt16:$imm16))]

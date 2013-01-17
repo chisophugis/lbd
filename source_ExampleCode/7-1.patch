@@ -1,17 +1,9 @@
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
---- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -44,6 +44,7 @@
- 
- const char *Cpu0TargetLowering::getTargetNodeName(unsigned Opcode) const {
-   switch (Opcode) {
-+  case Cpu0ISD::JmpLink:           return "Cpu0ISD::JmpLink";
-   case Cpu0ISD::Hi:                return "Cpu0ISD::Hi";
-   case Cpu0ISD::Lo:                return "Cpu0ISD::Lo";
-   case Cpu0ISD::GPRel:             return "Cpu0ISD::GPRel";
-@@ -61,17 +62,27 @@
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:45.000000000 +0800
+@@ -64,14 +64,24 @@
    // Set up the register classes
-   addRegisterClass(MVT::i32, Cpu0::CPURegsRegisterClass);
+   addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
  
 +  // Used by legalize types to correctly generate the setcc result.
 +  // Without this, every float setcc comes with a AND/OR with the result,
@@ -34,12 +26,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
 +
    setTargetDAGCombine(ISD::SDIVREM);
    setTargetDAGCombine(ISD::UDIVREM);
--  
-+
- //- Set .align 2
- // It will emit .align 2 later
-   setMinFunctionAlignment(2);
-@@ -138,6 +149,7 @@
+ 
+@@ -141,6 +151,7 @@
  {
    switch (Op.getOpcode())
    {
@@ -47,7 +35,7 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
      case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
    }
    return SDValue();
-@@ -150,6 +162,11 @@
+@@ -153,6 +164,11 @@
  //===----------------------------------------------------------------------===//
  //  Misc Lower Operation implementation
  //===----------------------------------------------------------------------===//
@@ -59,33 +47,22 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
  
  SDValue Cpu0TargetLowering::LowerGlobalAddress(SDValue Op,
                                                 SelectionDAG &DAG) const {
-@@ -200,6 +217,18 @@
+@@ -203,6 +219,12 @@
  
  #include "Cpu0GenCallingConv.inc"
  
 +SDValue
-+Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-+                              CallingConv::ID CallConv, bool isVarArg,
-+                              bool doesNotRet, bool &isTailCall,
-+                              const SmallVectorImpl<ISD::OutputArg> &Outs,
-+                              const SmallVectorImpl<SDValue> &OutVals,
-+                              const SmallVectorImpl<ISD::InputArg> &Ins,
-+                              DebugLoc dl, SelectionDAG &DAG,
++Cpu0TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 +                              SmallVectorImpl<SDValue> &InVals) const {
-+  return InChain;
++  return CLI.Chain;
 +}
 +
  /// LowerFormalArguments - transform physical registers into virtual registers
  /// and generate load operations for arguments places on the stack.
  SDValue
-@@ -233,3 +262,4 @@
-   // The Mips target isn't yet aware of offsets.
-   return false;
- }
-+
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
---- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:45.000000000 +0800
 @@ -77,6 +77,7 @@
      const Cpu0Subtarget *Subtarget;
  
@@ -94,26 +71,20 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
      SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
  
  	//- must be exist without function all
-@@ -86,6 +87,16 @@
-                            const SmallVectorImpl<ISD::InputArg> &Ins,
+@@ -87,6 +88,10 @@
                             DebugLoc dl, SelectionDAG &DAG,
                             SmallVectorImpl<SDValue> &InVals) const;
-+                           
-+    virtual SDValue
-+      LowerCall(SDValue Chain, SDValue Callee,
-+                CallingConv::ID CallConv, bool isVarArg,
-+                bool doesNotRet, bool &isTailCall,
-+                const SmallVectorImpl<ISD::OutputArg> &Outs,
-+                const SmallVectorImpl<SDValue> &OutVals,
-+                const SmallVectorImpl<ISD::InputArg> &Ins,
-+                DebugLoc dl, SelectionDAG &DAG,
-+                SmallVectorImpl<SDValue> &InVals) const;
  
++    virtual SDValue
++      LowerCall(TargetLowering::CallLoweringInfo &CLI,
++                SmallVectorImpl<SDValue> &InVals) const;
++
  	//- must be exist without function all
      virtual SDValue
+       LowerReturn(SDValue Chain,
 diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
---- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-16 21:39:45.000000000 +0800
 @@ -110,6 +110,17 @@
    let Inst{15-0}  = imm16;
  }
@@ -133,8 +104,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
  // Format J instruction class in Cpu0 : <|opcode|address|>
  //===----------------------------------------------------------------------===//
 diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
---- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
 @@ -53,6 +53,12 @@
  //===----------------------------------------------------------------------===//
  // Cpu0 Operand, Complex Patterns and Transformations Definitions.
@@ -235,8 +206,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
  multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
    def : Pat<(seteq RC:$lhs, RC:$rhs),
 diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
---- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-16 21:39:45.000000000 +0800
 @@ -42,6 +42,8 @@
  
    switch(MO.getTargetFlags()) {
@@ -268,8 +239,8 @@ diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
    case MachineOperand::MO_RegisterMask:
      break;
 diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-16 21:39:45.000000000 +0800
 @@ -58,6 +58,7 @@
    case MCSymbolRefExpr::VK_None:           break;
  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
@@ -279,9 +250,9 @@ diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0Ins
    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -57,10 +57,24 @@
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-16 21:39:45.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-16 21:39:45.000000000 +0800
+@@ -69,10 +69,24 @@
  
    void EncodeInstruction(const MCInst &MI, raw_ostream &OS,
                           SmallVectorImpl<MCFixup> &Fixups) const;
@@ -306,7 +277,7 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu
     // getMachineOpValue - Return binary encoding of operand. If the machin
     // operand requires relocation, record the relocation and return zero.
    unsigned getMachineOpValue(const MCInst &MI,const MCOperand &MO,
-@@ -114,6 +128,38 @@
+@@ -128,6 +142,38 @@
    EmitInstruction(Binary, Size, OS);
  }
  

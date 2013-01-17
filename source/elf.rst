@@ -20,7 +20,7 @@ record at that time.
 This chapter will use the binutils which has been installed in 
 "sub-section Install other tools on iMac" of Appendix A: “Installing LLVM” 
 [#]_ to analysis cpu0 ELF file. 
-You will learn the objdump, readelf, …, tools and understand the ELF file 
+You will learn the objdump, readelf, ..., tools and understand the ELF file 
 format itself through using these tools to analyze the cpu0 generated obj in 
 this chapter. 
 LLVM has the llvm-objdump tool which like objdump but it's only support the 
@@ -48,14 +48,15 @@ demonstrate how to use binutils and gcc to analysis ELF through the example
 code in his book. 
 It's a Chinese book of “System Software” in concept and practice. 
 This book does the real analysis through binutils. 
-The “System Software”[#]_ written by Beck is a famous book in concept of telling 
-readers what is the compiler output, what is the linker output, what is the 
-loader output, and how they work together. 
+The “System Software”[#]_ written by Beck is a famous book in concept of 
+telling readers what is the compiler output, what is the linker output, 
+what is the loader output, and how they work together. 
 But it covers the concept only. 
 You can reference it to understand how the **“Relocation Record”** works if you 
 need to refresh or learning this knowledge for this chapter.
 
-[#]_, [#]_, [#]_ are the Chinese documents available from the cpu0 author on web site.
+[#]_, [#]_, [#]_ are the Chinese documents available from the cpu0 author on 
+web site.
 
 
 ELF format
@@ -74,8 +75,8 @@ So, there are two views in it as :ref:`elf_f1`.
     ELF file format overview
 
 As :ref:`elf_f1`, the “Section header table” include sections .text, .rodata, 
-…, .data which are sections layout for code, read only data, …, and read/write 
-data. 
+..., .data which are sections layout for code, read only data, ..., and 
+read/write data. 
 “Program header table” include segments include run time code and data. 
 The definition of segments is run time layout for code and data, and sections 
 is link time layout for code and data.
@@ -88,7 +89,7 @@ Let's run 7/7/Cpu0 with ch6_1.cpp, and dump ELF header information by
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=obj ch6_1.bc -o ch6_1.cpu0.o
   
   [Gamma@localhost InputFiles]$ readelf -h ch6_1.cpu0.o 
@@ -114,7 +115,7 @@ Let's run 7/7/Cpu0 with ch6_1.cpp, and dump ELF header information by
     Section header string table index: 7
   [Gamma@localhost InputFiles]$ 
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=mips -relocation-model=pic -filetype=obj ch6_1.bc -o ch6_1.mips.o
   
   [Gamma@localhost InputFiles]$ readelf -h ch6_1.mips.o 
@@ -142,7 +143,7 @@ Let's run 7/7/Cpu0 with ch6_1.cpp, and dump ELF header information by
 
 
 As above ELF header display, it contains information of magic number, version, 
-ABI, …, . The Machine field of cpu0 is unknown while mips is MIPSR3000. 
+ABI, ..., . The Machine field of cpu0 is unknown while mips is MIPSR3000. 
 It is because cpu0 is not a popular CPU recognized by utility readelf. 
 Let's check ELF segments information as follows,
 
@@ -193,7 +194,7 @@ The cpu0 backend translate global variable as follows,
 .. code-block:: bash
 
   [Gamma@localhost InputFiles]$ clang -c ch6_1.cpp -emit-llvm -o ch6_1.bc
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=asm ch6_1.bc -o ch6_1.cpu0.s
   [Gamma@localhost InputFiles]$ cat ch6_1.cpu0.s 
     .section .mdebug.abi32
@@ -222,7 +223,7 @@ The cpu0 backend translate global variable as follows,
     .size gI, 4
   
   
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=obj ch6_1.bc -o ch6_1.cpu0.o
   [Gamma@localhost InputFiles]$ objdump -s ch6_1.cpu0.o
   
@@ -367,7 +368,7 @@ generated.
 
 .. code-block:: bash
 
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=cpu0 -relocation-model=pic -filetype=obj ch8_3_3.bc -o ch8_3__3.
   cpu0.o
   [Gamma@localhost InputFiles]$ readelf -tr ch8_3_3.cpu0.o 
@@ -429,7 +430,7 @@ generated.
    Offset     Info    Type            Sym.Value  Sym. Name
   0000001c  00000302 unrecognized: 2       00000000   .text
   00000034  00000302 unrecognized: 2       00000000   .text
-  [Gamma@localhost InputFiles]$ /usr/local/llvm/3.1.test/cpu0/1/cmake_debug_build/
+  [Gamma@localhost InputFiles]$ /usr/local/llvm/test/cmake_debug_build/
   bin/llc -march=mips -relocation-model=pic -filetype=obj ch8_3_3.bc -o ch8_3__3.
   mips.o
   [Gamma@localhost InputFiles]$ readelf -tr ch8_3_3.mips.o 

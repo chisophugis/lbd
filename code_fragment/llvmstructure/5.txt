@@ -1,4 +1,0 @@
-class Date {	// declare Date
-    int year, month, day;
-}; 
-Date date;	// define(instance) date

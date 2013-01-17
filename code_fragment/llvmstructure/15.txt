@@ -1,5 +1,0 @@
-// ch3.cpp
-int main() 
-{ 
-    return 0; 
-} 

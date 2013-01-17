@@ -1,26 +1,29 @@
-.. _sec-porting32:
+.. _sec-appendix-old-llvm-ver:
 
-Porting to LLVM 3.2
-===================
+Appendix B: LLVM changes
+========================
 
-LLVM version 3.2 has released in December, 2012. 
-Just a few API which Cpu0 used is changes. 
-9/1/Cpu0 which support 3.2 reflect these changes.
-You can check these changes by compare tools.
-In addition to highlight these changes, this chapter also explains the Mips 
-backend changes in 3.2.
+This chapter show you the old version of LLVM API and structure 
+those affect Cpu0 back end. 
+Mips changes also mentioned in this chapter. 
+If you work on the latest LLVM version only, please skip this chapter. 
+LLVM version 3.2 released in 20 December, 2012. 
+Version 3.1 released in 22 May, 2012. 
+This book started from August, 2012. 
+This chapter discuss the old version start from 3.1. 
 
-.. todo:: The changes made to port from LLVM 3.1->3.2 should be reflected throughout 
-		  the rest of the book. We should assume the reader is using the current release
-		  of LLVM when working with this book.
 
-API changes in LLVM 3.2
------------------------
+Difference between 3.2 and 3.1
+------------------------------
 
-List API changes as follows,
+API difference
+~~~~~~~~~~~~~~~
 
-1. The parameters of call back function for Target Registration is changed by 
-add parameter "MCRegisterInfo" in the callback function for 
+Difference in API as follows,
+
+1. In llvm 3.1, the parameters of call back function for Target Registration. 
+is different with 3.2. 
+LLVM 3.2 add parameter "MCRegisterInfo" in the callback function for 
 RegisterMCCodeEmitter() and "StringRef" in the callback function for  
 RegisterMCAsmBackend. 
 In other word, you can get more information of registers and CPU 
@@ -80,20 +83,7 @@ Version 3.2 as follows,
   MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT,
                        StringRef CPU);
 
-2. Change the name from CPURegsRegisterClass to CPURegsRegClass. 
-The source of register class information came from your backend <register>.td. 
-The new name CPURegsRegClass is **"call by reference"** type in C++ while the 
-old CPURegsRegisterClass is **"pointer"** type. The "reference" type use 
-**"."** while pointer type use **"->"** as follows,
-
-.. code-block:: c++
-
-  unsigned CPURegSize = Cpu0::CPURegsRegClass.getSize();
-
-  unsigned CPURegSize = Cpu0::CPURegsRegisterClass->getSize();
-
-
-3. Change LowerCall() parameters as follows,
+2. Change LowerCall() parameters as follows,
 
 Version 3.1 as follows,
 
@@ -138,10 +128,10 @@ You can get the 3.1 same information by,
     ...
   }
 
-As chapter "function call", LowerCall() handle the outgoing arguments passing 
-in function call. 
+As chapter "function call", the role of LowerCall() is handling the outgoing 
+arguments passing in function call. 
 
-4. Above changes is mandatory. 
+3. Above changes is mandatory. 
 There are some changes are adviced to follow. Like the below. 
 We comment the "Change Reason" in the following code. You can get the 
 "Change Reason" by internet searching.
@@ -176,19 +166,48 @@ We comment the "Change Reason" in the following code. You can get the
   ...
 
 
-Verify the Cpu0 for 3.2
------------------------
+Structure difference
+~~~~~~~~~~~~~~~~~~~~
 
-3.2_src_files_modify include the LLVM 3.2 original files and those files 
+1. Change the name from CPURegsRegisterClass (3.1) to CPURegsRegClass (3.2). 
+The source of register class information came from your backend <register>.td. 
+The new name CPURegsRegClass is **"call by reference"** type in C++ while the 
+old CPURegsRegisterClass is **"pointer"** type. The "reference" type use 
+**"."** while pointer type use **"->"** as follows,
+
+.. code-block:: c++
+
+  // 3.2
+  unsigned CPURegSize = Cpu0::CPURegsRegClass.getSize();
+  // 3.1
+  unsigned CPURegSize = Cpu0::CPURegsRegisterClass->getSize();
+
+
+2. DebugInfo.h is moved
+
+.. code-block:: c++
+
+  // 3.1
+  #include "llvm/Analysis/DebugInfo.h
+  
+  // 3.2
+  #include "llvm/DebugInfo.h
+
+
+
+Verify the Cpu0 for difference 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+3.1_src_files_modify include the LLVM 3.1 those files 
 modified for Cpu0 backend support. 
-Please update the LLVM 3.2 as Appendix A indicate (just copy 
-3.2_src_files_modify/src_files_modify/src to your LLVM 3.2 source directory). 
-9/1/Cpu0 is the code for LLVM version 3.2. 
+Please copy 
+3.1_src_files_modify/src_files_modify/src to your LLVM 3.1 source directory. 
+The llvm3.1/Cpu0 is the code for LLVM version 3.1. 
 File ch_all.cpp include the all C/C++ operators, global variable, struct, 
 array, control statement and function call test. 
-Run 9/1/Cpu0 with ch_all.cpp will get the assembly code as below. 
-By compare it with the output of 3.1 result, you can verify the correction 
-as below. The difference is came from 3.2 correcting the label number for 
+Run llvm3.1/Cpu0 with ch_all.cpp will get the assembly code as below. 
+By compare it with the output of 3.2 result, you can verify the correction 
+as below. The difference came from 3.2 correcting the label number in 
 order. 
 
 .. code-block:: c++
@@ -288,29 +307,29 @@ order.
 
 .. code-block:: bash
 
-    118-165-78-60:InputFiles Jonathan$ diff ch_all.3.1.cpu0.s ch_all.3.2.cpu0.s 
-    262c262
-    <   jge $BB4_7
-    ---
-    >   jge $BB4_6
-    285d284
-    < # BB#6:                                 #   in Loop: Header=BB4_1 Depth=1
-    290c289
-    < $BB4_7:
-    ---
-    > $BB4_6:
-    295,297c294,296
-    <   jne $BB4_9
-    <   jmp $BB4_8
-    < $BB4_8:                                 # %SP_return
-    ---
-    >   jne $BB4_8
-    >   jmp $BB4_7
-    > $BB4_7:                                 # %SP_return
-    301c300
-    < $BB4_9:                                 # %CallStackCheckFailBlk
-    ---
-    > $BB4_8:                                 # %CallStackCheckFailBlk
+  118-165-78-60:InputFiles Jonathan$ diff ch_all.3.1.cpu0.s ch_all.3.2.cpu0.s 
+  262c262
+  <   jge $BB4_7
+  ---
+  >   jge $BB4_6
+  285d284
+  < # BB#6:                                 #   in Loop: Header=BB4_1 Depth=1
+  290c289
+  < $BB4_7:
+  ---
+  > $BB4_6:
+  295,297c294,296
+  <   jne $BB4_9
+  <   jmp $BB4_8
+  < $BB4_8:                                 # %SP_return
+  ---
+  >   jne $BB4_8
+  >   jmp $BB4_7
+  > $BB4_7:                                 # %SP_return
+  301c300
+  < $BB4_9:                                 # %CallStackCheckFailBlk
+  ---
+  > $BB4_8:                                 # %CallStackCheckFailBlk
 
 .. code-block:: bash
 
@@ -337,7 +356,7 @@ order.
   ...
   
   
-  // ch_all.3.2.cpu0.s
+  // ch_all.3.1.cpu0.s
   ...
   $BB4_5:                                 #   in Loop: Header=BB4_1 Depth=1
     ld  $3, 0($3)
@@ -361,15 +380,35 @@ order.
   ...
 
 
-Mips backend changes in 3.2
----------------------------
+Difference in Mips backend
+--------------------------
 
-In 3.1, Mips use .cpload and .cprestore pseudo assembly code. 
+In 3.1, Mips use **".cpload"** and **".cprestore"** pseudo assembly code. 
 It removes these pseudo assembly code in 3.2.
 This change is good for spim (mips assembly code simulator) which run for 
 Mips assembly code. According the theory of "System Software", some pseudo 
 assembly code (especially for those not in standard) cannot be translated by  
-assembler. It will break out assembly code simulator.
+assembler. It will break down in assembly code simulator. 
+Run ch_mips_llvm3.2_globalvar_changes.cpp with llvm 3.1 and 3.2 for mips, you 
+will find the **".cprestore"** is removed directly since 3.2 use other register 
+in other the called function (like use $1 in f() and the remove **.gprestore** 
+in sum_i()).
+**".cpload"** is replaced with instructions as follows,
 
-To be continue...
+.. code-block:: bash
+
+  // llvm 3.1 mips
+    .cpload $25
+  
+  // llvm 3.2 mips
+    lui $2, %hi(_gp_disp)
+    addiu $2, $2, %lo(_gp_disp)
+    ...
+    addu  $gp, $2, $25
+
+Reference [#]_ for **".cpload"**, **".cprestore"** and **"_gp_disp"**.
+
+
+
+.. [#] http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
 

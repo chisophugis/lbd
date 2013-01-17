@@ -279,7 +279,7 @@ following pattern,
     multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
       Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
       Instruction CMPOp> {
-    …
+    ...
     def : Pat<(brcond (i32 (setne RC:$lhs, RC:$rhs)), bb:$dst),
               (JNEOp (CMPOp RC:$lhs, RC:$rhs), bb:$dst)>;
     ...
@@ -287,8 +287,8 @@ following pattern,
               (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst)>;
 
 Above definition support (setne RC:$lhs, RC:$rhs) register to register compare. 
-There are other compare pattern like, seteq, setlt, … . In addition to seteq, 
-setne, …, we define setueq, setune, …,  by reference Mips code even though we 
+There are other compare pattern like, seteq, setlt, ... . In addition to seteq, 
+setne, ..., we define setueq, setune, ...,  by reference Mips code even though we 
 didn't find how setune came from. 
 We have tried to define unsigned int type, but clang still generate setne 
 instead of setune. 
@@ -356,13 +356,14 @@ readability.
       // Reserved
       ZERO, AT, GP, FP, SW, SP, LR, PC)>;
 
-By the following ``llc`` option, you can get the obj file and dump it's content 
-by hexdump as follows,
+7/1/Cpu0 include support for control flow statement. 
+Run with it as well as the following ``llc`` option, you can get the obj file 
+and dump it's content by hexdump as follows,
 
 .. code-block:: c++
 
     118-165-79-206:InputFiles Jonathan$ cat ch7_1_1.cpu0.s 
-    …
+    ...
         ld  $3, 32($sp)
         cmp $3, $2
         jne $BB0_2
@@ -373,19 +374,19 @@ by hexdump as follows,
         st  $2, 32($sp)
     $BB0_2:                                 # %if.end
         ld  $2, 28($sp)
-    …
+    ...
 
 .. code-block:: bash
     
-    118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/3.1.test/cpu0/1/
+    118-165-79-206:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
     cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=obj 
     ch7_1_1.bc -o ch7_1_1.cpu0.o
 
     118-165-79-206:InputFiles Jonathan$ hexdump ch7_1_1.cpu0.o 
         // jmp offset is 0x10=16 bytes which is correct
-    0000080 …......................... 10 20 20 02 21 00 00 10
+    0000080 ............................ 10 20 20 02 21 00 00 10
     
-    0000090 26 00 00 00 …............................................
+    0000090 26 00 00 00 ...............................................
 
 The immediate value of jne (op 0x21) is 16; The offset between jne and $BB0_2 
 is 20 (5 words = 5*4 bytes). Suppose the jne address is X, then the label 
@@ -415,8 +416,8 @@ List and explain this again as follows,
     $BB0_2:                                 # %if.end
         ld  $2, 28($sp)
 
-If cpu0 do jne compare in execution stage, then we should set PC=PC+12, offset 
-of ($BB0_2, jn e $BB02) – 8, in this example.
+If cpu0 do **"jne"** compare in execution stage, then we should set PC=PC+12, 
+offset of ($BB0_2, jn e $BB02) – 8, in this example.
 
 Cpu0 is for teaching purpose and didn't consider the performance with design. 
 In reality, the conditional branch is important in performance of CPU design. 
@@ -450,18 +451,18 @@ Finally we list the code added for full support of control flow statement,
     MCOperand Cpu0MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                                   MachineOperandType MOTy,
                                                   unsigned Offset) const {
-      …
+      ...
       switch(MO.getTargetFlags()) {
       default:                   llvm_unreachable("Invalid target flag!");
       case Cpu0II::MO_NO_FLAG:   Kind = MCSymbolRefExpr::VK_None; break;
-      …
+      ...
       }
       ...
       switch (MOTy) {
       case MachineOperand::MO_MachineBasicBlock:
         Symbol = MO.getMBB()->getSymbol();
         break;
-      …
+      ...
     }
     
     MCOperand Cpu0MCInstLower::LowerOperand(const MachineOperand& MO,
@@ -475,9 +476,9 @@ Finally we list the code added for full support of control flow statement,
       case MachineOperand::MO_MachineBasicBlock:
       case MachineOperand::MO_GlobalAddress:
       case MachineOperand::MO_BlockAddress:
-      …
+      ...
       }
-      …
+      ...
     }
     
     // Cpu0ISelLowering.cpp
@@ -496,7 +497,7 @@ Finally we list the code added for full support of control flow statement,
       
       // Operations not directly supported by Cpu0.
       setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
-      …
+      ...
     }
     
     // Cpu0InstrFormats.td
@@ -594,18 +595,13 @@ empty function in Cpu0ISelLowering.cpp as follows,
 
 .. code-block:: c++
 
-    // Cpu0ISelLowering.cpp
-    SDValue
-    Cpu0TargetLowering::LowerCall(SDValue InChain, SDValue Callee,
-                                  CallingConv::ID CallConv, bool isVarArg,
-                                  bool doesNotRet, bool &isTailCall,
-                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                  const SmallVectorImpl<SDValue> &OutVals,
-                                  const SmallVectorImpl<ISD::InputArg> &Ins,
-                                  DebugLoc dl, SelectionDAG &DAG,
-                                  SmallVectorImpl<SDValue> &InVals) const {
-      return InChain;
-    }
+  // Cpu0ISelLowering.cpp
+  SDValue
+  Cpu0TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                  SmallVectorImpl<SDValue> &InVals) const {
+    return CLI.Chain;
+  }
+
 
 With this LowerCall(), it can translate ch7_1_4.cpp, ch7_1_4.bc to 
 ch7_1_4.cpu0.s as follows,
@@ -694,6 +690,87 @@ ch7_1_4.cpu0.s as follows,
         .4byte  1                       # 0x1
         .4byte  2                       # 0x2
         .size   $_ZZ4mainE1a, 12
+
+The ch7_1_5.cpp is for test C operators **==, !=, &&, ||**. No code need to 
+add since we have take care them before. 
+But it can be test only when the control flow statement support is ready, as 
+follows,
+
+.. code-block:: c++
+
+  // ch7_1_5.cpp
+  int main()
+  {
+    unsigned int a = 0;
+    int b = 1;
+    int c = 2;
+    
+    if ((a == 0 && b == 2) || (c != 2)) {
+      a++;
+    }
+    
+    return 0;
+  }
+
+.. code-block:: bash
+
+  118-165-78-230:InputFiles Jonathan$ clang -c ch7_1_5.cpp -emit-llvm -o ch7_1_5.bc
+  118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch7_1_5.bc -o 
+  ch7_1_5.cpu0.s
+  118-165-78-230:InputFiles Jonathan$ cat ch7_1_5.cpu0.s 
+    .section .mdebug.abi32
+    .previous
+    .file "ch7_1_5.bc"
+    .text
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,16,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -16
+  $tmp1:
+    .cfi_def_cfa_offset 16
+    addiu $3, $zero, 0
+    st  $3, 12($sp)
+    st  $3, 8($sp)
+    addiu $2, $zero, 1
+    st  $2, 4($sp)
+    addiu $2, $zero, 2
+    st  $2, 0($sp)
+    ld  $4, 8($sp)
+    cmp $4, $3
+    jne $BB0_2		// a != 0
+    jmp $BB0_1
+  $BB0_1:			// a == 0
+    ld  $3, 4($sp)
+    cmp $3, $2
+    jeq $BB0_3		// b == 2
+    jmp $BB0_2
+  $BB0_2:
+    ld  $3, 0($sp)
+    cmp $3, $2		// c == 2
+    jeq $BB0_4
+    jmp $BB0_3
+  $BB0_3:			// (a == 0 && b == 2) || (c != 2)
+    ld  $2, 8($sp)
+    addiu $2, $2, 1	// a++
+    st  $2, 8($sp)
+  $BB0_4:
+    addiu $sp, $sp, 16
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp2:
+    .size main, ($tmp2)-main
+    .cfi_endproc
 
 
 RISC CPU knowledge

@@ -65,3 +65,6 @@ Currently skills/setting use in this document
    `web link`_ to reference outside web section. Because I find the hyper link 
    for reference section of LLVM is changed from version to version.
 
+7. For easy to verify the out of date reference. 
+Put outside web reference at end of chapter with footnote [#].
+

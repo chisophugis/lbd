@@ -1,6 +1,6 @@
 diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
---- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
++++ 5/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
 @@ -38,6 +38,12 @@
                             [SDNPOutGlue]>;
  
@@ -26,8 +26,8 @@ diff -Naur 4/6_4/Cpu0/Cpu0InstrInfo.td 5/Cpu0/Cpu0InstrInfo.td
  // instructions. The same not happens for stack address copies, so an
  // add op with mem ComplexPattern is used and the stack address copy
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists.txt
---- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-16 21:39:45.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/CMakeLists.txt	2013-01-16 21:39:45.000000000 +0800
 @@ -1,7 +1,10 @@
  # MCTargetDesc/CMakeLists.txt
  add_llvm_library(LLVMCpu0Desc
@@ -41,8 +41,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/CMakeLists.txt 5/Cpu0/MCTargetDesc/CMakeLists
  add_dependencies(LLVMCpu0Desc Cpu0CommonTableGen)
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -0,0 +1,215 @@
++++ 5/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp	2013-01-16 21:39:45.000000000 +0800
+@@ -0,0 +1,224 @@
 +//===-- Cpu0ASMBackend.cpp - Cpu0 Asm Backend  ----------------------------===//
 +//
 +//                     The LLVM Compiler Infrastructure
@@ -112,7 +112,14 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0As
 +    :MCAsmBackend(), OSType(_OSType), IsLittle(_isLittle) {}
 +
 +  MCObjectWriter *createObjectWriter(raw_ostream &OS) const {
-+    return createCpu0ELFObjectWriter(OS, OSType, IsLittle);
++  // Change Reason:
++  // Reduce the exposure of Triple::OSType in the ELF object writer. This will
++  //  avoid including ADT/Triple.h in many places when the target specific bits 
++  //  are moved.
++    return createCpu0ELFObjectWriter(OS,
++      MCELFObjectTargetWriter::getOSABI(OSType), IsLittle);
++  // Even though, the old function still work on LLVM version 3.2
++  //    return createCpu0ELFObjectWriter(OS, OSType, IsLittle);
 +  }
 +
 +  /// ApplyFixup - Apply the \arg Value for given \arg Fixup into the provided
@@ -248,19 +255,21 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0AsmBackend.cpp 5/Cpu0/MCTargetDesc/Cpu0As
 +} // namespace
 +
 +// MCAsmBackend
-+MCAsmBackend *llvm::createCpu0AsmBackendEL32(const Target &T, StringRef TT) {
++MCAsmBackend *llvm::createCpu0AsmBackendEL32(const Target &T, StringRef TT,
++                                             StringRef CPU) {
 +  return new Cpu0AsmBackend(T, Triple(TT).getOS(),
 +                            /*IsLittle*/true);
 +}
 +
-+MCAsmBackend *llvm::createCpu0AsmBackendEB32(const Target &T, StringRef TT) {
++MCAsmBackend *llvm::createCpu0AsmBackendEB32(const Target &T, StringRef TT,
++                                             StringRef CPU) {
 +  return new Cpu0AsmBackend(T, Triple(TT).getOS(),
 +                            /*IsLittle*/false);
 +}
 +
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-16 21:39:45.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-01-16 21:39:45.000000000 +0800
 @@ -27,6 +27,61 @@
  ///
  namespace Cpu0II {
@@ -359,7 +368,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 5/Cpu0/MCTargetDesc/Cpu0BaseIn
  #endif
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp	2013-01-16 21:39:45.000000000 +0800
 @@ -0,0 +1,245 @@
 +//===-- Cpu0ELFObjectWriter.cpp - Cpu0 ELF Writer -------------------------===//
 +//
@@ -607,8 +616,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0ELFObjectWriter.cpp 5/Cpu0/MCTargetDesc/C
 +  return createELFObjectWriter(MOTW, OS, IsLittleEndian);
 +}
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-16 21:39:45.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0FixupKinds.h	2013-01-16 21:39:45.000000000 +0800
 @@ -26,6 +26,76 @@
      // Branch fixups resulting in R_CPU0_16.
      fixup_Cpu0_16 = FirstTargetFixupKind,
@@ -693,8 +702,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0FixupKinds.h 5/Cpu0/MCTargetDesc/Cpu0Fixu
 -
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
 --- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-10 18:32:51.000000000 +0800
-@@ -0,0 +1,164 @@
++++ 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-16 21:39:45.000000000 +0800
+@@ -0,0 +1,178 @@
 +//===-- Cpu0MCCodeEmitter.cpp - Convert Cpu0 Code to Machine Code ---------===//
 +//
 +//                     The LLVM Compiler Infrastructure
@@ -726,8 +735,20 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +
 +namespace {
 +class Cpu0MCCodeEmitter : public MCCodeEmitter {
-+  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
-+  void operator=(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  // #define LLVM_DELETED_FUNCTION
++  //  LLVM_DELETED_FUNCTION - Expands to = delete if the compiler supports it. 
++  //  Use to mark functions as uncallable. Member functions with this should be 
++  //  declared private so that some behavior is kept in C++03 mode.
++  //  class DontCopy { private: DontCopy(const DontCopy&) LLVM_DELETED_FUNCTION;
++  //  DontCopy &operator =(const DontCopy&) LLVM_DELETED_FUNCTION; public: ... };
++  //  Definition at line 79 of file Compiler.h.
++
++  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &) LLVM_DELETED_FUNCTION;
++  void operator=(const Cpu0MCCodeEmitter &) LLVM_DELETED_FUNCTION;
++  // Even though, the old function still work on LLVM version 3.2
++  //  Cpu0MCCodeEmitter(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++  //  void operator=(const Cpu0MCCodeEmitter &); // DO NOT IMPLEMENT
++
 +  const MCInstrInfo &MCII;
 +  const MCSubtargetInfo &STI;
 +  MCContext &Ctx;
@@ -769,6 +790,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +}  // namespace
 +
 +MCCodeEmitter *llvm::createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                               const MCRegisterInfo &MRI,
 +                                               const MCSubtargetInfo &STI,
 +                                               MCContext &Ctx)
 +{
@@ -776,6 +798,7 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +}
 +
 +MCCodeEmitter *llvm::createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                               const MCRegisterInfo &MRI,
 +                                               const MCSubtargetInfo &STI,
 +                                               MCContext &Ctx)
 +{
@@ -860,8 +883,8 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 5/Cpu0/MCTargetDesc/Cpu
 +#include "Cpu0GenMCCodeEmitter.inc"
 +
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-16 21:39:45.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp	2013-01-16 21:39:45.000000000 +0800
 @@ -115,6 +115,17 @@
    return new Cpu0InstPrinter(MAI, MII, MRI);
  }
@@ -903,21 +926,35 @@ diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.cpp 5/Cpu0/MCTargetDesc/Cpu0
    TargetRegistry::RegisterMCSubtargetInfo(TheCpu0Target,
                                            createCpu0MCSubtargetInfo);
 diff -Naur 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h
---- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-10 18:32:51.000000000 +0800
-+++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-10 18:32:51.000000000 +0800
-@@ -30,8 +30,19 @@
+--- 4/6_4/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-16 21:39:45.000000000 +0800
++++ 5/Cpu0/MCTargetDesc/Cpu0MCTargetDesc.h	2013-01-16 21:39:45.000000000 +0800
+@@ -22,6 +22,7 @@
+ class MCContext;
+ class MCInstrInfo;
+ class MCObjectWriter;
++class MCRegisterInfo;
+ class MCSubtargetInfo;
+ class StringRef;
+ class Target;
+@@ -30,8 +31,23 @@
  extern Target TheCpu0Target;
  extern Target TheCpu0elTarget;
  
+-MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT);
+-MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT);
 +MCCodeEmitter *createCpu0MCCodeEmitterEB(const MCInstrInfo &MCII,
++                                         const MCRegisterInfo &MRI,
 +                                         const MCSubtargetInfo &STI,
 +                                         MCContext &Ctx);
 +MCCodeEmitter *createCpu0MCCodeEmitterEL(const MCInstrInfo &MCII,
++                                         const MCRegisterInfo &MRI,
 +                                         const MCSubtargetInfo &STI,
 +                                         MCContext &Ctx);
 +
- MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT);
- MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT);
++MCAsmBackend *createCpu0AsmBackendEB32(const Target &T, StringRef TT,
++                                       StringRef CPU);
++MCAsmBackend *createCpu0AsmBackendEL32(const Target &T, StringRef TT,
++                                       StringRef CPU);
 +
 +MCObjectWriter *createCpu0ELFObjectWriter(raw_ostream &OS,
 +                                          uint8_t OSABI,

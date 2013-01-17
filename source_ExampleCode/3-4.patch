@@ -1,6 +1,6 @@
 diff -Naur 3/3/Cpu0/CMakeLists.txt 3/4/Cpu0/CMakeLists.txt
---- 3/3/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
-+++ 3/4/Cpu0/CMakeLists.txt	2013-01-10 18:32:51.000000000 +0800
+--- 3/3/Cpu0/CMakeLists.txt	2013-01-16 21:39:44.000000000 +0800
++++ 3/4/Cpu0/CMakeLists.txt	2013-01-16 21:39:44.000000000 +0800
 @@ -25,6 +25,7 @@
  add_llvm_target(Cpu0CodeGen
    Cpu0AsmPrinter.cpp
@@ -11,7 +11,7 @@ diff -Naur 3/3/Cpu0/CMakeLists.txt 3/4/Cpu0/CMakeLists.txt
    Cpu0MCInstLower.cpp
 diff -Naur 3/3/Cpu0/Cpu0ISelDAGToDAG.cpp 3/4/Cpu0/Cpu0ISelDAGToDAG.cpp
 --- 3/3/Cpu0/Cpu0ISelDAGToDAG.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/4/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-10 18:32:51.000000000 +0800
++++ 3/4/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-16 21:39:44.000000000 +0800
 @@ -0,0 +1,183 @@
 +//===-- Cpu0ISelDAGToDAG.cpp - A Dag to Dag Inst Selector for Cpu0 --------===//
 +//
@@ -197,8 +197,8 @@ diff -Naur 3/3/Cpu0/Cpu0ISelDAGToDAG.cpp 3/4/Cpu0/Cpu0ISelDAGToDAG.cpp
 +  return new Cpu0DAGToDAGISel(TM);
 +}
 diff -Naur 3/3/Cpu0/Cpu0InstrInfo.cpp 3/4/Cpu0/Cpu0InstrInfo.cpp
---- 3/3/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 3/4/Cpu0/Cpu0InstrInfo.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 3/3/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/4/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:44.000000000 +0800
 @@ -13,6 +13,7 @@
  
  #include "Cpu0InstrInfo.h"
@@ -221,8 +221,8 @@ diff -Naur 3/3/Cpu0/Cpu0InstrInfo.cpp 3/4/Cpu0/Cpu0InstrInfo.cpp
 +}
 +
 diff -Naur 3/3/Cpu0/Cpu0InstrInfo.h 3/4/Cpu0/Cpu0InstrInfo.h
---- 3/3/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:32:51.000000000 +0800
-+++ 3/4/Cpu0/Cpu0InstrInfo.h	2013-01-10 18:32:51.000000000 +0800
+--- 3/3/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/4/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:44.000000000 +0800
 @@ -37,6 +37,10 @@
    virtual const Cpu0RegisterInfo &getRegisterInfo() const;
  
@@ -235,8 +235,8 @@ diff -Naur 3/3/Cpu0/Cpu0InstrInfo.h 3/4/Cpu0/Cpu0InstrInfo.h
  }
  
 diff -Naur 3/3/Cpu0/Cpu0TargetMachine.cpp 3/4/Cpu0/Cpu0TargetMachine.cpp
---- 3/3/Cpu0/Cpu0TargetMachine.cpp	2013-01-10 18:32:51.000000000 +0800
-+++ 3/4/Cpu0/Cpu0TargetMachine.cpp	2013-01-10 18:32:51.000000000 +0800
+--- 3/3/Cpu0/Cpu0TargetMachine.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/4/Cpu0/Cpu0TargetMachine.cpp	2013-01-16 21:39:44.000000000 +0800
 @@ -81,6 +81,7 @@
    const Cpu0Subtarget &getCpu0Subtarget() const {
      return *getCpu0TargetMachine().getSubtargetImpl();
@@ -252,7 +252,7 @@ diff -Naur 3/3/Cpu0/Cpu0TargetMachine.cpp 3/4/Cpu0/Cpu0TargetMachine.cpp
 +// Install an instruction selector pass using
 +// the ISelDag to gen Cpu0 code.
 +bool Cpu0PassConfig::addInstSelector() {
-+  PM->add(createCpu0ISelDag(getCpu0TargetMachine()));
++  addPass(createCpu0ISelDag(getCpu0TargetMachine()));
 +  return false;
 +}
 +
