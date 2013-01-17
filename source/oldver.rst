@@ -1,16 +1,16 @@
 .. _sec-appendix-old-llvm-ver:
 
-Appendix A: LLVM changes
+Appendix B: LLVM changes
 ========================
 
 This chapter show you the old version of LLVM API and structure 
 those affect Cpu0 back end. 
 Mips changes also mentioned in this chapter. 
-If you working on the latest LLVM version only, please skip this chapter. 
+If you work on the latest LLVM version only, please skip this chapter. 
 LLVM version 3.2 released in 20 December, 2012. 
 Version 3.1 released in 22 May, 2012. 
 This book started from August, 2012. 
-This chapter discuss the old version from 3.1. 
+This chapter discuss the old version start from 3.1. 
 
 
 Difference between 3.2 and 3.1
@@ -128,8 +128,8 @@ You can get the 3.1 same information by,
     ...
   }
 
-As chapter "function call", LowerCall() handle the outgoing arguments passing 
-in function call. 
+As chapter "function call", the role of LowerCall() is handling the outgoing 
+arguments passing in function call. 
 
 3. Above changes is mandatory. 
 There are some changes are adviced to follow. Like the below. 
@@ -195,10 +195,10 @@ old CPURegsRegisterClass is **"pointer"** type. The "reference" type use
 
 
 
-Verify the Cpu0 for different 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Verify the Cpu0 for difference 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-3.1_src_files_modify include the LLVM 3.1 original files and those files 
+3.1_src_files_modify include the LLVM 3.1 those files 
 modified for Cpu0 backend support. 
 Please copy 
 3.1_src_files_modify/src_files_modify/src to your LLVM 3.1 source directory. 
@@ -207,7 +207,7 @@ File ch_all.cpp include the all C/C++ operators, global variable, struct,
 array, control statement and function call test. 
 Run llvm3.1/Cpu0 with ch_all.cpp will get the assembly code as below. 
 By compare it with the output of 3.2 result, you can verify the correction 
-as below. The difference is came from 3.2 correcting the label number for 
+as below. The difference came from 3.2 correcting the label number in 
 order. 
 
 .. code-block:: c++
@@ -356,7 +356,7 @@ order.
   ...
   
   
-  // ch_all.3.2.cpu0.s
+  // ch_all.3.1.cpu0.s
   ...
   $BB4_5:                                 #   in Loop: Header=BB4_1 Depth=1
     ld  $3, 0($3)
