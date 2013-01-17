@@ -168,7 +168,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture'
+htmlhelp_basename = 'TutorialCreatinganLLVMBackendfortheCpu0Architecture'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -187,7 +187,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture.tex', u'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture',
+  ('index', 'TutorialLLVMBackendCpu0.tex', u'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture',
    u'Chen Chung-Shu \ \ \ \ \ gamma\_chen@yahoo.com.tw \\and Anoushe Jamshidi \ \ \ \ \ ajamshidi@gmail.com', 'manual'),
 ]
 
@@ -217,7 +217,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture', u'Write An LLVM Backend Documentation',
+    ('index', 'TutorialLLVMBackendCpu0', u'Write An LLVM Backend Documentation',
      [u'Chen Chung-Shu', u'Anoushe Jamshidi'], 1)
 ]
 
@@ -231,7 +231,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture', u'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture',
+  ('index', 'TutorialLLVMBackendCpu0', u'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture',
    u'Chen Chung-Shu 陳鍾樞 gamma_chen@yahoo.com.tw and Anoushe Jamshidi ajamshidi@gmail.com', 'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture', 'Tutorial: Creating an LLVM Backend for the Cpu0 Architecture.js.',
    'Computers'),
 ]

@@ -571,9 +571,8 @@ according the following list steps, the corresponding commands shown as follows,
 1) Enter /usr/local/llvm/test/ and 
 ``cp -rf /usr/local/llvm/release/src .``.
 
-2) Update my modified files to support cpu0 by command, 
-``cp -rf /home/Gamma/LLVMBackendTutorialExampleCode/src_files_modify/
-src_files_modify/src .``.
+2) Update my modified files to support cpu0 by command, ``cp -rf /home/Gamma/
+LLVMBackendTutorialExampleCode/src_files_modify/src_files_modify/src .``.
 
 3) Check step 2 is effective by command 
 ``grep -R "Cpu0" . | more```. I add the Cpu0 backend support, so check with 

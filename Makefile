@@ -165,8 +165,8 @@ gh-pages:
 	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
 	make html latexpdf epub
 	mv -fv build/html/* ./
-	mv -fv build/latex/WriteAnLLVMBackendTutorialForCpu0.pdf "./WriteAnLLVMBackendTutorialForCpu0.pdf"
-	mv -fv build/epub/WriteAnLLVMBackendTutorialForCpu0.epub "./WriteAnLLVMBackendTutorialForCpu0.epub"
+	mv -fv build/latex/TutorialLLVMBackendCpu0.pdf "./TutorialLLVMBackendCpu0.pdf"
+	mv -fv build/epub/TutorialLLVMBackendCpu0.epub "./TutorialLLVMBackendCpu0.epub"
 	rm -rf $(GH_PAGES_SOURCES) build LLVMBackendTutorialExampleCode
 	git add -A
 	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
