@@ -1327,32 +1327,6 @@ library or dynamic loading code to demonstrate the caller how to handle the
 caller saved register $gp in calling the shared library and the shared library 
 how to use $gp to access global variable address. This solution is popular in 
 reality and deserve change cpu0 official design as a compiler book. 
-Mips use the same solution in 32 bits Mips32 CPU of llvm 3.1. 
-
-Mips removes these pseudo assembly code in 3.2.
-This change is good for spim (mips assembly code simulator) which run for 
-Mips assembly code. According the theory of "System Software", some pseudo 
-assembly code (especially for those not in standard) cannot be translated by  
-assembler. It will break down in assembly code simulator. 
-Run ch_mips_llvm3.2_globalvar_changes.cpp with llvm 3.1 and 3.2 for mips, you 
-will find the **".cprestore"** is removed directly since 3.2 use other register 
-in other the called function (like use $1 in f() and the remove **.gprestore** 
-in sum_i()).
-**".cpload"** is replaced with instructions as follows,
-
-.. code-block:: bash
-
-  // llvm 3.1 mips
-    .cpload $25
-  
-  // llvm 3.2 mips
-    lui $2, %hi(_gp_disp)
-    addiu $2, $2, %lo(_gp_disp)
-    ...
-    addu  $gp, $2, $25
-
-Reference [#]_ for **".cpload"**, **".cprestore"** and **"_gp_disp"**.
-
 
 Now, as the following code added in 8/6/Cpu0, we can issue **“.cprestore”** in 
 emitPrologue() and emit ld $gp, ($gp save slot on stack) after jalr by create 
@@ -2596,7 +2570,5 @@ variable, control flow statement and function call.
 .. [#] http://jonathan2251.github.com/lbd/llvmstructure.html#target-registration
 
 .. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
-
-.. [#] http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
 
 .. [#] http://developer.mips.com/clang-llvm/
