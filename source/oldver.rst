@@ -391,8 +391,8 @@ assembly code (especially for those not in standard) cannot be translated by
 assembler. It will break down in assembly code simulator. 
 Run ch_mips_llvm3.2_globalvar_changes.cpp with llvm 3.1 and 3.2 for mips, you 
 will find the **".cprestore"** is removed directly since 3.2 use other register 
-in other the called function (like use $1 in f() and the remove **.gprestore** 
-in sum_i()).
+instead of $gp in the callee function (as example, it use $1 in f() and remove 
+**.gprestore** in sum_i()).
 **".cpload"** is replaced with instructions as follows,
 
 .. code-block:: bash
