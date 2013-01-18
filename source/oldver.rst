@@ -183,7 +183,28 @@ old CPURegsRegisterClass is **"pointer"** type. The "reference" type use
   unsigned CPURegSize = Cpu0::CPURegsRegisterClass->getSize();
 
 
-2. DebugInfo.h is moved
+2. The TargetData structure has been renamed to DataLayout and moved to VMCore 
+to remove a dependency on Target. 
+
+.. code-block:: c++
+
+  // 3.1
+  #include "llvm/Target/TargetData.h"
+  class Cpu0TargetMachine : public LLVMTargetMachine {
+    ...
+    const TargetData    DataLayout; // Calculates type size & alignment
+    ...
+  }
+
+  // 3.2
+  #include "llvm/DataLayout.h"
+  class Cpu0TargetMachine : public LLVMTargetMachine {
+    ...
+    const DataLayout    DL; // Calculates type size & alignment
+    ...
+  }
+
+3. DebugInfo.h is moved.
 
 .. code-block:: c++
 
