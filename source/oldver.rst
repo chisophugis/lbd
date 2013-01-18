@@ -184,7 +184,7 @@ old CPURegsRegisterClass is **"pointer"** type. The "reference" type use
 
 
 2. The TargetData structure has been renamed to DataLayout and moved to VMCore 
-to remove a dependency on Target. 
+to remove a dependency on Target [#]_. 
 
 .. code-block:: c++
 
@@ -430,6 +430,7 @@ instead of $gp in the callee function (as example, it use $1 in f() and remove
 Reference [#]_ for **".cpload"**, **".cprestore"** and **"_gp_disp"**.
 
 
+.. [#] http://llvm.org/releases/3.2/docs/ReleaseNotes.html
 
 .. [#] http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
 
