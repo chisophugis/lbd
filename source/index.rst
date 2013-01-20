@@ -43,10 +43,10 @@ The book is also available in the following formats:
 
     <ul>
     <li>
-    <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.pdf">PDF</a>
+    <a href="http://jonathan2251.github.com/lbd/TutorialLLVMBackendCpu0.pdf">PDF</a>
     </li>
     <li>
-    <a href="http://jonathan2251.github.com/lbd/WriteAnLLVMBackendTutorialForCpu0.epub">ePub</a>
+    <a href="http://jonathan2251.github.com/lbd/TutorialLLVMBackendCpu0.epub">ePub</a>
     </li>
     </ul>
 

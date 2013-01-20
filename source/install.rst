@@ -74,8 +74,9 @@ llvm/release/.``.
 Install Xcode from the Mac App Store. Then install cmake, which can be found 
 here: [#]_. 
 Before installing cmake, make sure you can install applications you download 
-from the Internet. Open "System Preferences"->"Security & Privacy." Click the 
-lock to make changes, and under "Allow applications downloaded from:" select 
+from the Internet. 
+Open :menuselection:`System Preferences --> Security & Privacy`. Click the 
+**lock** to make changes, and under "Allow applications downloaded from:" select 
 the radio button next to "Anywhere." See :ref:`install_f2` below for an 
 illustration. You may want to revert this setting after installing cmake.
 

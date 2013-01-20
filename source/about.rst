@@ -34,6 +34,8 @@ have been finished and published online.
 Revision history
 ----------------
 
+Version 3.2.5, Not release yet
+	Add "LLVMBackendTutorialExampleCode/llvm3.1"
 Version 3.2.4, Released January 17, 2013
 	Update for LLVM 3.2.
 	Change title (book name) from "Write An LLVM Backend Tutorial For Cpu0" to 

@@ -9,7 +9,7 @@ Mips changes also mentioned in this chapter.
 If you work on the latest LLVM version only, please skip this chapter. 
 LLVM version 3.2 released in 20 December, 2012. 
 Version 3.1 released in 22 May, 2012. 
-This book started from August, 2012. 
+This book started from September, 2012. 
 This chapter discuss the old version start from 3.1. 
 
 
@@ -21,8 +21,8 @@ API difference
 
 Difference in API as follows,
 
-1. In llvm 3.1, the parameters of call back function for Target Registration. 
-is different with 3.2. 
+1. In llvm 3.1, the parameters of call back function for Target Registration 
+is different from 3.2. 
 LLVM 3.2 add parameter "MCRegisterInfo" in the callback function for 
 RegisterMCCodeEmitter() and "StringRef" in the callback function for  
 RegisterMCAsmBackend. 
@@ -131,7 +131,54 @@ You can get the 3.1 same information by,
 As chapter "function call", the role of LowerCall() is handling the outgoing 
 arguments passing in function call. 
 
-3. Above changes is mandatory. 
+3. The TargetData structure of LLVMTargetMachine has been renamed to DataLayout 
+and the corresponding function name change as follows,
+
+.. code-block:: c++
+
+  // 3.1
+  class Cpu0TargetMachine : public LLVMTargetMachine {
+    ...
+    virtual const TargetData      *getTargetData()    const
+    { return &DataLayout;}
+    ...
+  }
+
+.. code-block:: c++
+
+  // 3.2
+  class Cpu0TargetMachine : public LLVMTargetMachine {
+    ...
+    virtual const DataLayout *getDataLayout()    const
+    { return &DL;}
+    ...
+  }
+
+4. The "add a pass" API change as follows,
+
+.. code-block:: c++
+
+  // 3.1
+  TargetPassConfig *Cpu0TargetMachine::createPassConfig(PassManagerBase &PM) {
+    return new Cpu0PassConfig(this, PM);
+  }
+  
+  // Install an instruction selector pass using
+  // the ISelDag to gen Cpu0 code.
+  bool Cpu0PassConfig::addInstSelector() {
+    PM->add(createCpu0ISelDag(getCpu0TargetMachine()));
+    return false;
+  }
+  
+  // 3.2
+  // Install an instruction selector pass using
+  // the ISelDag to gen Cpu0 code.
+  bool Cpu0PassConfig::addInstSelector() {
+    addPass(createCpu0ISelDag(getCpu0TargetMachine()));
+    return false;
+  }
+
+5. Above changes is mandatory. 
 There are some changes are adviced to follow. Like the below. 
 We comment the "Change Reason" in the following code. You can get the 
 "Change Reason" by internet searching.
@@ -183,7 +230,28 @@ old CPURegsRegisterClass is **"pointer"** type. The "reference" type use
   unsigned CPURegSize = Cpu0::CPURegsRegisterClass->getSize();
 
 
-2. DebugInfo.h is moved
+2. The TargetData structure has been renamed to DataLayout and moved to VMCore 
+to remove a dependency on Target [#]_. 
+
+.. code-block:: c++
+
+  // 3.1
+  #include "llvm/Target/TargetData.h"
+  class Cpu0TargetMachine : public LLVMTargetMachine {
+    ...
+    const TargetData    DataLayout; // Calculates type size & alignment
+    ...
+  }
+
+  // 3.2
+  #include "llvm/DataLayout.h"
+  class Cpu0TargetMachine : public LLVMTargetMachine {
+    ...
+    const DataLayout    DL; // Calculates type size & alignment
+    ...
+  }
+
+3. DebugInfo.h is moved.
 
 .. code-block:: c++
 
@@ -391,8 +459,8 @@ assembly code (especially for those not in standard) cannot be translated by
 assembler. It will break down in assembly code simulator. 
 Run ch_mips_llvm3.2_globalvar_changes.cpp with llvm 3.1 and 3.2 for mips, you 
 will find the **".cprestore"** is removed directly since 3.2 use other register 
-in other the called function (like use $1 in f() and the remove **.gprestore** 
-in sum_i()).
+instead of $gp in the callee function (as example, it use $1 in f() and remove 
+**.gprestore** in sum_i()).
 **".cpload"** is replaced with instructions as follows,
 
 .. code-block:: bash
@@ -409,6 +477,7 @@ in sum_i()).
 Reference [#]_ for **".cpload"**, **".cprestore"** and **"_gp_disp"**.
 
 
+.. [#] http://llvm.org/releases/3.2/docs/ReleaseNotes.html
 
 .. [#] http://jonathan2251.github.com/lbd/funccall.html#handle-gp-register-in-pic-addressing-mode
 
