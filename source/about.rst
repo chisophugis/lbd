@@ -20,15 +20,15 @@ Anoushe Jamshidi
 Contributors
 ------------
 
-Chen Wei-Ren, chenwj@iis.sinica.edu.tw>, in text format.
+Chen Wei-Ren, chenwj@iis.sinica.edu.tw, assisted with text and code formatting.
 
 
-Thanks
-------
+Acknowledgments
+---------------
 
-Very thank Sean, silvas@purdue.edu, for his help in this book and 
-encouragement. 
-With his help, we can finish this book and put on web with sphinx tool. 
+We would like to thank Sean Silvas, silvas@purdue.edu, for his help, encouragement, and
+assistance with the Sphinx document generator.  Without his help, this book would not 
+have been finished and published online.
 
 
 Revision history

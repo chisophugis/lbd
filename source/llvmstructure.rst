@@ -1,14 +1,13 @@
 .. _sec-llvmstructure:
 
-Cpu0 Instruction and LLVM Target Description
-============================================
+Cpu0 Instruction Set and LLVM Target Description
+================================================
 
-Before you begin this tutorial, you should know that you can always examine existing LLVM 
-backend code and attempt to port what you find for your own target architecture.  
-The majority of this code can be found in the /lib/Target directory of your 
-root LLVM installation. As most major RISC instruction set architectures have some 
-similarities, this may be the avenue you might try if you are both an 
-experienced programmer and knowledgable of compiler backends. 
+Before you begin this tutorial, you should know that you can always try to develop your 
+own backend by porting from existing backends.  The majority of backend code 
+can be found in the /lib/Target directory of your root LLVM installation. As most major 
+RISC instruction set architectures have some similarities, this may be the avenue you 
+might try if you are an experienced programmer and knowledgable of compiler backends. 
 However, there is a steep learning curve and you may easily get held up 
 debugging your new backend. You can easily spend a lot of time tracing which 
 methods are callbacks of some function, or which are calling some overridden 
@@ -77,15 +76,16 @@ down for each type of instruction.
 
 	Cpu0's three instruction formats
 
-.. resume editing here
+The following table details the Cpu0 instruction set:
 
-The following is the Cpu0 processor's instruction table format
+.. todo:: Convert these tables to Sphinx tables.  Merge the floating point instructions
+	in table t3 with the rest in t2 when doing this.
 
 .. _llvmstructure_t2: 
 .. figure:: ../Table/llvmstructure/2.png
 	:align: center
 
-	CPU0 instruction table
+	Cpu0 instruction table
 
 In the second edition of CPU0_v2 we fill the following command:
 
@@ -93,49 +93,60 @@ In the second edition of CPU0_v2 we fill the following command:
 .. figure:: ../Table/llvmstructure/3.png
 	:align: center
 
-	CPU0_v2 instruction table
+	Cpu0_v2 instruction table
 
 Status register
 +++++++++++++++
 
-CPU0 status register contains the state of the N, Z, C, V, and I, T and other 
-interrupt mode bit. 
-Its structure is shown below.
+The Cpu0 status word register (SW) contains the state of the Negative (N), Zero (Z), 
+Carry (C), Overflow (V), and Interrupt (I), Trap (T), and Mode (M) boolean flags. 
+The bit layout of the SW register is shown in :num:`Figure #llvmstructure-f3` below.
 
-.. _llvmstructure_f3: 
+.. _llvmstructure-f3: 
 .. figure:: ../Fig/llvmstructure/3.png
 	:align: center
 
-	CPU0 status register
+	Cpu0 status word (SW) register
 
-When CMP Ra, Rb instruction execution, the state flag will thus change.
+When a CMP Ra, Rb instruction executes, the condition flags will change. For example:
 
-If Ra> Rb, then the setting state of N = 0, Z = 0. 
-If Ra <Rb, it will set the state of N = 1, Z = 0. 
-If Ra = Rb, then the setting state of N = 0, Z = 1.
+-	If Ra > Rb, then N = 0, Z = 0
+-	If Ra < Rb, then N = 1, Z = 0
+-	If Ra = Rb, then N = 0, Z = 1
 
-So conditional jump the JGT, JLT, JGE, JLE, JEQ, JNE instruction jumps N, Z 
-flag in the status register.
+The direction (i.e. taken/not taken) of the conditional jump instructions JGT, JLT, JGE, 
+JLE, JEQ, JNE is determined by the N and Z flags in the SW register.
 
-The execution of the instruction step
-+++++++++++++++++++++++++++++++++++++
+Cpu0's stages of instruction execution
+++++++++++++++++++++++++++++++++++++++
 
-CPU0 has three stage pipeline: Instruction fetch, Decode and Execution.
+The Cpu0 architecture has a three-stage pipeline.  The stages are instruction fetch (IF), 
+decode (D), and execute (EX), and they occur in that order.  Here is a description of 
+what happens in the processor:
 
 1) Instruction fetch
 
--	Action 1. The instruction fetch: IR = [PC]
--	Action 2. Update program counter: PC = PC + 4
+-	The Cpu0 fetches the instruction pointed to by the Program Counter (PC) into the 
+	Instruction Register (IR): IR = [PC].
+-	The PC is then updated to point to the next instruction: PC = PC + 4.
 
 2) Decode
 
--	Action 3. Decode: Control unit decodes IR, then set data flow switch 
-	and ALU operation mode. 
+-	The control unit decodes the instruction stored in IR, which routes necessary data
+	stored in registers to the ALU, and sets the ALU's operation mode based on the 
+	current instruction's opcode.
 
 3) Execute
 
--	Action 4. Execute: Data flow into ALU. After ALU done the operation, 
-	the result stored back into destination register. 
+-	The ALU executes the operation designated by the control unit upon data in registers. 
+	After the ALU is done, the result is stored in the destination register. 
+
+.. todo:: This is actually a question: Does the "Replace ldi instruction by addiu" section 
+	really need to be here?  Maybe it should be a note up above with the Cpu0 ISA tables
+	rather than a whole section?  If we aren't using ldi, I don't see much purpose 
+	keeping it around/mentioning it.
+
+.. I will resume editing from here
 
 Replace ldi instruction by addiu instruction
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -1103,7 +1114,7 @@ Build libraries and td
 
 The llvm source code is put in /Users/Jonathan/llvm/release/src and have llvm 
 release-build in /Users/Jonathan/llvm/release/configure_release_build. 
-About how to build llvm, please refer [#]_. 
+About how to build llvm, please refer [#clang]_. 
 We made a copy from /Users/Jonathan/llvm/release/src to 
 /Users/Jonathan/llvm/test/src for working with my Cpu0 target back end.
 Sub-directories src is for source code and cmake_debug_build is for debug 
