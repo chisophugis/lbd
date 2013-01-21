@@ -26,7 +26,7 @@ Chen Wei-Ren, chenwj@iis.sinica.edu.tw, assisted with text and code formatting.
 Acknowledgments
 ---------------
 
-We would like to thank Sean Silvas, silvas@purdue.edu, for his help, encouragement, and
+We would like to thank Sean Silva, silvas@purdue.edu, for his help, encouragement, and
 assistance with the Sphinx document generator.  Without his help, this book would not 
 have been finished and published online.
 
