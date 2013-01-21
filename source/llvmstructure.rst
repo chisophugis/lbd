@@ -4,26 +4,28 @@ Cpu0 Instruction Set and LLVM Target Description
 ================================================
 
 Before you begin this tutorial, you should know that you can always try to develop your 
-own backend by porting from existing backends.  The majority of backend code 
-can be found in the /lib/Target directory of your root LLVM installation. As most major 
-RISC instruction set architectures have some similarities, this may be the avenue you 
-might try if you are an experienced programmer and knowledgable of compiler backends. 
-However, there is a steep learning curve and you may easily get held up 
+own backend by porting code from existing backends.  The majority of the code you will 
+want to investigate can be found in the /lib/Target directory of your root LLVM 
+installation. As most major RISC instruction sets have some similarities, this may be the 
+avenue you might try if you are an experienced programmer and knowledgable of compiler 
+backends.
+
+On the other hand, there is a steep learning curve and you may easily get stuck 
 debugging your new backend. You can easily spend a lot of time tracing which 
 methods are callbacks of some function, or which are calling some overridden 
-method deep in the LLVM codebase - and with a codebase as large as LLVM, this 
-can easily become a headache. This tutorial will help you work through this 
-process while learning the fundamentals of LLVM backend design. It will show 
+method deep in the LLVM codebase - and with a codebase as large as LLVM, all of this 
+can easily become difficult to keep track of. This tutorial will help you work through 
+this process while learning the fundamentals of LLVM backend design. It will show 
 you what is necessary to get your first backend functional and complete, and it 
-should help you understand how to debug your backend when it produces incorrect output 
-using output provided by the compiler.
+should help you understand how to debug your backend when it produces incorrect machine 
+code using output provided by the compiler.
 
-This section first details the Cpu0 instruction set.  Next, the structure of LLVM is 
-introduced.  The LLVM structure information is adapted from Chris Lattner's LLVM 
-chapter of the Architecture of Open Source Applications book [#aosa-book]_. You can read 
+This section details the Cpu0 instruction set and the structure of LLVM. 
+The LLVM structure information is adapted from Chris Lattner's LLVM chapter of the 
+Architecture of Open Source Applications book [#aosa-book]_. You can read 
 the original article from the AOSA website if you prefer. Finally, you will begin to 
-write register and instruction definitions in the Target Description files which will be 
-used in next section.
+create a new LLVM backend by writing register and instruction definitions in the 
+Target Description files which will be used in next section.
 
 Cpu0 processor architecture
 ---------------------------
@@ -47,19 +49,19 @@ illustrated in :num:`Figure #llvmstructure-f1` below.
 
 The registers are used for the following purposes:
 
-	============	===========
-	Register		Description
-	============	===========
-	IR				Instruction register
-	R0				Constant register, value is 0
-	R1-R11			General-purpose registers
-	R12				Status Word register (SW)
-	R13				Stack Pointer register (SP)
-	R14				Link Register (LR)
-	R15				Program Counter (PC)
-	MAR				Memory Address Register (MAR)
-	MDR				Memory Data Register (MDR)
-	============	===========
+============	===========
+Register		Description
+============	===========
+IR				Instruction register
+R0				Constant register, value is 0
+R1-R11			General-purpose registers
+R12				Status Word register (SW)
+R13				Stack Pointer register (SP)
+R14				Link Register (LR)
+R15				Program Counter (PC)
+MAR				Memory Address Register (MAR)
+MDR				Memory Data Register (MDR)
+============	===========
 
 The Cpu0 Instruction Set
 ++++++++++++++++++++++++
@@ -78,22 +80,263 @@ down for each type of instruction.
 
 The following table details the Cpu0 instruction set:
 
-.. todo:: Convert these tables to Sphinx tables.  Merge the floating point instructions
-	in table t3 with the rest in t2 when doing this.
+.. list-table::
+	:widths: 5 5 5 12 7 10
+	:header-rows: 1
 
-.. _llvmstructure_t2: 
-.. figure:: ../Table/llvmstructure/2.png
-	:align: center
+	* - Format
+	  - Mnemonic
+	  - Opcode
+	  - Meaning
+	  - Syntax
+	  - Operation
+	* - L
+	  - LD
+	  - 00
+	  - Load word
+	  - LD Ra, [Rb+Cx]
+	  - Ra <= [Rb+Cx]
+	* - L
+	  - ST
+	  - 01
+	  - Store word
+	  - ST Ra, [Rb+Cx]
+	  - [Rb+Cx] <= Ra
+	* - L
+	  - LDB
+	  - 02
+	  - Load byte
+	  - LDB Ra, [Rb+Cx]
+	  - Ra <= (byte)[Rb+Cx]
+	* - L
+	  - STB
+	  - 03
+	  - Store byte
+	  - STB Ra, [Rb+Cx]
+	  - [Rb+Cx] <= (byte)Ra
+	* - A
+	  - LDR
+	  - 04
+	  - Load word (w/ register index)
+	  - LDR Ra, [Rb+Rc]
+	  - Ra <= [Rb+Rc]
+	* - A
+	  - STR
+	  - 05
+	  - Store word (w/ register index)
+	  - STR Ra, [Rb+Rc]
+	  - [Rb+Rc] <= Ra
+	* - A
+	  - LBR
+	  - 06
+	  - Load byte (w/ register index)
+	  - LBR Ra, [Rb+Rc]
+	  - Ra <= (byte)[Rb+Rc]
+	* - A
+	  - SBR
+	  - 07
+	  - Store byte (w/ register index)
+	  - SBR Ra, [Rb+Cx]
+	  - [Rb+Rc] <= (byte)Ra
+	* - L
+	  - LDI
+	  - 08
+	  - Load immediate
+	  - LDI Ra, Cx
+	  - Ra <= Cx
+	* - A
+	  - CMP
+	  - 10
+	  - Compare
+	  - CMP Ra, Rb
+	  - SW <= (Ra >/>=/==/!=/<=/< Rb)
+	* - A
+	  - MOV
+	  - 12
+	  - Move
+	  - MOV Ra, Rb
+	  - Ra <= Rb
+	* - A
+	  - ADD
+	  - 13
+	  - Add
+	  - ADD Ra, Rb, Rc
+	  - Ra <= Rb + Rc
+	* - A
+	  - SUB
+	  - 14
+	  - Subtract
+	  - SUB Ra, Rb, Rc
+	  - Ra <= Rb - Rc
+	* - A
+	  - MUL
+	  - 15
+	  - Multiply
+	  - MUL Ra, Rb, Rc
+	  - Ra <= Rb * Rc
+	* - A
+	  - DIV
+	  - 16
+	  - Divide
+	  - DIV Ra, Rb, Rc
+	  - Ra <= Rb / Rc
+	* - A
+	  - AND
+	  - 18
+	  - Bitwise and
+	  - AND Ra, Rb, Rc
+	  - Ra <= Rb & Rc
+	* - A
+	  - OR
+	  - 19
+	  - Bitwise or
+	  - OR Ra, Rb, Rc
+	  - Ra <= Rb | Rc
+	* - A
+	  - XOR
+	  - 1A
+	  - Bitwise exclusive or
+	  - XOR Ra, Rb, Rc
+	  - Ra <= Rb ^ Rc
+  	* - A
+	  - ROL
+	  - 1C
+	  - Rotate left
+	  - ROL Ra, Rb, Cx
+	  - Ra <= Rb rol Cx
+  	* - A
+	  - ROR
+	  - 1D
+	  - Rotate right
+	  - ROR Ra, Rb, Cx
+	  - Ra <= Rb ror Cx
+   	* - A
+	  - SHL
+	  - 1E
+	  - Shift left
+	  - SHL Ra, Rb, Cx
+	  - Ra <= Rb << Cx
+   	* - A
+	  - SHR
+	  - 1F
+	  - Shift right
+	  - SHR Ra, Rb, Cx
+	  - Ra <= Rb >> Cx
+	* - A
+	  - FADD
+	  - 41
+	  - Floating-point addition
+	  - FADD Ra, Rb, Rc
+	  - Ra <= Rb + Rc
+	* - A
+	  - FSUB
+	  - 42
+	  - Floating-point subtraction
+	  - FSUB Ra, Rb, Rc
+	  - Ra <= Rb - Rc
+	* - A
+	  - FMUL
+	  - 43
+	  - Floating-point multiplication
+	  - FMUL Ra, Rb, Rc
+	  - Ra <= Rb * Rc
+	* - A
+	  - FDIV
+	  - 44
+	  - Floating-point division
+	  - FDIV Ra, Rb, Rc
+	  - Ra <= Rb / Rc
+   	* - J
+	  - JEQ
+	  - 20
+	  - Jump if equal (==)
+	  - JEQ Cx
+	  - if SW(==), PC <= PC + Cx
+   	* - J
+	  - JNE
+	  - 21
+	  - Jump if not equal (!=)
+	  - JNE Cx
+	  - if SW(!=), PC <= PC + Cx
+   	* - J
+	  - JLT
+	  - 22
+	  - Jump if less than (<)
+	  - JLT Cx
+	  - if SW(<), PC <= PC + Cx
+   	* - J
+	  - JGT
+	  - 23
+	  - Jump if greater than (>)
+	  - JGT Cx
+	  - if SW(>), PC <= PC + Cx
+   	* - J
+	  - JLE
+	  - 24
+	  - Jump if less than or equals (<=)
+	  - JLE Cx
+	  - if SW(<=), PC <= PC + Cx
+   	* - J
+	  - JGE
+	  - 25
+	  - Jump if greater than or equals (>=)
+	  - JGE Cx
+	  - if SW(>=), PC <= PC + Cx
+   	* - J
+	  - JMP
+	  - 26
+	  - Jump (unconditional)
+	  - JMP Cx
+	  - PC <= PC + Cx
+   	* - J
+	  - SWI
+	  - 2A
+	  - Software interrupt
+	  - SWI Cx
+	  - LR <= PC; PC <= Cx
+   	* - J
+	  - JSUB
+	  - 2B
+	  - Jump to subroutine
+	  - JSUB Cx
+	  - LR <= PC; PC <= PC + Cx
+   	* - J
+	  - RET
+	  - 2C
+	  - Return from subroutine
+	  - RET Cx
+	  - PC <= LR
+   	* - J
+	  - IRET
+	  - 2D
+	  - Return from interrupt handler
+	  - IRET
+	  - PC <= LR; INT 0
+   	* - A
+	  - PUSH
+	  - 30
+	  - Push word
+	  - PUSH Ra
+	  - [SP] <= Ra; SP -= 4
+   	* - A
+	  - POP
+	  - 31
+	  - Pop word
+	  - POP Ra
+	  - Ra <= [SP]; SP += 4
+   	* - A
+	  - PUSHB
+	  - 32
+	  - Push byte
+	  - PUSHB Ra
+	  - [SP] <= (byte)Ra; SP -= 4
+   	* - A
+	  - POPB
+	  - 33
+	  - Pop word
+	  - POP Ra
+	  - Ra <= (byte)[SP]; SP += 4
 
-	Cpu0 instruction table
-
-In the second edition of CPU0_v2 we fill the following command:
-
-.. _llvmstructure_t3: 
-.. figure:: ../Table/llvmstructure/3.png
-	:align: center
-
-	Cpu0_v2 instruction table
 
 Status register
 +++++++++++++++
@@ -145,8 +388,8 @@ what happens in the processor:
 	really need to be here?  Maybe it should be a note up above with the Cpu0 ISA tables
 	rather than a whole section?  If we aren't using ldi, I don't see much purpose 
 	keeping it around/mentioning it.
-
-.. I will resume editing from here
+	
+.. resume editing from here
 
 Replace ldi instruction by addiu instruction
 ++++++++++++++++++++++++++++++++++++++++++++
