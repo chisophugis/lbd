@@ -27,8 +27,8 @@ the original article from the AOSA website if you prefer. Finally, you will begi
 create a new LLVM backend by writing register and instruction definitions in the 
 Target Description files which will be used in next section.
 
-Cpu0 processor architecture
----------------------------
+Cpu0 Processor Architecture Details
+-----------------------------------
 
 This subsection is based on materials available here [#cpu0-chinese]_ (Chinese)
 and [#cpu0-english]_ (English).
@@ -338,8 +338,8 @@ The following table details the Cpu0 instruction set:
 	  - Ra <= (byte)[SP]; SP += 4
 
 
-Status register
-+++++++++++++++
+The Status Register
++++++++++++++++++++
 
 The Cpu0 status word register (SW) contains the state of the Negative (N), Zero (Z), 
 Carry (C), Overflow (V), and Interrupt (I), Trap (T), and Mode (M) boolean flags. 
@@ -360,7 +360,7 @@ When a CMP Ra, Rb instruction executes, the condition flags will change. For exa
 The direction (i.e. taken/not taken) of the conditional jump instructions JGT, JLT, JGE, 
 JLE, JEQ, JNE is determined by the N and Z flags in the SW register.
 
-Cpu0's stages of instruction execution
+Cpu0's Stages of Instruction Execution
 ++++++++++++++++++++++++++++++++++++++
 
 The Cpu0 architecture has a three-stage pipeline.  The stages are instruction fetch (IF), 
@@ -388,8 +388,6 @@ what happens in the processor:
 	really need to be here?  Maybe it should be a note up above with the Cpu0 ISA tables
 	rather than a whole section?  If we aren't using ldi, I don't see much purpose 
 	keeping it around/mentioning it.
-	
-.. resume editing from here
 
 Replace ldi instruction by addiu instruction
 ++++++++++++++++++++++++++++++++++++++++++++
@@ -424,24 +422,25 @@ solution during design the compiler backend for that CPU.
 So, we add addiu instruction to cpu0. 
 The cpu0 is my brother's work, I will find time to talk with him.
 
-LLVM structure
+LLVM Structure
 --------------
 
-Following came from AOSA [#aosa-book]_.
+The text in this and the following section comes from the AOSA chapter on LLVM written 
+by Chris Lattner [#aosa-book]_.
 
 The most popular design for a traditional static compiler (like most C 
 compilers) is the three phase design whose major components are the front end, 
-the optimizer and the back end (:ref:`llvmstructure_f6`). 
+the optimizer and the back end, as seen in :num:`Figure #llvmstructure-f6`. 
 The front end parses source code, checking it for errors, and builds a 
 language-specific Abstract Syntax Tree (AST) to represent the input code. 
 The AST is optionally converted to a new representation for optimization, and 
 the optimizer and back end are run on the code.
 
-.. _llvmstructure_f6: 
+.. _llvmstructure-f6: 
 .. figure:: ../Fig/llvmstructure/6.png
 	:align: center
 
-	Tree major components of a Three Phase Compiler
+	Three Major Components of a Three Phase Compiler
 
 The optimizer is responsible for doing a broad variety of transformations to 
 try to improve the code's running time, such as eliminating redundant 
@@ -462,11 +461,12 @@ to support multiple source languages or target architectures.
 If the compiler uses a common code representation in its optimizer, then a 
 front end can be written for any language that can compile to it, and a back 
 end can be written for any target that can compile from it, as shown in 
-:ref:`llvmstructure_f7`.
+:num:`Figure #llvmstructure-f7`.
 
-.. _llvmstructure_f7: 
+.. _llvmstructure-f7: 
 .. figure:: ../Fig/llvmstructure/7.png
 	:align: center
+	:width: 600px
 
 	Retargetablity
 
@@ -577,8 +577,8 @@ for a front end to generate and be expressive enough to allow important
 optimizations to be performed for real targets.
 	
 
-Target Description td
----------------------
+.td: LLVM's Target Description Files
+------------------------------------
 
 The "mix and match" approach allows target authors to choose what makes sense 
 for their architecture and permits a large amount of code reuse across 
@@ -592,11 +592,12 @@ LLVM's solution to this is for each target to provide a target description
 in a declarative domain-specific language (a set of .td files) processed by the 
 tblgen tool. 
 The (simplified) build process for the x86 target is shown in 
-:ref:`llvmstructure_f8`.
+:num:`Figure #llvmstructure-f8`.
 
-.. _llvmstructure_f8: 
+.. _llvmstructure-f8: 
 .. figure:: ../Fig/llvmstructure/8.png
 	:align: center
+	:width: 600px
 
 	Simplified x86 Target Definition
 
@@ -613,8 +614,10 @@ are all caps) like this:
      R8D, R9D, R10D, R11D, R14D, R15D, R12D, R13D]> { ... }
 
 
-Write td (Target Description)
------------------------------
+Writing the First Cpu0 .td Files
+--------------------------------
+
+.. resume editing here (1/21)
 
 The llvm using .td file (Target Description) to describe register and 
 instruction format. 
