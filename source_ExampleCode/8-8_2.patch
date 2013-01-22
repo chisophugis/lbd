@@ -1,0 +1,122 @@
+diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
+--- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-01-22 14:53:30.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-22 16:23:38.000000000 +0800
+@@ -29,6 +29,8 @@
+   return RI;
+ }
+ 
++//- Called when DestReg and SrcReg belong to different Register Class and need 
++//   changing register class.
+ void Cpu0InstrInfo::
+ copyPhysReg(MachineBasicBlock &MBB,
+             MachineBasicBlock::iterator I, DebugLoc DL,
+@@ -43,12 +45,16 @@
+       Opc = Cpu0::MFHI, SrcReg = 0;
+     else if (SrcReg == Cpu0::LO)
+       Opc = Cpu0::MFLO, SrcReg = 0;
++    else if (SrcReg == Cpu0::ACC)
++      Opc = Cpu0::MFACC, SrcReg = 0;
+   }
+   else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
+     if (DestReg == Cpu0::HI)
+       Opc = Cpu0::MTHI, DestReg = 0;
+     else if (DestReg == Cpu0::LO)
+       Opc = Cpu0::MTLO, DestReg = 0;
++    else if (DestReg == Cpu0::ACC)
++      Opc = Cpu0::MTACC, DestReg = 0;
+   }
+ 
+   assert(Opc && "Cannot copy registers");
+diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
+--- 8/8/Cpu0/Cpu0InstrInfo.td	2013-01-22 14:53:30.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-01-22 16:26:16.000000000 +0800
+@@ -353,6 +353,36 @@
+   let neverHasSideEffects = 1;
+ }
+ 
++class MoveFromACC<bits<8> op, string instr_asm, RegisterClass RC,
++                   list<Register> UseRegs>:
++  FL<op, (outs RC:$ra), (ins),
++     !strconcat(instr_asm, "\t$ra"), [], IIAlu> {
++  let rb = 0;
++  let imm16 = 0;
++  let Uses = UseRegs;
++  let neverHasSideEffects = 1;
++}
++
++class MoveToACC<bits<8> op, string instr_asm, RegisterClass RC,
++                 list<Register> DefRegs>:
++  FL<op, (outs), (ins RC:$ra),
++     !strconcat(instr_asm, "\t$ra"), [], IIAlu> {
++  let rb = 0;
++  let imm16 = 0;
++  let Defs = DefRegs;
++  let neverHasSideEffects = 1;
++}
++
++class ArithLogicUniR2<bits<8> op, string instr_asm, RegisterClass RC1,
++                 RegisterClass RC2, list<Register> DefRegs>:
++  FL<op, (outs), (ins RC1:$accum, RC2:$ra),
++     !strconcat(instr_asm, "\t$ra"), [], IIAlu> {
++  let rb = 0;
++  let imm16 = 0;
++  let Defs = DefRegs;
++  let neverHasSideEffects = 1;
++}
++
+ class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
+   FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
+      instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
+@@ -396,10 +426,9 @@
+ //def LDI     : MoveImm<0x08, "ldi", add, simm16, immSExt16, CPURegs>;
+ // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
+ def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+-
+ /// Arithmetic Instructions (3-Operand, R-Type)
+ def CMP		: CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
+-def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
++//def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+ def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
+ def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
+ def SDIV    : Div32<Cpu0DivRem, 0x16, "div", IIIdiv>;
+@@ -416,6 +445,10 @@
+ def MTHI : MoveToLOHI<0x42, "mthi", CPURegs, [HI]>;
+ def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
+ 
++def MFACC : MoveFromACC<0x44, "mfacc", CPURegs, [ACC]>;
++def MTACC : MoveToACC<0x45, "mtacc", CPURegs, [ACC]>;
++def ADD   : ArithLogicUniR2<0x46, "add", RACC, CPURegs, [ACC]>;
++
+ /// Shift Instructions
+ // work, sra for ashr llvm IR instruction
+ def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
+@@ -489,6 +522,12 @@
+ def : Pat<(not CPURegs:$in),
+           (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
+ 
++def : Pat<(add RACC:$lhs, CPURegs:$rhs),
++          (ADD RACC:$lhs, CPURegs:$rhs)>;
++
++def : Pat<(add CPURegs:$lhs, CPURegs:$rhs),
++          (ADD (MTACC CPURegs:$lhs), CPURegs:$rhs)>;
++
+ // brcond patterns
+ multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
+ Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
+diff -Naur 8/8/Cpu0/Cpu0RegisterInfo.td 8/8_2/Cpu0/Cpu0RegisterInfo.td
+--- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-01-22 14:53:30.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-01-22 16:23:38.000000000 +0800
+@@ -51,6 +51,7 @@
+   // Hi/Lo registers
+   def HI  : Register<"hi">, DwarfRegNum<[18]>;
+   def LO  : Register<"lo">, DwarfRegNum<[19]>;
++  def ACC : Register<"acc">, DwarfRegNum<[20]>;
+ }
+ 
+ //===----------------------------------------------------------------------===//
+@@ -70,3 +71,5 @@
+ // Hi/Lo Registers
+ def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
+ 
++def RACC : RegisterClass<"Cpu0", [i32], 32, (add ACC)>;
++

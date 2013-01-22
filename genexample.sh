@@ -87,6 +87,9 @@ cp -rf 8/7 ${GEN_DIR}/8/.
 patch -fp0 < 8-8.patch
 mv 8/7 8/8
 cp -rf 8/8 ${GEN_DIR}/8/.
+patch -fp0 < 8-8_2.patch
+mv 8/8 8/8_2
+cp -rf 8/8_2 ${GEN_DIR}/8/.
 cp -rf ${GEN_DIR}/2 .
 rm -rf 3 4 6 7 8
 cp -rf InputFiles llvm3.1 ${GEN_DIR}/.
