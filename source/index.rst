@@ -23,6 +23,7 @@ Table of Contents
    elf
    install
    oldver
+   instdiscuss
    todo
    
 
