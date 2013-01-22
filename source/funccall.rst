@@ -2591,8 +2591,10 @@ $2 is not 0) as follows,
   ...
 
 
-Run 8/8/Cpu0 with the modified LowerReturn() to get the correct result (return 
-register $2 is 0) as follows,
+The LowerReturn() modified in 8/8/Cpu0 as below. 
+It add the live out register $2 to function (main() as this example), and copy 
+the OutVals[0] (0 as this example) to $2. Then call DAG.getNode(..., Flag) 
+where Flag contains $2 and OutVals[0] information.  
 
 .. code-block:: c++
 
@@ -2619,33 +2621,35 @@ register $2 is 0) as follows,
     // If this is the first return lowered for this function, add
     // the regs to the liveout set for the function.
     if (DAG.getMachineFunction().getRegInfo().liveout_empty()) {
-    for (unsigned i = 0; i != RVLocs.size(); ++i)
-      if (RVLocs[i].isRegLoc())
-      DAG.getMachineFunction().getRegInfo().addLiveOut(RVLocs[i].getLocReg());
+      for (unsigned i = 0; i != RVLocs.size(); ++i)
+        if (RVLocs[i].isRegLoc())
+          DAG.getMachineFunction().getRegInfo().addLiveOut(RVLocs[i].getLocReg());
     }
   
     SDValue Flag;
   
     // Copy the result values into the output registers.
     for (unsigned i = 0; i != RVLocs.size(); ++i) {
-    CCValAssign &VA = RVLocs[i];
-    assert(VA.isRegLoc() && "Can only return in registers!");
+      CCValAssign &VA = RVLocs[i];
+      assert(VA.isRegLoc() && "Can only return in registers!");
   
-    Chain = DAG.getCopyToReg(Chain, dl, VA.getLocReg(), OutVals[i], Flag);
+      Chain = DAG.getCopyToReg(Chain, dl, VA.getLocReg(), OutVals[i], Flag);
   
-    // guarantee that all emitted copies are
-    // stuck together, avoiding something bad
-    Flag = Chain.getValue(1);
+      // guarantee that all emitted copies are
+      // stuck together, avoiding something bad
+      Flag = Chain.getValue(1);
     }
   
     // Return on Cpu0 is always a "jr $ra"
     if (Flag.getNode())
-    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
-               Chain, DAG.getRegister(Cpu0::LR, MVT::i32), Flag);
+      return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+                 Chain, DAG.getRegister(Cpu0::LR, MVT::i32), Flag);
     else // Return Void
-    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
-               Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
+      return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+                 Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
   }
+  
+Run 8/8/Cpu0 to get the correct result (return register $2 is 0) as follows, 
 
 .. code-block:: bash
 
