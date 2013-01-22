@@ -180,10 +180,10 @@ into,
 
 .. code-block:: c++
 
-	mtacc	Addr(12) // Move b To Acc
-	add		Addr(16) // Add a To Acc
-	add		Addr(4)  // Add d To Acc
-	mfacc	Addr(8)  // Move Acc To c
+	mtacc   Addr(12) // Move b To Acc
+	add     Addr(16) // Add a To Acc
+	add     Addr(4)  // Add d To Acc
+	mfacc   Addr(8)  // Move Acc To c
 
 Above code also can be coded by programmer who use assembly language directly 
 in MCU or BIOS programm since maybe the code size is just 4KB or less.
@@ -216,11 +216,11 @@ Run 8/8_2/Cpu0 with ch_move.cpp will get the following result,
 
   ld  $3, 12($sp) // $3 is a
   ld  $4, 16($sp) // $4 is b
-  mtacc $4      // Move b To Acc
-  add $3      // Add a To Acc
+  mtacc $4        // Move b To Acc
+  add $3          // Add a To Acc
   ld  $4, 4($sp)  // $4 is d
-  add $4      // Add d To Acc
-  mfacc $3    // Move Acc to $3
+  add $4          // Add d To Acc
+  mfacc $3        // Move Acc to $3
   addiu $3, $3, 5 // Add e(=5) to $3
   st  $3, 8($sp)
 
