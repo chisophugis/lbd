@@ -1,16 +1,15 @@
 diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
---- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-01-22 14:53:30.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-22 16:23:38.000000000 +0800
-@@ -29,6 +29,8 @@
+--- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-01-22 16:36:50.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-22 20:40:54.000000000 +0800
+@@ -29,6 +29,7 @@
    return RI;
  }
  
-+//- Called when DestReg and SrcReg belong to different Register Class and need 
-+//   changing register class.
++//- Called when DestReg and SrcReg belong to different Register Class.
  void Cpu0InstrInfo::
  copyPhysReg(MachineBasicBlock &MBB,
              MachineBasicBlock::iterator I, DebugLoc DL,
-@@ -43,12 +45,16 @@
+@@ -43,12 +44,16 @@
        Opc = Cpu0::MFHI, SrcReg = 0;
      else if (SrcReg == Cpu0::LO)
        Opc = Cpu0::MFLO, SrcReg = 0;
@@ -28,8 +27,8 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
  
    assert(Opc && "Cannot copy registers");
 diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
---- 8/8/Cpu0/Cpu0InstrInfo.td	2013-01-22 14:53:30.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-01-22 16:26:16.000000000 +0800
+--- 8/8/Cpu0/Cpu0InstrInfo.td	2013-01-22 16:36:50.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-01-22 16:36:50.000000000 +0800
 @@ -353,6 +353,36 @@
    let neverHasSideEffects = 1;
  }
@@ -104,8 +103,8 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
  multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
  Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
 diff -Naur 8/8/Cpu0/Cpu0RegisterInfo.td 8/8_2/Cpu0/Cpu0RegisterInfo.td
---- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-01-22 14:53:30.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-01-22 16:23:38.000000000 +0800
+--- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-01-22 16:36:50.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-01-22 16:36:50.000000000 +0800
 @@ -51,6 +51,7 @@
    // Hi/Lo registers
    def HI  : Register<"hi">, DwarfRegNum<[18]>;

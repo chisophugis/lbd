@@ -289,8 +289,7 @@ The following code is added to 8/8_2.cpp.
   
   // Cpu0InstrInfo.cpp
   ... 
-  //- Called when DestReg and SrcReg belong to different Register Class and need 
-  //   changing register class.
+  //- Called when DestReg and SrcReg belong to different Register Class.
   void Cpu0InstrInfo::
   copyPhysReg(MachineBasicBlock &MBB,
         MachineBasicBlock::iterator I, DebugLoc DL,
@@ -325,8 +324,7 @@ Explain the code as follows,
   //        (ADD (MTACC CPURegs:$lhs), CPURegs:$rhs)>;
   // After this pattern translation, the DestReg class change from CPU0Regs to 
   //  RACC according the following code of copyPhysReg(). copyPhysReg() is called 
-  //  when DestReg and SrcReg belong to different Register Class and need 
-  //  changing register class.
+  //  when DestReg and SrcReg belong to different Register Class.
   //
   //  if (DestReg)
   //    MIB.addReg(DestReg, RegState::Define);
