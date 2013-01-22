@@ -2520,10 +2520,202 @@ backend code too.
 Mips qemu reference [#]_.
 
 
+Correct the return of main()
+----------------------------
+
+Run 8/7/Cpu0 with ch6_2.cpp to get the incorrect main return (return register 
+$2 is not 0) as follows,
+
+.. code-block:: c++
+
+  struct Date
+  {
+    int year;
+    int month;
+    int day;
+  };
+  
+  Date date = {2012, 10, 12};
+  int a[3] = {2012, 10, 12};
+  
+  int main()
+  {
+    int day = date.day;
+    int i = a[1];
+  
+    return 0;
+  }
+
+.. code-block:: bash
+
+  118-165-78-31:InputFiles Jonathan$ clang -c ch6_2.cpp -emit-llvm -o ch6_2.bc
+  118-165-78-31:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=asm ch6_2.bc -o 
+  ch6_2.cpu0.static.s
+  118-165-78-31:InputFiles Jonathan$ cat ch6_2.cpu0.static.s 
+    .section .mdebug.abi32
+    .previous
+    .file "ch6_2.bc"
+    .text
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,16,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -16
+  $tmp1:
+    .cfi_def_cfa_offset 16
+    addiu $2, $zero, 0
+    st  $2, 12($sp)
+    addiu $2, $zero, %hi(date)
+    shl $2, $2, 16
+    addiu $2, $2, %lo(date)
+    ld  $2, 8($2)
+    st  $2, 8($sp)
+    addiu $2, $zero, %hi(a)
+    shl $2, $2, 16
+    addiu $2, $2, %lo(a)
+    ld  $2, 4($2)
+    st  $2, 4($sp)
+    addiu $sp, $sp, 16
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  ...
+
+
+Run 8/8/Cpu0 with the modified LowerReturn() to get the correct result (return 
+register $2 is 0) as follows,
+
+.. code-block:: c++
+
+  // Cpu0ISelLowering.cpp
+  ...
+  SDValue
+  Cpu0TargetLowering::LowerReturn(SDValue Chain,
+                  CallingConv::ID CallConv, bool isVarArg,
+                  const SmallVectorImpl<ISD::OutputArg> &Outs,
+                  const SmallVectorImpl<SDValue> &OutVals,
+                  DebugLoc dl, SelectionDAG &DAG) const {
+  
+    // CCValAssign - represent the assignment of
+    // the return value to a location
+    SmallVector<CCValAssign, 16> RVLocs;
+  
+    // CCState - Info about the registers and stack slot.
+    CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
+       getTargetMachine(), RVLocs, *DAG.getContext());
+  
+    // Analize return values.
+    CCInfo.AnalyzeReturn(Outs, RetCC_Cpu0);
+  
+    // If this is the first return lowered for this function, add
+    // the regs to the liveout set for the function.
+    if (DAG.getMachineFunction().getRegInfo().liveout_empty()) {
+    for (unsigned i = 0; i != RVLocs.size(); ++i)
+      if (RVLocs[i].isRegLoc())
+      DAG.getMachineFunction().getRegInfo().addLiveOut(RVLocs[i].getLocReg());
+    }
+  
+    SDValue Flag;
+  
+    // Copy the result values into the output registers.
+    for (unsigned i = 0; i != RVLocs.size(); ++i) {
+    CCValAssign &VA = RVLocs[i];
+    assert(VA.isRegLoc() && "Can only return in registers!");
+  
+    Chain = DAG.getCopyToReg(Chain, dl, VA.getLocReg(), OutVals[i], Flag);
+  
+    // guarantee that all emitted copies are
+    // stuck together, avoiding something bad
+    Flag = Chain.getValue(1);
+    }
+  
+    // Return on Cpu0 is always a "jr $ra"
+    if (Flag.getNode())
+    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+               Chain, DAG.getRegister(Cpu0::LR, MVT::i32), Flag);
+    else // Return Void
+    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+               Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
+  }
+
+.. code-block:: bash
+
+  118-165-78-31:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=asm ch6_2.bc -o 
+  ch6_2.cpu0.static.s
+  118-165-78-31:InputFiles Jonathan$ cat ch6_2.cpu0.static.s 
+    .section .mdebug.abi32
+    .previous
+    .file "ch6_2.bc"
+    .text
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,16,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -16
+  $tmp1:
+    .cfi_def_cfa_offset 16
+    addiu $2, $zero, 0
+    st  $2, 12($sp)
+    addiu $3, $zero, %hi(date)
+    shl $3, $3, 16
+    addiu $3, $3, %lo(date)
+    ld  $3, 8($3)
+    st  $3, 8($sp)
+    addiu $3, $zero, %hi(a)
+    shl $3, $3, 16
+    addiu $3, $3, %lo(a)
+    ld  $3, 4($3)
+    st  $3, 4($sp)
+    addiu $sp, $sp, 16
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp2:
+    .size main, ($tmp2)-main
+    .cfi_endproc
+  
+    .type date,@object            # @date
+    .data
+    .globl  date
+    .align  2
+  date:
+    .4byte  2012                    # 0x7dc
+    .4byte  10                      # 0xa
+    .4byte  12                      # 0xc
+    .size date, 12
+  
+    .type a,@object               # @a
+    .globl  a
+    .align  2
+  a:
+    .4byte  2012                    # 0x7dc
+    .4byte  10                      # 0xa
+    .4byte  12                      # 0xc
+    .size a, 12
+
+
 Verify DIV for operator %
 --------------------------
 
-Now, let's run 8/7/Cpu0 with 4_6_2.cpp to get the result as below. 
+Now, let's run 8/8/Cpu0 with ch4_6_2.cpp to get the result as below. 
 It translate **“(b+1)%c”** into **“div $zero, $3, $2”** and **“mfhi $2”**.
 
 .. code-block:: c++
