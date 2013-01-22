@@ -162,13 +162,13 @@ So, it seems no "move" IR DAG.
 Because "move a, b" can be replaced by "lw a, b_offset($sp)" for local 
 variable, or can be replaced by "addu $a, $0,$ b". 
 The cpu0 is same as Mips. 
-I find the move instruction is useless even though it supplied by the cpu0 
-author.
+Base on this reason, the move instruction is useless even though it supplied by 
+the cpu0 author.
 
-For the old CPU or Micro Processor (MCU), like PIC, 8051, old intel processor. 
-These CPU/MCU need memory saving and not aim to C programmer only (they aim to 
-assembly code program too). 
-They need implicit operand, maybe use ACC (accumulate register). 
+For the old CPU or Micro Processor (MCU), like PIC, 8051 and old intel processor. 
+These CPU/MCU need memory saving and not aim to high level of program (such as 
+C) only (they aim to assembly code program too). 
+These CPU/MCU need implicit operand, maybe use ACC (accumulate register). 
 
 It will translate,
 
@@ -185,8 +185,8 @@ into,
 	add		Addr(4)  // Add d To Acc
 	mfacc	Addr(8)  // Move Acc To c
 
-Above assembly code maybe is code by programmer in MCU or BIOS programmer since 
-maybe the code size is 4KB or less.
+Above code also can be coded by programmer who use assembly language directly 
+in MCU or BIOS programm since maybe the code size is just 4KB or less.
 
 Since cpu0 is a 32 bits (code size can be 4GB), it use Store and Load 
 instructions for memory address access only. 
