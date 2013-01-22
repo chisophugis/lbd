@@ -1,0 +1,56 @@
+diff -Naur 8/7/Cpu0/Cpu0ISelLowering.cpp 8/8/Cpu0/Cpu0ISelLowering.cpp
+--- 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-22 13:38:48.000000000 +0800
++++ 8/8/Cpu0/Cpu0ISelLowering.cpp	2013-01-22 13:31:28.000000000 +0800
+@@ -553,13 +553,51 @@
+                                 const SmallVectorImpl<SDValue> &OutVals,
+                                 DebugLoc dl, SelectionDAG &DAG) const {
+ 
++  // CCValAssign - represent the assignment of
++  // the return value to a location
++  SmallVector<CCValAssign, 16> RVLocs;
++
++  // CCState - Info about the registers and stack slot.
++  CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
++		 getTargetMachine(), RVLocs, *DAG.getContext());
++
++  // Analize return values.
++  CCInfo.AnalyzeReturn(Outs, RetCC_Cpu0);
++
++  // If this is the first return lowered for this function, add
++  // the regs to the liveout set for the function.
++  if (DAG.getMachineFunction().getRegInfo().liveout_empty()) {
++    for (unsigned i = 0; i != RVLocs.size(); ++i)
++      if (RVLocs[i].isRegLoc())
++        DAG.getMachineFunction().getRegInfo().addLiveOut(RVLocs[i].getLocReg());
++  }
++
++  SDValue Flag;
++
++  // Copy the result values into the output registers.
++  for (unsigned i = 0; i != RVLocs.size(); ++i) {
++    CCValAssign &VA = RVLocs[i];
++    assert(VA.isRegLoc() && "Can only return in registers!");
++
++    Chain = DAG.getCopyToReg(Chain, dl, VA.getLocReg(), OutVals[i], Flag);
++
++    // guarantee that all emitted copies are
++    // stuck together, avoiding something bad
++    Flag = Chain.getValue(1);
++  }
++
++  // Return on Cpu0 is always a "jr $ra"
++  if (Flag.getNode())
++    return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
++                       Chain, DAG.getRegister(Cpu0::LR, MVT::i32), Flag);
++  else // Return Void
+     return DAG.getNode(Cpu0ISD::Ret, dl, MVT::Other,
+                        Chain, DAG.getRegister(Cpu0::LR, MVT::i32));
+ }
+ 
+ bool
+ Cpu0TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
+-  // The Mips target isn't yet aware of offsets.
++  // The Cpu0 target isn't yet aware of offsets.
+   return false;
+ }
+ 
