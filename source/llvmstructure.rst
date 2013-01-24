@@ -80,8 +80,8 @@ down for each type of instruction.
 
 The following table details the Cpu0 instruction set:
 
-.. list-table::
-	:widths: 5 5 5 12 7 10
+.. list-table:: Cpu0 Instruction Set
+	:widths: 3 4 3 11 7 10
 	:header-rows: 1
 
 	* - Format
@@ -149,7 +149,7 @@ The following table details the Cpu0 instruction set:
 	  - 10
 	  - Compare
 	  - CMP Ra, Rb
-	  - SW <= (Ra >/>=/==/!=/<=/< Rb)
+	  - SW <= (Ra cond Rb) [#cond-note]_
 	* - A
 	  - MOV
 	  - 12
@@ -384,44 +384,6 @@ what happens in the processor:
 -	The ALU executes the operation designated by the control unit upon data in registers. 
 	After the ALU is done, the result is stored in the destination register. 
 
-.. todo:: This is actually a question: Does the "Replace ldi instruction by addiu" section 
-	really need to be here?  Maybe it should be a note up above with the Cpu0 ISA tables
-	rather than a whole section?  If we aren't using ldi, I don't see much purpose 
-	keeping it around/mentioning it.
-
-Replace ldi instruction by addiu instruction
-++++++++++++++++++++++++++++++++++++++++++++
-
-We have recognized the ldi instruction is a bad design and replace it with mips 
-instruction addiu. 
-The reason we replace ldi with addiu is that ldi use only one register even 
-though ldi is L type format and has two registers, as :ref:`llvmstructure_f4`. 
-Mips addiu which allow programmer to do load constant to register like ldi, 
-and add constant to a register. So, it's powerful and fully contains the ldi 
-ability. 
-These two instructions format as :ref:`llvmstructure_f4` and :ref:`llvmstructure_f5`.
-
-.. _llvmstructure_f4: 
-.. figure:: ../Fig/llvmstructure/4.png
-	:align: center
-
-	Cpu0 ldi instruction
-
-.. _llvmstructure_f5: 
-.. figure:: ../Fig/llvmstructure/5.png
-	:align: center
-
-	Mips addiu instruction format
-
-From :ref:`llvmstructure_f4` and :ref:`llvmstructure_f5`, you can find ldi $Ra, 
-5 can be replaced by addiu $Ra, $zero, 5. 
-And more, addiu can do addiu $Ra, $Rb, 5 which add $Rb and 5 then save to $Ra, 
-but ldi cannot. 
-As a cpu design, it's common to redesign CPU instruction when find a better 
-solution during design the compiler backend for that CPU. 
-So, we add addiu instruction to cpu0. 
-The cpu0 is my brother's work, I will find time to talk with him.
-
 LLVM Structure
 --------------
 
@@ -614,20 +576,20 @@ are all caps) like this:
      R8D, R9D, R10D, R11D, R14D, R15D, R12D, R13D]> { ... }
 
 
-Writing the First Cpu0 .td Files
---------------------------------
+Creating the Initial Cpu0 .td Files
+-----------------------------------
 
-.. resume editing here (1/21)
+As has been discussed in the previous section, LLVM uses target description files 
+(which use the .td file extension) to describe various components of a target's backend. 
+For example, these .td files may describe a target's register set, instruction set, 
+scheduling information for instructions, and calling conventions.  When your backend is 
+being compiled, the tablegen tool that ships with LLVM will translate these .td files 
+into C++ source code written to files that have a .inc extension.  Please refer 
+to [#tablegen]_ for more information regarding how to use tablegen.
 
-The llvm using .td file (Target Description) to describe register and 
-instruction format. 
-After finish the .td files, llvm can generate C++ files (\*.inc) by llvm-tblgen 
-tools. 
-The \*.inc file is a text file (C++ file) with table driven in concept. 
-[#tablegen]_ is the web site.
-
-Every back end has a target td which define it's own target information. 
-File td is like C++ in syntax. For example the Cpu0.td as follows,
+Every backend has a .td which defines some target information, including what other .td 
+files are used by the backend.  These files have a similar syntax to C++. For Cpu0, the 
+target description file is called Cpu0.td, which is shown below:
 
 .. code-block:: c++
 
@@ -662,8 +624,14 @@ File td is like C++ in syntax. For example the Cpu0.td as follows,
     let InstructionSet = Cpu0InstrInfo; 
   }
 
-The registers td named Cpu0RegisterInfo.td included by Cpu0.td is defined as 
-follows,
+Cpu0.td includes a few other .td files.  Cpu0RegisterInfo.td (shown below) describes the 
+Cpu0's set of registers.  In this file, we see that registers have been given names, i.e.
+``def PC`` indicates that there is a register called PC.  Also, there is a register class 
+named ``CPURegs`` that contains all of the other registers.  You may have multiple 
+register classes (see the X86 backend, for example) which can help you if certain 
+instructions can only write to specific registers.  In this case, there is only one set 
+of general purpose registers for Cpu0, and some registers that are reserved so that they 
+are not modified by instructions during execution.
 
 .. code-block:: c++
 
@@ -718,37 +686,53 @@ follows,
     // Reserved 
     ZERO, AT, GP, FP, SW, SP, LR, PC)>; 
 
-In C++ the data layout is declared by class. Declaration tells the variable 
-layout; definition allocates memory for the variable. 
-For example,
-
+In C++, classes typically provide a structure to lay out some data and functions, 
+while definitions are used to allocate memory for specific instances of a class.  For 
+example:
 
 .. code-block:: c++
 
   class Date {  // declare Date
     int year, month, day;
   }; 
-  Date date;  // define(instance) date
+  Date birthday;  // define birthday, an instance of Date
 
+The class ``Date`` has the members ``year``, ``month``, and ``day``, however these do not  
+yet belong to an actual object.  By defining an instance of ``Date`` called ``birthday``, 
+you have allocated memory for a specific object, and can set the ``year``, ``month``, and 
+``day`` of this instance of the class.
 
-Just like C++ class, the keyword **“class”** is used for declaring data structure 
-layout. 
-``Cpu0Reg<string n>`` declare a derived class from ``Register<n>`` which is 
-declared by llvm already, where n is the argument of type string. 
-In addition to inherited from all the fields of Register class, Cpu0Reg add a 
-new field "Num" of type 4 bits. 
-Namespace is same with  C++ namespace. 
-**“Def”** is used by define(instance) a concrete variable.
+In .td files, classes describe the structure of how data is laid out, while definitions 
+act as the specific instances of the classes.  If we look back at the Cpu0RegisterInfo.td 
+file, we see a class called ``Cpu0Reg<string n>`` which is derived from the 
+``Register<n>`` class provided by LLVM.  ``Cpu0Reg`` inherits all the fields that exist 
+in the ``Register`` class, and also adds a new field called ``Num`` which is four bits 
+wide.
 
-As above, we define a ZERO register which type is Cpu0GPRReg, it's field Num 
-is 0 (4 bits) and field n is **“ZERO”** (declared in Register class). 
-Note the use of **“let”** expressions to override values that are initially defined 
-in a superclass. For example, let Namespace = **“Cpu0”** in class Cpu0Reg, will 
-override Namespace declared in Register class. 
-The Cpu0RegisterInfo.td also define that CPURegs is a variable for type of 
-RegisterClass, where the RegisterClass is a llvm built-in class. 
-The type of RegisterClass is a set/group of Register, so CPURegs variable is 
-defined with a set of Register.
+The ``def`` keyword is used to create instances of classes.  In the following line, the 
+ZERO register is defined as a member of the ``Cpu0GPRReg`` class:
+
+.. code-block:: c++
+
+	def ZERO : Cpu0GPRReg< 0, "ZERO">, DwarfRegNum<[0]>;
+
+The ``def ZERO`` indicates the name of this register.  ``< 0, "ZERO">`` are the 
+parameters used when creating this specific instance of the ``Cpu0GPRReg`` class, thus 
+the four bit ``Num`` field is set to 0, and the string ``n`` is set to ``ZERO``.
+
+As the register lives in the ``Cpu0`` namespace, you can refer to the ZERO register in 
+C++ code in a backend using ``Cpu0::ZERO``.
+
+.. todo:: I might want to re-edit the following paragraph
+
+Notice the use of the ``let`` expressions: these allow you to override values that are 
+initially defined in a superclass. For example, ``let Namespace = “Cpu0”`` in the 
+``Cpu0Reg`` class will override the default namespace declared in ``Register`` class. 
+The Cpu0RegisterInfo.td also defines that ``CPURegs`` is an instance of the class 
+``RegisterClass``, which is an built-in LLVM class.  A ``RegisterClass`` is a set of 
+``Register`` instances, thus ``CPURegs`` can be described as a set of registers.
+
+.. end editing 1/23
 
 The cpu0 instructions td is named to Cpu0InstrInfo.td which contents as follows,
 
@@ -1498,10 +1482,50 @@ those td related files.
 The error message say we didn't define our target machine.
 
 
+.. commenting out this subsection
+
+	this subsection was originally between Stages of Cpu0 pipeline and LLVM Structure
+	
+	Replace ldi instruction by addiu instruction
+	++++++++++++++++++++++++++++++++++++++++++++
+	
+	We have recognized the ldi instruction is a bad design and replace it with mips 
+	instruction addiu. 
+	The reason we replace ldi with addiu is that ldi use only one register even 
+	though ldi is L type format and has two registers, as :ref:`llvmstructure_f4`. 
+	Mips addiu which allow programmer to do load constant to register like ldi, 
+	and add constant to a register. So, it's powerful and fully contains the ldi 
+	ability. 
+	These two instructions format as :ref:`llvmstructure_f4` and :ref:`llvmstructure_f5`.
+	
+	.. _llvmstructure_f4: 
+	.. figure:: ../Fig/llvmstructure/4.png
+		:align: center
+	
+		Cpu0 ldi instruction
+
+	.. _llvmstructure_f5: 
+	.. figure:: ../Fig/llvmstructure/5.png
+		:align: center
+	
+		Mips addiu instruction format
+
+	From :ref:`llvmstructure_f4` and :ref:`llvmstructure_f5`, you can find ldi $Ra, 
+	5 can be replaced by addiu $Ra, $zero, 5. 
+	And more, addiu can do addiu $Ra, $Rb, 5 which add $Rb and 5 then save to $Ra, 
+	but ldi cannot. 
+	As a cpu design, it's common to redesign CPU instruction when find a better 
+	solution during design the compiler backend for that CPU. 
+	So, we add addiu instruction to cpu0. 
+	The cpu0 is my brother's work, I will find time to talk with him.
+.. end subsection
+
 
 .. [#cpu0-chinese] Original Cpu0 architecture and ISA details (Chinese). http://ccckmit.wikidot.com/ocs:cpu0
 
 .. [#cpu0-english] English translation of Cpu0 description. http://translate.google.com.tw/translate?js=n&prev=_t&hl=zh-TW&ie=UTF-8&layout=2&eotf=1&sl=zh-CN&tl=en&u=http://ccckmit.wikidot.com/ocs:cpu0
+
+.. [#cond-note] Conditions include the following comparisons: >, >=, ==, !=, <=, <. SW is actually set by the subtraction of the two register operands, and the flags indicate which conditions are present.
 
 .. [#aosa-book] Chris Lattner, **LLVM**. Published in The Architecture of Open Source Applications. http://www.aosabook.org/en/llvm.html
 
