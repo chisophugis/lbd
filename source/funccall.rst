@@ -231,8 +231,8 @@ for cpu0 passing rule as follows,
   // Cpu0CallingConv.td
   ...
   def RetCC_Cpu0EABI : CallingConv<[ 
-    // i32 are returned in registers V0, V1
-    CCIfType<[i32], CCAssignToReg<[V0, V1]>>
+    // i32 are returned in registers V0, V1, A0, A1
+    CCIfType<[i32], CCAssignToReg<[V0, V1, A0, A1]>>
   ]>;
     
   //===----------------------------------------------------------------------===//
@@ -620,7 +620,7 @@ LowerCall() is responsible to do this. The implementation as follows,
     // Analyze operands of the call, assigning locations to each operand.
     SmallVector<CCValAssign, 16> ArgLocs;
     CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
-           getTargetMachine(), ArgLocs, *DAG.getContext());
+                   getTargetMachine(), ArgLocs, *DAG.getContext());
   
     CCInfo.AnalyzeCallOperands(Outs, CC_Cpu0);
   
@@ -630,23 +630,23 @@ LowerCall() is responsible to do this. The implementation as follows,
     // If this is the first call, create a stack frame object that points to
     // a location to which .cprestore saves $gp.
     if (IsPIC && Cpu0FI->globalBaseRegFixed() && !Cpu0FI->getGPFI())
-    Cpu0FI->setGPFI(MFI->CreateFixedObject(4, 0, true));
+      Cpu0FI->setGPFI(MFI->CreateFixedObject(4, 0, true));
     // Get the frame index of the stack frame object that points to the location
     // of dynamically allocated area on the stack.
     int DynAllocFI = Cpu0FI->getDynAllocFI();
     unsigned MaxCallFrameSize = Cpu0FI->getMaxCallFrameSize();
   
     if (MaxCallFrameSize < NextStackOffset) {
-    Cpu0FI->setMaxCallFrameSize(NextStackOffset);
+      Cpu0FI->setMaxCallFrameSize(NextStackOffset);
   
-    // Set the offsets relative to $sp of the $gp restore slot and dynamically
-    // allocated stack space. These offsets must be aligned to a boundary
-    // determined by the stack alignment of the ABI.
-    unsigned StackAlignment = TFL->getStackAlignment();
-    NextStackOffset = (NextStackOffset + StackAlignment - 1) /
-              StackAlignment * StackAlignment;
+      // Set the offsets relative to $sp of the $gp restore slot and dynamically
+      // allocated stack space. These offsets must be aligned to a boundary
+      // determined by the stack alignment of the ABI.
+      unsigned StackAlignment = TFL->getStackAlignment();
+      NextStackOffset = (NextStackOffset + StackAlignment - 1) /
+                         StackAlignment * StackAlignment;
   
-    MFI->setObjectOffset(DynAllocFI, NextStackOffset);
+      MFI->setObjectOffset(DynAllocFI, NextStackOffset);
     }
     // Chain is the output chain of the last Load/Store or CopyToReg node.
     // ByValChain is the output chain of the last Memcpy node created for copying
@@ -664,50 +664,50 @@ LowerCall() is responsible to do this. The implementation as follows,
   
     // Walk the register/memloc assignments, inserting copies/loads.
     for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
-    SDValue Arg = OutVals[i];
-    CCValAssign &VA = ArgLocs[i];
-    MVT ValVT = VA.getValVT(), LocVT = VA.getLocVT();
-    ISD::ArgFlagsTy Flags = Outs[i].Flags;
+      SDValue Arg = OutVals[i];
+      CCValAssign &VA = ArgLocs[i];
+      MVT ValVT = VA.getValVT(), LocVT = VA.getLocVT();
+      ISD::ArgFlagsTy Flags = Outs[i].Flags;
   
-    // ByVal Arg.
-    if (Flags.isByVal()) {
-      assert("!!!Error!!!, Flags.isByVal()==true");
-      assert(Flags.getByValSize() &&
-         "ByVal args of size 0 should have been ignored by front-end.");
-      continue;
-    }
+      // ByVal Arg.
+      if (Flags.isByVal()) {
+        assert("!!!Error!!!, Flags.isByVal()==true");
+        assert(Flags.getByValSize() &&
+               "ByVal args of size 0 should have been ignored by front-end.");
+        continue;
+      }
   
-    // Register can't get to this point...
-    assert(VA.isMemLoc());
+      // Register can't get to this point...
+      assert(VA.isMemLoc());
   
-    // Create the frame index object for this incoming parameter
-    LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
-                    VA.getLocMemOffset(), true);
-    SDValue PtrOff = DAG.getFrameIndex(LastFI, getPointerTy());
+      // Create the frame index object for this incoming parameter
+      LastFI = MFI->CreateFixedObject(ValVT.getSizeInBits()/8,
+                                      VA.getLocMemOffset(), true);
+      SDValue PtrOff = DAG.getFrameIndex(LastFI, getPointerTy());
   
-    // emit ISD::STORE whichs stores the
-    // parameter value to a stack Location
-    MemOpChains.push_back(DAG.getStore(Chain, dl, Arg, PtrOff,
-                       MachinePointerInfo(), false, false, 0));
+      // emit ISD::STORE whichs stores the
+      // parameter value to a stack Location
+      MemOpChains.push_back(DAG.getStore(Chain, dl, Arg, PtrOff,
+                                         MachinePointerInfo(), false, false, 0));
     }
   
     // Extend range of indices of frame objects for outgoing arguments that were
     // created during this function call. Skip this step if no such objects were
     // created.
     if (LastFI)
-    Cpu0FI->extendOutArgFIRange(FirstFI, LastFI);
+      Cpu0FI->extendOutArgFIRange(FirstFI, LastFI);
   
     // If a memcpy has been created to copy a byval arg to a stack, replace the
     // chain input of CallSeqStart with ByValChain.
     if (InChain != ByValChain)
-    DAG.UpdateNodeOperands(CallSeqStart.getNode(), ByValChain,
-                 NextStackOffsetVal);
+      DAG.UpdateNodeOperands(CallSeqStart.getNode(), ByValChain,
+                             NextStackOffsetVal);
   
     // Transform all store nodes into one single node because all store
     // nodes are independent of each other.
     if (!MemOpChains.empty())
-    Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
-              &MemOpChains[0], MemOpChains.size());
+      Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
+                            &MemOpChains[0], MemOpChains.size());
   
     // If the callee is a GlobalAddress/ExternalSymbol node (quite common, every
     // direct call is) turn it into a TargetGlobalAddress/TargetExternalSymbol
@@ -718,50 +718,50 @@ LowerCall() is responsible to do this. The implementation as follows,
     SDValue CalleeLo;
   
     if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee)) {
-    OpFlag = IsPICCall ? Cpu0II::MO_GOT_CALL : Cpu0II::MO_NO_FLAG;
-    Callee = DAG.getTargetGlobalAddress(G->getGlobal(), dl,
-                        getPointerTy(), 0, OpFlag);
-    GlobalOrExternal = true;
+      OpFlag = IsPICCall ? Cpu0II::MO_GOT_CALL : Cpu0II::MO_NO_FLAG;
+      Callee = DAG.getTargetGlobalAddress(G->getGlobal(), dl,
+                                            getPointerTy(), 0, OpFlag);
+      GlobalOrExternal = true;
     }
     else if (ExternalSymbolSDNode *S = dyn_cast<ExternalSymbolSDNode>(Callee)) {
-    if (!IsPIC) // static
-      OpFlag = Cpu0II::MO_NO_FLAG;
-    else // O32 & PIC
-      OpFlag = Cpu0II::MO_GOT_CALL;
-    Callee = DAG.getTargetExternalSymbol(S->getSymbol(), getPointerTy(),
-                       OpFlag);
-    GlobalOrExternal = true;
+      if (!IsPIC) // static
+        OpFlag = Cpu0II::MO_NO_FLAG;
+      else // O32 & PIC
+        OpFlag = Cpu0II::MO_GOT_CALL;
+      Callee = DAG.getTargetExternalSymbol(S->getSymbol(), getPointerTy(),
+                                           OpFlag);
+      GlobalOrExternal = true;
     }
   
     SDValue InFlag;
   
     // Create nodes that load address of callee and copy it to T9
     if (IsPICCall) {
-    if (GlobalOrExternal) {
-      // Load callee address
-      Callee = DAG.getNode(Cpu0ISD::Wrapper, dl, getPointerTy(),
-                 GetGlobalReg(DAG, getPointerTy()), Callee);
-      SDValue LoadValue = DAG.getLoad(getPointerTy(), dl, DAG.getEntryNode(),
-                      Callee, MachinePointerInfo::getGOT(),
-                      false, false, false, 0);
+      if (GlobalOrExternal) {
+        // Load callee address
+        Callee = DAG.getNode(Cpu0ISD::Wrapper, dl, getPointerTy(),
+                             GetGlobalReg(DAG, getPointerTy()), Callee);
+        SDValue LoadValue = DAG.getLoad(getPointerTy(), dl, DAG.getEntryNode(),
+                                        Callee, MachinePointerInfo::getGOT(),
+                                        false, false, false, 0);
   
       // Use GOT+LO if callee has internal linkage.
-      if (CalleeLo.getNode()) {
-      SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, getPointerTy(), CalleeLo);
-      Callee = DAG.getNode(ISD::ADD, dl, getPointerTy(), LoadValue, Lo);
-      } else
-      Callee = LoadValue;
-    }
+        if (CalleeLo.getNode()) {
+          SDValue Lo = DAG.getNode(Cpu0ISD::Lo, dl, getPointerTy(), CalleeLo);
+          Callee = DAG.getNode(ISD::ADD, dl, getPointerTy(), LoadValue, Lo);
+        } else
+          Callee = LoadValue;
+      }
     }
   
     // T9 should contain the address of the callee function if
     // -reloction-model=pic or it is an indirect call.
     if (IsPICCall || !GlobalOrExternal) {
-    // copy to T9
-    unsigned T9Reg = Cpu0::T9;
-    Chain = DAG.getCopyToReg(Chain, dl, T9Reg, Callee, SDValue(0, 0));
-    InFlag = Chain.getValue(1);
-    Callee = DAG.getRegister(T9Reg, getPointerTy());
+      // copy to T9
+      unsigned T9Reg = Cpu0::T9;
+      Chain = DAG.getCopyToReg(Chain, dl, T9Reg, Callee, SDValue(0, 0));
+      InFlag = Chain.getValue(1);
+      Callee = DAG.getRegister(T9Reg, getPointerTy());
     }
   
     // Cpu0JmpLink = #chain, #target_address, #opt_in_flags...
@@ -814,16 +814,16 @@ LowerCall() is responsible to do this. The implementation as follows,
     // Assign locations to each value returned by this call.
     SmallVector<CCValAssign, 16> RVLocs;
     CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(),
-       getTargetMachine(), RVLocs, *DAG.getContext());
+                   getTargetMachine(), RVLocs, *DAG.getContext());
   
     CCInfo.AnalyzeCallResult(Ins, RetCC_Cpu0);
   
     // Copy all of the result registers out of their specified physreg.
     for (unsigned i = 0; i != RVLocs.size(); ++i) {
-    Chain = DAG.getCopyFromReg(Chain, dl, RVLocs[i].getLocReg(),
-                   RVLocs[i].getValVT(), InFlag).getValue(1);
-    InFlag = Chain.getValue(2);
-    InVals.push_back(Chain.getValue(0));
+      Chain = DAG.getCopyFromReg(Chain, dl, RVLocs[i].getLocReg(),
+                                 RVLocs[i].getValVT(), InFlag).getValue(1);
+      InFlag = Chain.getValue(2);
+      InVals.push_back(Chain.getValue(0));
     }
   
     return Chain;
@@ -2501,8 +2501,8 @@ backend code too.
     va_start(vl, amount);
     for (i = 0; i < amount; i++)
     {
-    val = va_arg(vl, T);
-    sum += val;
+      val = va_arg(vl, T);
+      sum += val;
     }
     va_end(vl);
     
@@ -2512,7 +2512,7 @@ backend code too.
   int main()
   {
     int a = sum<int>(6, 1, 2, 3, 4, 5, 6);
-  //  printf("a = %d\n", a);
+    //  printf("a = %d\n", a);
     
     return a;
   }
@@ -2752,16 +2752,834 @@ It translate **“(b+1)%c”** into **“div $zero, $3, $2”** and **“mfhi $2
     mfhi  $2
     ...
 
+
+Structure type support
+-----------------------
+
+Run 8/8 with ch8_9_1 will get the error message as follows,
+
+.. code-block:: c++
+
+  // ch8_9_1.cpp
+  struct Date
+  {
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+  };
+  Date gDate = {2012, 10, 12, 1, 2, 3};
+  
+  struct Time
+  {
+    int hour;
+    int minute;
+    int second;
+  };
+  Time gTime = {2, 20, 30};
+  
+  Date getDate()
+  { 
+    return gDate;
+  }
+  
+  Date copyDate(Date date)
+  { 
+    return date;
+  }
+  
+  Date copyDate(Date* date)
+  { 
+    return *date;
+  }
+  
+  Time copyTime(Time time)
+  { 
+    return time;
+  }
+  
+  Time copyTime(Time* time)
+  { 
+    return *time;
+  }
+  
+  int main()
+  {
+    Time time1 = {1, 10, 12};
+    Date date1 = getDate();
+    Date date2 = copyDate(date1);
+    Date date3 = copyDate(&date1);
+    Time time2 = copyTime(time1);
+    Time time3 = copyTime(&time1);
+  
+    return 0;
+  }
+
+
+.. code-block:: bash
+
+  JonathantekiiMac:InputFiles Jonathan$ clang -c ch8_9_1.cpp -emit-llvm -o 
+  ch8_9_1.bc
+  JonathantekiiMac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
+  cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
+  ch8_9_1.bc -o ch8_9_1.cpu0.s
+  Assertion failed: (InVals.size() == Ins.size() && "LowerFormalArguments didn't 
+  emit the correct number of values!")...
+  ...
+
+
+8/9/Cpu0 with the following code added to support the structure type in 
+function call. 
+
+.. code-block:: c++
+
+  // Cpu0ISelLowering.cpp
+  ...
+  // AddLiveIn - This helper function adds the specified physical register to the
+  // MachineFunction as a live in value.  It also creates a corresponding
+  // virtual register for it.
+  static unsigned
+  AddLiveIn(MachineFunction &MF, unsigned PReg, const TargetRegisterClass *RC)
+  {
+    assert(RC->contains(PReg) && "Not the correct regclass!");
+    unsigned VReg = MF.getRegInfo().createVirtualRegister(RC);
+    MF.getRegInfo().addLiveIn(PReg, VReg);
+    return VReg;
+  }
+  ...
+  //===----------------------------------------------------------------------===//
+  //                  Call Calling Convention Implementation
+  //===----------------------------------------------------------------------===//
+  
+  static const unsigned IntRegsSize = 2;
+  
+  static const uint16_t IntRegs[] = {
+    Cpu0::A0, Cpu0::A1
+  };
+  
+  // Write ByVal Arg to arg registers and stack.
+  static void
+  WriteByValArg(SDValue& ByValChain, SDValue Chain, DebugLoc dl,
+          SmallVector<std::pair<unsigned, SDValue>, 16>& RegsToPass,
+          SmallVector<SDValue, 8>& MemOpChains, int& LastFI,
+          MachineFrameInfo *MFI, SelectionDAG &DAG, SDValue Arg,
+          const CCValAssign &VA, const ISD::ArgFlagsTy& Flags,
+          MVT PtrType, bool isLittle) {
+    unsigned LocMemOffset = VA.getLocMemOffset();
+    unsigned Offset = 0;
+    uint32_t RemainingSize = Flags.getByValSize();
+    unsigned ByValAlign = Flags.getByValAlign();
+  
+    if (RemainingSize == 0)
+      return;
+  
+    // Create a fixed object on stack at offset LocMemOffset and copy
+    // remaining part of byval arg to it using memcpy.
+    SDValue Src = DAG.getNode(ISD::ADD, dl, MVT::i32, Arg,
+                DAG.getConstant(Offset, MVT::i32));
+    LastFI = MFI->CreateFixedObject(RemainingSize, LocMemOffset, true);
+    SDValue Dst = DAG.getFrameIndex(LastFI, PtrType);
+    ByValChain = DAG.getMemcpy(ByValChain, dl, Dst, Src,
+                               DAG.getConstant(RemainingSize, MVT::i32),
+                               std::min(ByValAlign, (unsigned)4),
+                               /*isVolatile=*/false, /*AlwaysInline=*/false,
+                               MachinePointerInfo(0), MachinePointerInfo(0));
+  }
+  ...
+  SDValue
+  Cpu0TargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
+                  SmallVectorImpl<SDValue> &InVals) const {
+    ...
+    // Walk the register/memloc assignments, inserting copies/loads.
+    for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
+    ...
+    // ByVal Arg.
+    if (Flags.isByVal()) {
+      ...
+      WriteByValArg(ByValChain, Chain, dl, RegsToPass, MemOpChains, LastFI,
+            MFI, DAG, Arg, VA, Flags, getPointerTy(),
+            Subtarget->isLittle());
+      ...
+    }
+    ...
+    }
+    ...
+  }
+  ...
+  //===----------------------------------------------------------------------===//
+  //             Formal Arguments Calling Convention Implementation
+  //===----------------------------------------------------------------------===//
+  static void ReadByValArg(MachineFunction &MF, SDValue Chain, DebugLoc dl,
+               std::vector<SDValue>& OutChains,
+               SelectionDAG &DAG, unsigned NumWords, SDValue FIN,
+               const CCValAssign &VA, const ISD::ArgFlagsTy& Flags,
+               const Argument *FuncArg) {
+    unsigned LocMem = VA.getLocMemOffset();
+    unsigned FirstWord = LocMem / 4;
+  
+    // copy register A0 - A1 to frame object
+    for (unsigned i = 0; i < NumWords; ++i) {
+      unsigned CurWord = FirstWord + i;
+      if (CurWord >= IntRegsSize)
+        break;
+  
+      unsigned SrcReg = IntRegs[CurWord];
+      unsigned Reg = AddLiveIn(MF, SrcReg, &Cpu0::CPURegsRegClass);
+      SDValue StorePtr = DAG.getNode(ISD::ADD, dl, MVT::i32, FIN,
+                                     DAG.getConstant(i * 4, MVT::i32));
+      SDValue Store = DAG.getStore(Chain, dl, DAG.getRegister(Reg, MVT::i32),
+                                   StorePtr, MachinePointerInfo(FuncArg, i * 4),
+                                   false, false, 0);
+    OutChains.push_back(Store);
+    }
+  }
+  ...
+  SDValue
+  Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
+                       CallingConv::ID CallConv,
+                       bool isVarArg,
+                      const SmallVectorImpl<ISD::InputArg> &Ins,
+                       DebugLoc dl, SelectionDAG &DAG,
+                       SmallVectorImpl<SDValue> &InVals)
+                        const {
+    ...
+    for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i, ++FuncArg) {
+    ...
+    if (Flags.isByVal()) {
+      assert(Flags.getByValSize() &&
+         "ByVal args of size 0 should have been ignored by front-end."); 
+      unsigned NumWords = (Flags.getByValSize() + 3) / 4;
+      LastFI = MFI->CreateFixedObject(NumWords * 4, VA.getLocMemOffset(),
+                      true);
+      SDValue FIN = DAG.getFrameIndex(LastFI, getPointerTy());
+      InVals.push_back(FIN);
+      ReadByValArg(MF, Chain, dl, OutChains, DAG, NumWords, FIN, VA, Flags,
+             &*FuncArg);
+      continue;
+    }
+    ...
+    }
+    // The cpu0 ABIs for returning structs by value requires that we copy
+    // the sret argument into $v0 for the return. Save the argument into
+    // a virtual register so that we can access it from the return points.
+    if (DAG.getMachineFunction().getFunction()->hasStructRetAttr()) {
+      unsigned Reg = Cpu0FI->getSRetReturnReg();
+      if (!Reg) {
+        Reg = MF.getRegInfo().createVirtualRegister(getRegClassFor(MVT::i32));
+        Cpu0FI->setSRetReturnReg(Reg);
+      }
+      SDValue Copy = DAG.getCopyToReg(DAG.getEntryNode(), dl, Reg, InVals[0]);
+      Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other, Copy, Chain);
+    }
+    ...
+  }
+  ...
+  SDValue
+  Cpu0TargetLowering::LowerReturn(SDValue Chain,
+                  CallingConv::ID CallConv, bool isVarArg,
+                  const SmallVectorImpl<ISD::OutputArg> &Outs,
+                  const SmallVectorImpl<SDValue> &OutVals,
+                  DebugLoc dl, SelectionDAG &DAG) const {
+    ...
+    // The cpu0 ABIs for returning structs by value requires that we copy
+    // the sret argument into $v0 for the return. We saved the argument into
+    // a virtual register in the entry block, so now we copy the value out
+    // and into $v0.
+    if (DAG.getMachineFunction().getFunction()->hasStructRetAttr()) {
+      MachineFunction &MF      = DAG.getMachineFunction();
+      Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+      unsigned Reg = Cpu0FI->getSRetReturnReg();
+  
+      if (!Reg)
+        llvm_unreachable("sret virtual register not created in the entry block");
+      SDValue Val = DAG.getCopyFromReg(Chain, dl, Reg, getPointerTy());
+  
+      Chain = DAG.getCopyToReg(Chain, dl, Cpu0::V0, Val, Flag);
+      Flag = Chain.getValue(1);
+    }
+    ...
+  }
+
+In addition to above code, we have defined the calling convention at early of 
+this chapter as follows,
+
+.. code-block:: c++
+
+  def RetCC_Cpu0EABI : CallingConv<[
+    // i32 are returned in registers V0, V1, A0, A1
+    CCIfType<[i32], CCAssignToReg<[V0, V1, A0, A1]>>
+  ]>;
+
+
+It meaning for the return value, we keep it in registers V0, V1, A0, A1 if the 
+return value didn't over 4 registers size; If it over 4 size, cpu0 will save 
+them with pointer.
+For explanation, let's run 8/9/Cpu0 with ch8_9_1.cpp and explain with this 
+example.
+
+.. code-block:: bash
+
+  JonathantekiiMac:InputFiles Jonathan$ cat ch8_9_1.cpu0.s
+    .section .mdebug.abi32
+    .previous
+    .file "ch8_9_1.bc"
+    .text
+    .globl  _Z7getDatev
+    .align  2
+    .type _Z7getDatev,@function
+    .ent  _Z7getDatev             # @_Z7getDatev
+  _Z7getDatev:
+    .cfi_startproc
+    .frame  $sp,0,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .cpload $t9
+    .set  nomacro
+  # BB#0:
+    ld  $2, 0($sp)        // $2 is 192($sp)
+    ld  $3, %got(gDate)($gp)  // $3 is &gDate
+    ld  $4, 20($3)        // save gDate contents to 212..192($sp)
+    st  $4, 20($2)
+    ld  $4, 16($3)
+    st  $4, 16($2)
+    ld  $4, 12($3)
+    st  $4, 12($2)
+    ld  $4, 8($3)
+    st  $4, 8($2)
+    ld  $4, 4($3)
+    st  $4, 4($2)
+    ld  $3, 0($3)
+    st  $3, 0($2)
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z7getDatev
+  $tmp0:
+    .size _Z7getDatev, ($tmp0)-_Z7getDatev
+    .cfi_endproc
+  
+    .globl  _Z8copyDate4Date
+    .align  2
+    .type _Z8copyDate4Date,@function
+    .ent  _Z8copyDate4Date        # @_Z8copyDate4Date
+  _Z8copyDate4Date:
+    .cfi_startproc
+    .frame  $sp,0,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    st  $5, 4($sp)
+    ld  $2, 0($sp)        // $2 = 168($sp)
+    ld  $3, 24($sp)
+    st  $3, 20($2)        // copy date1, 24..4($sp), to date2, 
+    ld  $3, 20($sp)       //  188..168($sp)
+    st  $3, 16($2)
+    ld  $3, 16($sp)
+    st  $3, 12($2)
+    ld  $3, 12($sp)
+    st  $3, 8($2)
+    ld  $3, 8($sp)
+    st  $3, 4($2)
+    ld  $3, 4($sp)
+    st  $3, 0($2)
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z8copyDate4Date
+  $tmp1:
+    .size _Z8copyDate4Date, ($tmp1)-_Z8copyDate4Date
+    .cfi_endproc
+  
+    .globl  _Z8copyDateP4Date
+    .align  2
+    .type _Z8copyDateP4Date,@function
+    .ent  _Z8copyDateP4Date       # @_Z8copyDateP4Date
+  _Z8copyDateP4Date:
+    .cfi_startproc
+    .frame  $sp,8,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -8
+  $tmp3:
+    .cfi_def_cfa_offset 8
+    ld  $2, 8($sp)        // $2 = 120($sp of main) date2
+    ld  $3, 12($sp)       // $3 = 192($sp of main) date1
+    st  $3, 0($sp)
+    ld  $4, 20($3)        // copy date1, 212..192($sp of main), 
+    st  $4, 20($2)        //  to date2, 140..120($sp of main)
+    ld  $4, 16($3)
+    st  $4, 16($2)
+    ld  $4, 12($3)
+    st  $4, 12($2)
+    ld  $4, 8($3)
+    st  $4, 8($2)
+    ld  $4, 4($3)
+    st  $4, 4($2)
+    ld  $3, 0($3)
+    st  $3, 0($2)
+    addiu $sp, $sp, 8
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z8copyDateP4Date
+  $tmp4:
+    .size _Z8copyDateP4Date, ($tmp4)-_Z8copyDateP4Date
+    .cfi_endproc
+  
+    .globl  _Z8copyTime4Time
+    .align  2
+    .type _Z8copyTime4Time,@function
+    .ent  _Z8copyTime4Time        # @_Z8copyTime4Time
+  _Z8copyTime4Time:
+    .cfi_startproc
+    .frame  $sp,64,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -64
+  $tmp6:
+    .cfi_def_cfa_offset 64
+    ld  $2, 68($sp)       // save 8..0 ($sp of main) to 24..16($sp)
+    st  $2, 20($sp)
+    ld  $2, 64($sp)
+    st  $2, 16($sp)
+    ld  $2, 72($sp)
+    st  $2, 24($sp)
+    st  $2, 40($sp)       // save 8($sp of main) to 40($sp)
+    ld  $2, 20($sp)       // time1.minute, save time1.minute and 
+    st  $2, 36($sp)       //  time1.second to 36..32($sp)
+    ld  $2, 16($sp)       // time1.second
+    st  $2, 32($sp)
+    ld  $2, 40($sp)       // $2 = 8($sp of main) = time1.hour
+    st  $2, 56($sp)       // copy time1 to 56..48($sp)
+    ld  $2, 36($sp)
+    st  $2, 52($sp)
+    ld  $2, 32($sp)
+    st  $2, 48($sp)
+    ld  $2, 48($sp)       // copy time1 to 8..0($sp)
+    ld  $3, 52($sp)
+    ld  $4, 56($sp)
+    st  $4, 8($sp)
+    st  $3, 4($sp)
+    st  $2, 0($sp)
+    ld  $2, 0($sp)        // put time1 to $2, $3 and $4 ($v0, $v1 and $a0)
+    ld  $3, 4($sp)
+    ld  $4, 8($sp)
+    addiu $sp, $sp, 64
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z8copyTime4Time
+  $tmp7:
+    .size _Z8copyTime4Time, ($tmp7)-_Z8copyTime4Time
+    .cfi_endproc
+  
+    .globl  _Z8copyTimeP4Time
+    .align  2
+    .type _Z8copyTimeP4Time,@function
+    .ent  _Z8copyTimeP4Time       # @_Z8copyTimeP4Time
+  _Z8copyTimeP4Time:
+    .cfi_startproc
+    .frame  $sp,40,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -40
+  $tmp9:
+    .cfi_def_cfa_offset 40
+    ld  $2, 40($sp)       // 216($sp of main)
+    st  $2, 16($sp)
+    ld  $3, 8($2)       // copy time1, 224..216($sp of main) to 
+    st  $3, 32($sp)       //  32..24($sp), 8..0($sp) and $2, $3, $4
+    ld  $3, 4($2)
+    st  $3, 28($sp)
+    ld  $2, 0($2)
+    st  $2, 24($sp)
+    ld  $2, 24($sp)
+    ld  $3, 28($sp)
+    ld  $4, 32($sp)
+    st  $4, 8($sp)
+    st  $3, 4($sp)
+    st  $2, 0($sp)
+    ld  $2, 0($sp)
+    ld  $3, 4($sp)
+    ld  $4, 8($sp)
+    addiu $sp, $sp, 40
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z8copyTimeP4Time
+  $tmp10:
+    .size _Z8copyTimeP4Time, ($tmp10)-_Z8copyTimeP4Time
+    .cfi_endproc
+  
+    .globl  main
+    .align  2
+    .type main,@function
+    .ent  main                    # @main
+  main:
+    .cfi_startproc
+    .frame  $sp,248,$lr
+    .mask   0x00004180,-4
+    .set  noreorder
+    .cpload $t9
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -248
+  $tmp13:
+    .cfi_def_cfa_offset 248
+    st  $lr, 244($sp)           # 4-byte Folded Spill
+    st  $8, 240($sp)            # 4-byte Folded Spill
+    st  $7, 236($sp)            # 4-byte Folded Spill
+  $tmp14:
+    .cfi_offset 14, -4
+  $tmp15:
+    .cfi_offset 8, -8
+  $tmp16:
+    .cfi_offset 7, -12
+    .cprestore  16
+    addiu $7, $zero, 0
+    st  $7, 232($sp)
+    ld  $2, %got($_ZZ4mainE5time1)($gp)
+    addiu $2, $2, %lo($_ZZ4mainE5time1)
+    ld  $3, 8($2)     // save initial value to time1, 224..216($sp)
+    st  $3, 224($sp)
+    ld  $3, 4($2)
+    st  $3, 220($sp)
+    ld  $2, 0($2)
+    st  $2, 216($sp)
+    addiu $8, $sp, 192
+    st  $8, 0($sp)      // *(0($sp)) = 192($sp)
+    ld  $6, %call24(_Z7getDatev)($gp) // copy gDate contents to date1, 212..192($sp)
+    jalr  $6
+    ld  $gp, 16($sp)
+    ld  $2, 212($sp)    // copy 212..192($sp) to 164..144($sp)
+    st  $2, 164($sp)
+    ld  $2, 208($sp)
+    st  $2, 160($sp)
+    ld  $2, 204($sp)
+    st  $2, 156($sp)
+    ld  $2, 200($sp)
+    st  $2, 152($sp)
+    ld  $2, 196($sp)
+    st  $2, 148($sp)
+    ld  $2, 192($sp)
+    st  $2, 144($sp)
+    ld  $2, 164($sp)    // copy 164..144($sp) to 24..4($sp)
+    st  $2, 24($sp)
+    ld  $2, 160($sp)
+    st  $2, 20($sp)
+    ld  $2, 156($sp)
+    st  $2, 16($sp)
+    ld  $2, 152($sp)
+    st  $2, 12($sp)
+    ld  $2, 148($sp)
+    st  $2, 8($sp)
+    ld  $2, 144($sp)
+    st  $2, 4($sp)
+    addiu $2, $sp, 168
+    st  $2, 0($sp)      // *0($sp) = 168($sp)
+    ld  $6, %call24(_Z8copyDate4Date)($gp)
+    jalr  $6
+    ld  $gp, 16($sp)
+    st  $8, 4($sp)      // 4($sp) = 192($sp) date1
+    addiu $2, $sp, 120
+    st  $2, 0($sp)      // *0($sp) = 120($sp) date2
+    ld  $6, %call24(_Z8copyDateP4Date)($gp)
+    jalr  $6
+    ld  $gp, 16($sp)
+    ld  $2, 224($sp)    // save time1 to arguments passing location, 
+    st  $2, 96($sp)     //  8..0($sp)
+    ld  $2, 220($sp)
+    st  $2, 92($sp)
+    ld  $2, 216($sp)
+    st  $2, 88($sp)
+    ld  $2, 88($sp)
+    ld  $3, 92($sp)
+    ld  $4, 96($sp)
+    st  $4, 8($sp)
+    st  $3, 4($sp)
+    st  $2, 0($sp)
+    ld  $6, %call24(_Z8copyTime4Time)($gp)
+    jalr  $6
+    ld  $gp, 16($sp)
+    st  $3, 76($sp)     // save return value time2 from $2, $3, $4 to
+    st  $2, 72($sp)     //   80..72($sp) and 112..104($sp)
+    st  $4, 80($sp)
+    ld  $2, 72($sp)
+    ld  $3, 76($sp)
+    ld  $4, 80($sp)
+    st  $4, 112($sp)
+    st  $3, 108($sp)
+    st  $2, 104($sp)
+    addiu $2, $sp, 216
+    st  $2, 0($sp)      // *(0($sp)) = 216($sp)
+    ld  $6, %call24(_Z8copyTimeP4Time)($gp)
+    jalr  $6
+    ld  $gp, 16($sp)
+    st  $3, 44($sp)     // save return value time3 from $2, $3, $4 to
+    st  $2, 40($sp)     //  48..44($sp) 64..56($sp)
+    st  $4, 48($sp)
+    ld  $2, 40($sp)
+    ld  $3, 44($sp)
+    ld  $4, 48($sp)
+    st  $4, 64($sp)
+    st  $3, 60($sp)
+    st  $2, 56($sp)
+    add $2, $zero, $7   // return 0 by $2, ($7 is 0)
+                
+    ld  $7, 236($sp)            # 4-byte Folded Reload // restore callee saved
+    ld  $8, 240($sp)            # 4-byte Folded Reload //  registers $s0, $s1 
+    ld  $lr, 244($sp)           # 4-byte Folded Reload //  ($7, $8)
+    addiu $sp, $sp, 248
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  main
+  $tmp17:
+    .size main, ($tmp17)-main
+    .cfi_endproc
+  
+    .type gDate,@object           # @gDate
+    .data
+    .globl  gDate
+    .align  2
+  gDate:
+    .4byte  2012                    # 0x7dc
+    .4byte  10                      # 0xa
+    .4byte  12                      # 0xc
+    .4byte  1                       # 0x1
+    .4byte  2                       # 0x2
+    .4byte  3                       # 0x3
+    .size gDate, 24
+  
+    .type gTime,@object           # @gTime
+    .globl  gTime
+    .align  2
+  gTime:
+    .4byte  2                       # 0x2
+    .4byte  20                      # 0x14
+    .4byte  30                      # 0x1e
+    .size gTime, 12
+  
+    .type $_ZZ4mainE5time1,@object # @_ZZ4mainE5time1
+    .section  .rodata,"a",@progbits
+    .align  2
+  $_ZZ4mainE5time1:
+    .4byte  1                       # 0x1
+    .4byte  10                      # 0xa
+    .4byte  12                      # 0xc
+    .size $_ZZ4mainE5time1, 12
+
+
+In LowerCall(), Flags.isByVal() will be true if the outgoing arguments over 4 
+registers size, then it will call WriteByValArg(..., getPointerTy(), ...) to 
+save those arguments to stack as offset. 
+For example code of ch8_9_1.cpp, Flags.isByVal() is true for copyDate(date1) 
+outgoing arguments, since the date1 is type of Date which contains 6 integers 
+(year, month, day, hour, minute, second). 
+But Flags.isByVal() is false for copyTime(time1) since type Time is a struct 
+contains 3 integers (hour, minute, second).
+So, if you mark WriteByValArg(..., getPointerTy(), ...), the result will 
+missing the following code in caller, main(),
+
+.. code-block:: bash
+
+    ld  $2, 164($sp)    // copy 164..144($sp) to 24..4($sp)
+    st  $2, 24($sp)
+    ld  $2, 160($sp)
+    st  $2, 20($sp)
+    ld  $2, 156($sp)
+    st  $2, 16($sp)
+    ld  $2, 152($sp)
+    st  $2, 12($sp)
+    ld  $2, 148($sp)
+    st  $2, 8($sp)
+    ld  $2, 144($sp)
+    st  $2, 4($sp)		// will missing the above code
+    
+    addiu $2, $sp, 168
+    st  $2, 0($sp)      // *0($sp) = 168($sp)
+    ld  $6, %call24(_Z8copyDate4Date)($gp)
+
+In LowerFormalArguments(), the "if (Flags.isByVal())" getting the incoming 
+arguments which corresponding the outgoing arguments of LowerCall().
+
+LowerFormalArguments() is called when a function is entered while LowerReturn() 
+is called when a function is left, reference [#]_.
+The former save the return register to virtual register while the later load the 
+virtual register back to return register. 
+Since the return value is "struct type" and over 4 registers size, it save 
+pointer (struct address) to return register.
+List the code and their effect as follows,
+
+.. code-block:: c++
+
+  SDValue
+  Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
+                       CallingConv::ID CallConv,
+                       bool isVarArg,
+                      const SmallVectorImpl<ISD::InputArg> &Ins,
+                       DebugLoc dl, SelectionDAG &DAG,
+                       SmallVectorImpl<SDValue> &InVals)
+                        const {
+    ...
+    // The cpu0 ABIs for returning structs by value requires that we copy
+    // the sret argument into $v0 for the return. Save the argument into
+    // a virtual register so that we can access it from the return points.
+    if (DAG.getMachineFunction().getFunction()->hasStructRetAttr()) {
+    unsigned Reg = Cpu0FI->getSRetReturnReg();
+    if (!Reg) {
+      Reg = MF.getRegInfo().createVirtualRegister(getRegClassFor(MVT::i32));
+      Cpu0FI->setSRetReturnReg(Reg);
+    }
+    SDValue Copy = DAG.getCopyToReg(DAG.getEntryNode(), dl, Reg, InVals[0]);
+    Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other, Copy, Chain);
+    }
+    ...
+  }
+
+.. code-block:: bash
+
+    addiu $2, $sp, 168
+    st  $2, 0($sp)      // *0($sp) = 168($sp); LowerFormalArguments(): 
+                        //  return register is $2, virtual register is 
+                        //  0($sp)
+    ld  $6, %call24(_Z8copyDate4Date)($gp)
+
+
+.. code-block:: c++
+
+  SDValue
+  Cpu0TargetLowering::LowerReturn(SDValue Chain,
+                  CallingConv::ID CallConv, bool isVarArg,
+                  const SmallVectorImpl<ISD::OutputArg> &Outs,
+                  const SmallVectorImpl<SDValue> &OutVals,
+                  DebugLoc dl, SelectionDAG &DAG) const {
+    ...
+    // The cpu0 ABIs for returning structs by value requires that we copy
+    // the sret argument into $v0 for the return. We saved the argument into
+    // a virtual register in the entry block, so now we copy the value out
+    // and into $v0.
+    if (DAG.getMachineFunction().getFunction()->hasStructRetAttr()) {
+    MachineFunction &MF      = DAG.getMachineFunction();
+    Cpu0FunctionInfo *Cpu0FI = MF.getInfo<Cpu0FunctionInfo>();
+    unsigned Reg = Cpu0FI->getSRetReturnReg();
+  
+    if (!Reg)
+      llvm_unreachable("sret virtual register not created in the entry block");
+    SDValue Val = DAG.getCopyFromReg(Chain, dl, Reg, getPointerTy());
+  
+    Chain = DAG.getCopyToReg(Chain, dl, Cpu0::V0, Val, Flag);
+    Flag = Chain.getValue(1);
+    }
+    ...
+  }
+
+.. code-block:: bash
+
+    .globl  _Z8copyDateP4Date
+    .align  2
+    .type _Z8copyDateP4Date,@function
+    .ent  _Z8copyDate4Date        # @_Z8copyDate4Date
+  _Z8copyDate4Date:
+    .cfi_startproc
+    .frame  $sp,0,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    st  $5, 4($sp)
+    ld  $2, 0($sp)        // $2 = 168($sp); LowerReturn(): virtual 
+                          //  register is 0($sp), return register is $2 
+    ld  $3, 24($sp)
+    st  $3, 20($2)        // copy date1, 24..4($sp), to date2, 
+    ld  $3, 20($sp)       //  188..168($sp)
+    st  $3, 16($2)
+    ld  $3, 16($sp)
+    st  $3, 12($2)
+    ld  $3, 12($sp)
+    st  $3, 8($2)
+    ld  $3, 8($sp)
+    st  $3, 4($2)
+    ld  $3, 4($sp)
+    st  $3, 0($2)
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z8copyDate4Date
+
+The ch8_9_2.cpp include C++ class "Date" implementation. 
+It can been translated into cpu0 backend too since the front end (clang in this 
+example) translate them into C language form.
+You can also mark the "hasStructRetAttr() if" part from both of above functions, 
+the output cpu0 code will use $3 instead of $2 as return register as follows,
+
+.. code-block:: bash
+
+    .globl  _Z8copyDateP4Date
+    .align  2
+    .type _Z8copyDateP4Date,@function
+    .ent  _Z8copyDateP4Date       # @_Z8copyDateP4Date
+  _Z8copyDateP4Date:
+    .cfi_startproc
+    .frame  $sp,8,$lr
+    .mask   0x00000000,0
+    .set  noreorder
+    .set  nomacro
+  # BB#0:
+    addiu $sp, $sp, -8
+  $tmp3:
+    .cfi_def_cfa_offset 8
+    ld  $2, 12($sp)
+    st  $2, 0($sp)
+    ld  $4, 20($2)
+    ld  $3, 8($sp)
+    st  $4, 20($3)
+    ld  $4, 16($2)
+    st  $4, 16($3)
+    ld  $4, 12($2)
+    st  $4, 12($3)
+    ld  $4, 8($2)
+    st  $4, 8($3)
+    ld  $4, 4($2)
+    st  $4, 4($3)
+    ld  $2, 0($2)
+    st  $2, 0($3)
+    addiu $sp, $sp, 8
+    ret $lr
+    .set  macro
+    .set  reorder
+    .end  _Z8copyDateP4Date
+  
+
 Summary of this chapter
 ------------------------
 
-Until now, we have 5,700 lines of source code around in 8/7/Cpu0. 
+Until now, we have 5,850 lines of source code around in 8/7/Cpu0. 
 The cpu0 backend code now can take care the integer function call and control 
 statement just like the llvm front end tutorial example code. 
 Look back the chapter of “Back end structure”, there are 3,000 lines of source 
 code with taking three instructions only. 
-With this 90% more of code, it can translate tens of instructions, global 
+With this 95% more of code, it can translate tens of instructions, global 
 variable, control flow statement and function call.
+Now the cpu0 backend is not just a toy. 
+It can translate the C++ OOP language into cpu0 instructions without much 
+effort.
+Because the most complex things in language, such as C++ syntex, is handle by 
+front end. 
+LLVM is a real structure follow the compiler theory, any backend of LLVM can 
+benefit from this structure.
+A couple of thousands code can translate OOP language into your backend.
+And your backend will grow up automatically via the front end support more and 
+more language.
 
 
 .. [#] http://jonathan2251.github.com/lbd/ctrlflow.html#risc-cpu-knowledge
@@ -2775,3 +3593,5 @@ variable, control flow statement and function call.
 .. [#] http://jonathan2251.github.com/lbd/globalvar.html#global-variable
 
 .. [#] http://developer.mips.com/clang-llvm/
+
+.. [#] section "4.5.1 Calling Conventions" of tricore_llvm.pdf
