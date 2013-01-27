@@ -531,9 +531,9 @@ result with Graphviz as follows,
   Writing '/tmp/llvm_84ibpm/dag.main.dot'...  done. 
   118-165-12-177:InputFiles Jonathan$ Graphviz /tmp/llvm_84ibpm/dag.main.dot 
 
-It will show the /tmp/llvm_84ibpm/dag.main.dot as :ref:`otherinst_f1`.
+It will show the /tmp/llvm_84ibpm/dag.main.dot as :num:`Figure #otherinst-f1`.
 
-.. _otherinst_f1:
+.. _otherinst-f1:
 .. figure:: ../Fig/otherinst/1.png
     :height: 851 px
     :width: 687 px
@@ -542,7 +542,7 @@ It will show the /tmp/llvm_84ibpm/dag.main.dot as :ref:`otherinst_f1`.
 
     llc option -view-dag-combine1-dags graphic view
     
-From :ref:`otherinst_f1`, we can see the -view-dag-combine1-dags option is for 
+From :num:`Figure #otherinst-f1`, we can see the -view-dag-combine1-dags option is for 
 Initial selection DAG. 
 We list the other view options and their corresponding DAG translation stage as 
 follows,
@@ -819,7 +819,7 @@ Copy the reference as follows,
 
 Run 4/5/Cpu0 with input file ch4_6_1.bc and ``llc`` option –view-isel-dags as 
 follows, will get the error message as follows and the llvm DAG of 
-:ref:`otherinst_f2`.
+:num:`Figure #otherinst-f2`.
 
 .. code-block:: bash
 
@@ -833,7 +833,7 @@ follows, will get the error message as follows and the llvm DAG of
     0x7fa73a02e910: i32 = Constant<715827883> [ID=9]
 
 
-.. _otherinst_f2:
+.. _otherinst-f2:
 .. figure:: ../Fig/otherinst/2.png
     :height: 629 px
     :width: 580 px
@@ -844,7 +844,8 @@ follows, will get the error message as follows and the llvm DAG of
 
 LLVM replace srem divide operation with multiply operation in DAG optimization 
 because DIV operation cost more in time than MUL. 
-For example code **“int b = 11; b=(b+1)%12;”**, it translate into :ref:`otherinst_f2`. 
+For example code **“int b = 11; b=(b+1)%12;”**, it translate into 
+:num:`Figure #otherinst-f2`. 
 We verify the result and explain by calculate the value in each node. 
 The 0xC*0x2AAAAAAB=0x2,00000004, (mulhs 0xC, 0x2AAAAAAAB) meaning get the Signed 
 mul high word (32bits). 
@@ -858,10 +859,10 @@ Arm solution
 ~~~~~~~~~~~~~
 
 Let's run 4/6_1/Cpu0 with ch4_6.cpp as well as ``llc -view-sched-dags`` option 
-to get :ref:`otherinst_f3`. 
+to get :num:`Figure #otherinst-f3`. 
 Similarly, SMMUL get the high word of multiply result.
 
-.. _otherinst_f3:
+.. _otherinst-f3:
 .. figure:: ../Fig/otherinst/3.png
     :height: 702 px
     :width: 687 px
@@ -1077,9 +1078,9 @@ After that, MFHI instruction move the HI register to cpu0 field "a" register,
 $ra. 
 MFHI instruction is FL format and only use cpu0 field "a" register, we set 
 the $rb and imm16 to 0. 
-:ref:`otherinst_f4` and ch4_6.cpu0.s are the result of compile ch4_6.bc.
+:num:`Figure #otherinst-f4` and ch4_6.cpu0.s are the result of compile ch4_6.bc.
 
-.. _otherinst_f4:
+.. _otherinst-f4:
 .. figure:: ../Fig/otherinst/4.png
     :height: 807 px
     :width: 309 px

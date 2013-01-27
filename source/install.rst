@@ -77,10 +77,10 @@ Before installing cmake, make sure you can install applications you download
 from the Internet. 
 Open :menuselection:`System Preferences --> Security & Privacy`. Click the 
 **lock** to make changes, and under "Allow applications downloaded from:" select 
-the radio button next to "Anywhere." See :ref:`install_f2` below for an 
+the radio button next to "Anywhere." See :num:`Figure #install-f2` below for an 
 illustration. You may want to revert this setting after installing cmake.
 
-.. _install_f2:
+.. _install-f2:
 .. figure:: ../Fig/install/2.png
   :align: center
 
@@ -108,50 +108,52 @@ of supporting cpu0 by terminal cmake command" [#]_.
 Even with that, let's build LLVM project with cmake graphic UI since this LLVM 
 directory contains the release version for clang and clang++ execution file. 
 First, create LLVM.xcodeproj as 
-:ref:`install_f3`, then click **configure** button to enter :ref:`install_f4`, 
-and then click **Done** button to get :ref:`install_f5`.
+:num:`Figure #install-f3`, then click **configure** button to enter 
+:num:`Figure #install-f4`, 
+and then click **Done** button to get :num:`Figure #install-f5`.
 
-.. _install_f3:
+.. _install-f3:
 .. figure:: ../Fig/install/3.png
   :align: center
 
   Start to create LLVM.xcodeproj by cmake
 
-.. _install_f4:
+.. _install-f4:
 .. figure:: ../Fig/install/4.png
   :align: center
 
   Create LLVM.xcodeproj by cmake – Set option to generate Xcode project
 
-.. _install_f5:
+.. _install-f5:
 .. figure:: ../Fig/install/5.png
   :align: center
 
   Create LLVM.xcodeproj by cmake – Before Adjust CMAKE_INSTALL_NAME_TOOL
 
 
-Click OK from :ref:`install_f5` and select Cmake 2.8-9.app for CMAKE_INSTALL_NAM
-E_TOOL by click the right side button **“...”** of that row to get 
-:ref:`install_f6`.
+Click OK from :num:`Figure #install-f5` and select Cmake 2.8-9.app for 
+CMAKE_INSTALL_NAME_TOOL by click the right side button **“...”** of that row 
+to get 
+:num:`Figure #install-f6`.
 
-.. _install_f6:
+.. _install-f6:
 .. figure:: ../Fig/install/6.png
   :align: center
 
   Select Cmake 2.8-9.app
 
-Click Configure button to get :ref:`install_f7`.
+Click Configure button to get :num:`Figure #install-f7`.
 
-.. _install_f7:
+.. _install-f7:
 .. figure:: ../Fig/install/7.png
   :align: center
 
   Click cmake Configure button first time
 
 Check CLANG_BUILD_EXAMPLES, LLVM_BUILD_EXAMPLES, and uncheck LLVM_ENABLE_PIC as 
-:ref:`install_f8`.
+:num:`Figure #install-f8`.
 
-.. _install_f8:
+.. _install-f8:
 .. figure:: ../Fig/install/8.png
   :align: center
 
@@ -159,9 +161,9 @@ Check CLANG_BUILD_EXAMPLES, LLVM_BUILD_EXAMPLES, and uncheck LLVM_ENABLE_PIC as
   LLVM_ENABLE_PIC in cmake
 
 Click Configure button again. If the output result message has no red color, 
-then click Generate button to get :ref:`install_f9`.
+then click Generate button to get :num:`Figure #install-f9`.
 
-.. _install_f9:
+.. _install-f9:
 .. figure:: ../Fig/install/9.png
   :align: center
 
@@ -171,9 +173,9 @@ Build llvm by Xcode
 ~~~~~~~~~~~~~~~~~~~
 
 Now, LLVM.xcodeproj is created. Open the cmake_debug_build/LLVM.xcodeproj by 
-Xcode and click menu **“Product – Build”** as :ref:`install_f10`.
+Xcode and click menu **“Product – Build”** as :num:`Figure #install-f10`.
 
-.. _install_f10:
+.. _install-f10:
 .. figure:: ../Fig/install/10.png
   :align: center
 
@@ -397,15 +399,16 @@ These tools mentioned in this section is for coding and debug.
 You can work even without these tools. 
 Files compare tools Kdiff3 came from web site [#]_. 
 FileMerge is a part of Xcode, you can type FileMerge in Finder – Applications 
-as :ref:`install_f11` and drag it into the Dock as :ref:`install_f12`.
+as :num:`Figure #install-f11` and drag it into the Dock as 
+:num:`Figure #install-f12`.
 
-.. _install_f11:
+.. _install-f11:
 .. figure:: ../Fig/install/11.png
   :align: center
 
   Type FileMerge in Finder – Applications
 
-.. _install_f12:
+.. _install-f12:
 .. figure:: ../Fig/install/12.png
   :align: center
 
@@ -413,9 +416,10 @@ as :ref:`install_f11` and drag it into the Dock as :ref:`install_f12`.
 
 Download tool Graphviz for display llvm IR nodes in debugging, 
 [#]_. 
-We choose mountainlion as :ref:`install_f13` since our iMac is Mountain Lion.
+We choose mountainlion as :num:`Figure #install-f13` since our iMac is Mountain 
+Lion.
 
-.. _install_f13:
+.. _install-f13:
 .. figure:: ../Fig/install/13.png
   :height: 738 px
   :width: 1181 px
@@ -446,16 +450,16 @@ like the obj file, \*.o, that will be generated in chapter of Other
 instructions. 
 You can download from App Store. 
 To dump binary file, first, open the binary file, next, select menu 
-**“File – Hex Front Document”** as :ref:`install_f14`. 
-Then select **“Front document's file”** as :ref:`install_f15`.
+**“File – Hex Front Document”** as :num:`Figure #install-f14`. 
+Then select **“Front document's file”** as :num:`Figure #install-f15`.
 
-.. _install_f14:
+.. _install-f14:
 .. figure:: ../Fig/install/14.png
   :align: center
 
   Select Hex Dump menu
 
-.. _install_f15:
+.. _install-f15:
 .. figure:: ../Fig/install/15.png
   :align: center
 

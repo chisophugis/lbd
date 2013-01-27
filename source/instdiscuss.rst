@@ -1,7 +1,9 @@
-.. _sec-appendix-old-llvm-ver:
+.. _sec-appendix-inst-discuss:
 
 Appendix C: instructions discuss
 =================================
+
+This chapter discuss other backend instructions.
 
 Use cpu0 official LDI instead of ADDiu
 --------------------------------------

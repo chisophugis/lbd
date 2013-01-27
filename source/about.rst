@@ -34,8 +34,10 @@ have been finished and published online.
 Revision history
 ----------------
 
-Version 3.2.5, Not release yet
-	Add "LLVMBackendTutorialExampleCode/llvm3.1"
+Version 3.2.5, Released January 27, 2013
+	Add "LLVMBackendTutorialExampleCode/llvm3.1".
+	Add  section "Structure type support". 
+	Change reference from Figure title to Figure number.
 Version 3.2.4, Released January 17, 2013
 	Update for LLVM 3.2.
 	Change title (book name) from "Write An LLVM Backend Tutorial For Cpu0" to 
@@ -195,5 +197,9 @@ setting for Mac OS X and Linux platforms.
 
 Introduces the difference of the LLVM APIs used by Cpu0 and Mips when updating 
 this guide between LLVM different version.  
+
+:ref:`sec-appendix-inst-discuss`:
+
+Discuss the other backend instructions.  
 
 

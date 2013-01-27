@@ -165,9 +165,9 @@ Now, let's examine Cpu0MCTargetDesc.cpp.
 Cpu0MCTargetDesc.cpp do the target registration as mentioned in 
 "section Target Registration" [#]_ of the last chapter. 
 Drawing the register function and those class it registered in 
-:ref:`genobj_f1` to :ref:`genobj_f9` for explanation.
+:num:`Figure #genobj-f1` to :num:`Figure #genobj-f9` for explanation.
 
-.. _genobj_f1:
+.. _genobj-f1:
 .. figure:: ../Fig/genobj/1.png
 	:height: 634 px
 	:width: 731 px
@@ -177,7 +177,7 @@ Drawing the register function and those class it registered in
 	Register Cpu0MCAsmInfo
 
 
-.. _genobj_f2:
+.. _genobj-f2:
 .. figure:: ../Fig/genobj/2.png
 	:height: 450 px
 	:width: 685 px
@@ -187,7 +187,7 @@ Drawing the register function and those class it registered in
 	Register MCCodeGenInfo
 
 
-.. _genobj_f3:
+.. _genobj-f3:
 .. figure:: ../Fig/genobj/3.png
 	:height: 313 px
 	:width: 606 px
@@ -197,7 +197,7 @@ Drawing the register function and those class it registered in
 	Register MCInstrInfo
 
 
-.. _genobj_f4:
+.. _genobj-f4:
 .. figure:: ../Fig/genobj/4.png
 	:height: 678 px
 	:width: 615 px
@@ -207,7 +207,7 @@ Drawing the register function and those class it registered in
 	Register MCRegisterInfo
 
 
-.. _genobj_f5:
+.. _genobj-f5:
 .. figure:: ../Fig/genobj/5.png
 	:height: 635 px
 	:width: 750 px
@@ -217,7 +217,7 @@ Drawing the register function and those class it registered in
 	Register Cpu0MCCodeEmitter
 
 
-.. _genobj_f6:
+.. _genobj-f6:
 .. figure:: ../Fig/genobj/6.png
 	:height: 617 px
 	:width: 776 px
@@ -227,7 +227,7 @@ Drawing the register function and those class it registered in
 	Register MCELFStreamer
 
 
-.. _genobj_f7:
+.. _genobj-f7:
 .. figure:: ../Fig/genobj/7.png
 	:height: 570 px
 	:width: 810 px
@@ -237,7 +237,7 @@ Drawing the register function and those class it registered in
 	Register Cpu0AsmBackend
 
 
-.. _genobj_f8:
+.. _genobj-f8:
 .. figure:: ../Fig/genobj/8.png
 	:height: 483 px
 	:width: 621 px
@@ -247,7 +247,7 @@ Drawing the register function and those class it registered in
 	Register Cpu0MCSubtargetInfo
 
 
-.. _genobj_f9:
+.. _genobj-f9:
 .. figure:: ../Fig/genobj/9.png
 	:height: 569 px
 	:width: 794 px
@@ -257,7 +257,7 @@ Drawing the register function and those class it registered in
 	Register Cpu0InstPrinter
 
 
-.. _genobj_f10:
+.. _genobj-f10:
 .. figure:: ../Fig/genobj/10.png
 	:height: 596 px
 	:width: 783 px
@@ -266,36 +266,37 @@ Drawing the register function and those class it registered in
 
 	MCELFStreamer inherit tree
 
-In :ref:`genobj_f1`, registering the object of class Cpu0AsmInfo for target 
-TheCpu0Target and TheCpu0elTarget. 
+In :num:`Figure #genobj-f1`, registering the object of class Cpu0AsmInfo for 
+target TheCpu0Target and TheCpu0elTarget. 
 TheCpu0Target is for big endian and TheCpu0elTarget is for little endian. 
 Cpu0AsmInfo is derived from MCAsmInfo which is llvm built-in class. 
 Most code is implemented in it's parent, back end reuse those code by inherit.
 
-In :ref:`genobj_f2`, instancing MCCodeGenInfo, and initialize it by pass 
+In :num:`Figure #genobj-f2`, instancing MCCodeGenInfo, and initialize it by 
+pass 
 Roloc::PIC because we use command ``llc -relocation-model=pic`` to tell ``llc`` 
 compile using position-independent code mode. 
 Recall the addressing mode in system program book has two mode, one is PIC 
 mode, the other is absolute addressing mode. 
 MC stands for Machine Code.
 
-In :ref:`genobj_f3`, instancing MCInstrInfo object X, and initialize it by 
-InitCpu0MCInstrInfo(X). 
+In :num:`Figure #genobj-f3`, instancing MCInstrInfo object X, and initialize it 
+by InitCpu0MCInstrInfo(X). 
 Since InitCpu0MCInstrInfo(X) is defined in Cpu0GenInstrInfo.inc, it will add 
 the information fromCpu0InstrInfo.td we specified. 
-:ref:`genobj_f4` is similar to :ref:`genobj_f3`, but it initialize the 
-register information specified in Cpu0RegisterInfo.td. 
+:num:`Figure #genobj-f4` is similar to :num:`Figure #genobj-f3`, but it 
+initialize the register information specified in Cpu0RegisterInfo.td. 
 They share a lot of code with instruction/register td description.
 
-:ref:`genobj_f5`, instancing two objects Cpu0MCCodeEmitter, one is for big 
-endian and the other is for little endian. 
+:num:`Figure #genobj-f5`, instancing two objects Cpu0MCCodeEmitter, one is for 
+big endian and the other is for little endian. 
 They take care the obj format generated. 
 So, it's not defined in 4/6_2/Cpu0 which support assembly code only.
 
-:ref:`genobj_f6`, MCELFStreamer take care the obj format also. 
-:ref:`genobj_f5` Cpu0MCCodeEmitter take care code emitter while 
+:num:`Figure #genobj-f6`, MCELFStreamer take care the obj format also. 
+:num:`Figure #genobj-f5` Cpu0MCCodeEmitter take care code emitter while 
 MCELFStreamer take care the obj output streamer. 
-:ref:`genobj_f10` is MCELFStreamer inherit tree. 
+:num:`Figure #genobj-f10` is MCELFStreamer inherit tree. 
 You can find a lot of operations in that inherit tree.
 
 Reader maybe has the question for what are the actual arguments in 
@@ -308,18 +309,18 @@ LLVM keep a function pointer to createXXX() when we call target registry, and
 will call these createXXX() function back at proper time with arguments 
 assigned during the target registration process, RegisterXXX().
 
-:ref:`genobj_f7`, Cpu0AsmBackend class is the bridge for asm to obj. 
+:num:`Figure #genobj-f7`, Cpu0AsmBackend class is the bridge for asm to obj. 
 Two objects take care big endian and little endian also. 
 It derived from MCAsmBackend. 
 Most of code for object file generated is implemented by MCELFStreamer and it's 
 parent, MCAsmBackend.
 
-:ref:`genobj_f8`, instancing MCSubtargetInfo object and initialize with 
+:num:`Figure #genobj-f8`, instancing MCSubtargetInfo object and initialize with 
 Cpu0.td information. 
-:ref:`genobj_f9`, instancing Cpu0InstPrinter to take care printing function 
-for instructions. 
-Like :ref:`genobj_f1` to :ref:`genobj_f4`, it has been defined in 
-4/6_2/Cpu0 code for assembly file generated support.
+:num:`Figure #genobj-f9`, instancing Cpu0InstPrinter to take care printing 
+function for instructions. 
+Like :num:`Figure #genobj-f1` to :num:`Figure #genobj-f4`, it has been defined 
+in 4/6_2/Cpu0 code for assembly file generated support.
 
 
 

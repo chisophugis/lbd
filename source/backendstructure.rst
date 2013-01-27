@@ -129,7 +129,7 @@ The Cpu0TargetMachine contents as follows,
     explicit Cpu0InstrInfo(Cpu0TargetMachine &TM); 
   };
 
-.. _backendstructure_f1: 
+.. _backendstructure-f1: 
 .. figure:: ../Fig/backendstructure/1.png
 	:align: center
 
@@ -143,7 +143,7 @@ Class Cpu0Subtarget, Cpu0InstrInfo, Cpu0FrameLowering, Cpu0TargetLowering and
 Cpu0SelectionDAGInfo are inherited from parent class TargetSubtargetInfo, 
 TargetInstrInfo, TargetFrameLowering, TargetLowering and TargetSelectionDAGInfo.
 
-:ref:`backendstructure_f1` shows Cpu0TargetMachine inherit tree and it's 
+:num:`Figure #backendstructure-f1` shows Cpu0TargetMachine inherit tree and it's 
 Cpu0InstrInfo class inherit tree. 
 Cpu0TargetMachine contains Cpu0InstrInfo and ... other class. 
 Cpu0InstrInfo contains Cpu0RegisterInfo class, RI. Cpu0InstrInfo.td and 
@@ -151,29 +151,30 @@ Cpu0RegisterInfo.td will generate Cpu0GenInstrInfo.inc and
 Cpu0GenRegisterInfo.inc which contain some member functions implementation for 
 class Cpu0InstrInfo and Cpu0RegisterInfo.
 
-:ref:`backendstructure_f2` as below shows Cpu0TargetMachine contains class 
+:num:`Figure #backendstructure-f2` as below shows Cpu0TargetMachine contains 
+class 
 TSInfo: Cpu0SelectionDAGInfo, FrameLowering: Cpu0FrameLowering, Subtarget: 
 Cpu0Subtarget and TLInfo: Cpu0TargetLowering.
 
-.. _backendstructure_f2:  
+.. _backendstructure-f2:  
 .. figure:: ../Fig/backendstructure/2.png
 	:align: center
 
 	TargetMachine class diagram 2
 
-.. _backendstructure_f3: 
+.. _backendstructure-f3: 
 .. figure:: ../Fig/backendstructure/3.png
 	:align: center
 
 	TargetMachine members and operators
 
-:ref:`backendstructure_f3` shows some members and operators (member function) 
+:num:`Figure #backendstructure-f3` shows some members and operators (member function) 
 of the parent class TargetMachine's. 
-:ref:`backendstructure_f4` as below shows some members of class InstrInfo, 
+:num:`Figure #backendstructure-f4` as below shows some members of class InstrInfo, 
 RegisterInfo and TargetLowering. 
 Class DAGInfo is skipped here.
 
-.. _backendstructure_f4: 
+.. _backendstructure-f4: 
 .. figure:: ../Fig/backendstructure/4.png
 	:align: center
 
@@ -239,7 +240,7 @@ Command as follows,
 Add RegisterInfo
 ----------------
 
-As depicted in :ref:`backendstructure_f1`, the Cpu0InstrInfo class should 
+As depicted in :num:`Figure #backendstructure-f1`, the Cpu0InstrInfo class should 
 contains Cpu0RegisterInfo. 
 So 3/2/Cpu0 add Cpu0RegisterInfo class (Cpu0RegisterInfo.h, 
 Cpu0RegisterInfo.cpp), and Cpu0RegisterInfo class in files Cpu0InstrInfo.h, 
@@ -468,7 +469,7 @@ LLVM Code Generation Sequence
 
 Following diagram came from tricore_llvm.pdf.
 
-.. _backendstructure_f5: 
+.. _backendstructure-f5: 
 .. figure:: ../Fig/backendstructure/5.png
 	:align: center
 
@@ -583,9 +584,9 @@ DAG (Directed Acyclic Graph)
 
 Many important techniques for local optimization begin by transforming a basic 
 block into DAG. For example, the basic block code and it's corresponding DAG as 
-:ref:`backendstructure_f6`.
+:num:`Figure #backendstructure-f6`.
 
-.. _backendstructure_f6: 
+.. _backendstructure-f6: 
 .. figure:: ../Fig/backendstructure/6.png
 	:align: center
 
@@ -613,9 +614,9 @@ Instruction Selection
 ---------------------
 
 In back end, we need to translate IR code into machine code at Instruction 
-Selection Process as :ref:`backendstructure_f7`.
+Selection Process as :num:`Figure #backendstructure-f7`.
 
-.. _backendstructure_f7: 
+.. _backendstructure-f7: 
 .. figure:: ../Fig/backendstructure/7.png
 	:align: center
 
@@ -623,11 +624,11 @@ Selection Process as :ref:`backendstructure_f7`.
 
 For machine instruction selection, the better solution is represent IR and 
 machine instruction by DAG. 
-In :ref:`backendstructure_f7`, we skip the register leaf. 
+In :num:`Figure #backendstructure-f8`, we skip the register leaf. 
 The rj + rk is IR DAG representation (for symbol notation, not llvm SSA form). 
 ADD is machine instruction.
 
-.. _backendstructure_f8: 
+.. _backendstructure-f8: 
 .. figure:: ../Fig/backendstructure/8.png
 	:align: center
 
@@ -853,7 +854,8 @@ register–offset pair. Depending on whether the machine function that contains
 the instruction has a fixed or a variable stack frame, either the stack pointer 
 %a10 or the frame pointer %a14 is used as the base register. 
 The offset is computed accordingly. 
-Figure 3.9 demonstrates for both cases how a stack slot is addressed. 
+:num:`Figure #backendstructure-f9` demonstrates for both cases how a stack slot 
+is addressed. 
 
 If the addressing mode of the affected instruction cannot handle the address 
 because the offset is too large (the offset field has 10 bits for the BO 
@@ -864,7 +866,7 @@ If none is available, an already occupied address register is scavenged.
 For this purpose, LLVM’s framework offers a class named RegScavenger that 
 takes care of all the details.
 
-.. _backendstructure_f9: 
+.. _backendstructure-f9: 
 .. figure:: ../Fig/backendstructure/9.png
 	:align: center
 

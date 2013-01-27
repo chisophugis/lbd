@@ -37,9 +37,9 @@ Second is pass arguments in the registers which are reserved for function
 arguments, and put the other arguments in stack if it over the number of 
 registers reserved for function call. For example, Mips pass the first 4 
 arguments in register $a0, $a1, $a2, $a3, and the other arguments in stack 
-if it over 4 arguments. :ref:`funccall_f1` is the Mips stack frame.
+if it over 4 arguments. :num:`Figure #funccall-f1` is the Mips stack frame.
 
-.. _funccall_f1:
+.. _funccall-f1:
 .. figure:: ../Fig/funccall/1.png
     :height: 531 px
     :width: 688 px
@@ -174,13 +174,14 @@ See comment **"//"**.
 
 From the mips assembly code generated as above, we know it save the first 4 
 arguments to $a0..$a3 and last 2 arguments to 16($sp) and 20($sp). 
-:ref:`funccall_f2` is the arguments location for example code ch8_1.cpp. 
+:num:`Figure #funccall-f2` is the arguments location for example code 
+ch8_1.cpp. 
 It load argument 5 from 48($sp) in sum_i() since the argument 5 is saved to 
 16($sp) in main(). 
 The stack size of sum_i() is 32, so 16+32($sp) is the location of incoming 
 argument 5.
 
-.. _funccall_f2:
+.. _funccall-f2:
 .. figure:: ../Fig/funccall/2.png
     :height: 577 px
     :width: 740 px
@@ -191,7 +192,8 @@ argument 5.
 
 
 The 007-2418-003.pdf in [#]_ is the Mips assembly language manual. 
-[#]_ is Mips Application Binary Interface which include the :ref:`funccall_f1`.
+[#]_ is Mips Application Binary Interface which include the 
+:num:`Figure #funccall-f1`.
 
 Load incoming arguments from stack frame
 -----------------------------------------
@@ -585,7 +587,7 @@ in the following,
 Store outgoing arguments to stack frame
 ----------------------------------------
 
-:ref:`funccall_f2` depicted two steps to take care arguments passing. 
+:num:`Figure #funccall-f2` depicted two steps to take care arguments passing. 
 One is store outgoing arguments in caller function, and the other is load 
 incoming arguments in callee function. 
 We defined LowerFormalArguments() for **“load incoming arguments”** in callee 
@@ -1100,9 +1102,9 @@ It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to
 The incoming arguments is the formal arguments defined in compiler and program 
 language books. The outgoing arguments is the actual arguments.
 Summary callee incoming arguments and caller outgoing arguments as 
-:ref:`funccall_t1`.
+:num:`Figure #funccall-f3`.
 
-.. _funccall_t1:
+.. _funccall-f3:
 .. figure:: ../Table/funccall/1.png
     :height: 156 px
     :width: 697 px
@@ -1110,6 +1112,7 @@ Summary callee incoming arguments and caller outgoing arguments as
     :align: center
 
     Callee incoming arguments and caller outgoing arguments
+
 
 
 Pseudo hook instruction ADJCALLSTACKDOWN and ADJCALLSTACKUP
