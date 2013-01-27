@@ -160,7 +160,7 @@ gh-pages:
 	rm -rf build _sources _static _images
 	git checkout master $(GH_PAGES_SOURCES)
 	git reset HEAD
-	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
+	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode .DS_Store
 	sh genexample.sh
 	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
 	make html latexpdf epub
