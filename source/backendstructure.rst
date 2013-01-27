@@ -705,7 +705,7 @@ For the following basic block code,
   d = a – d
   %e = fmadd %a, %c, %b // in llvm SSA IR form
 
-We can apply :ref:`backendstructure_f7` Instruction tree pattern to get the 
+We can apply :num:`Figure #backendstructure-f7` Instruction tree pattern to get the 
 following machine code,
 
 .. code-block:: c++
