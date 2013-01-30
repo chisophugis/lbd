@@ -283,7 +283,7 @@ MC stands for Machine Code.
 In :num:`Figure #genobj-f3`, instancing MCInstrInfo object X, and initialize it 
 by InitCpu0MCInstrInfo(X). 
 Since InitCpu0MCInstrInfo(X) is defined in Cpu0GenInstrInfo.inc, it will add 
-the information fromCpu0InstrInfo.td we specified. 
+the information from Cpu0InstrInfo.td we specified. 
 :num:`Figure #genobj-f4` is similar to :num:`Figure #genobj-f3`, but it 
 initialize the register information specified in Cpu0RegisterInfo.td. 
 They share a lot of code with instruction/register td description.
