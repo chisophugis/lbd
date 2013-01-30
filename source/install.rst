@@ -477,10 +477,6 @@ Install binutils by command ``brew install binutils`` as follows,
   ==> make
   ==> make install
   /usr/local/Cellar/binutils/2.22: 90 files, 19M, built in 4.7 minutes
-  118-165-77-214:~ Jonathan$ objdump --help
-  -bash: objdump: command not found
-  118-165-77-214:~ Jonathan$ man objdump
-  No manual entry for objdump
   118-165-77-214:~ Jonathan$ ls /usr/local/Cellar/binutils/2.22
   COPYING     README      lib
   ChangeLog     bin       share
