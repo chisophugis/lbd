@@ -221,7 +221,11 @@ For explanation, We list the IR DAG as follows,
     %cond=setcc(%2, Constant<c>, setne)
     brcond %cond, BasicBlock_02
     br BasicBlock_01
-        We want to translate them into cpu0 instructions DAG as follows,
+    
+We want to translate them into cpu0 instructions DAG as follows,
+
+.. code-block:: bash
+
     addiu %3, ZERO, Constant<c>
     cmp %2, %3
     jne BasicBlock_02
