@@ -73,6 +73,11 @@ const char *Triple::getArchTypePrefix(ArchType Kind) {
   case mips64:
   case mips64el:return "mips";
 
+  case cpu0:
+  case cpu0el:
+  case cpu064:
+  case cpu064el:return "cpu0";
+
   case hexagon: return "hexagon";
 
   case r600:    return "r600";
