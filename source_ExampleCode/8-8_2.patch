@@ -1,6 +1,6 @@
 diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
---- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:45.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:45.000000000 +0800
+--- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:37:16.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-02-04 13:41:00.000000000 +0800
 @@ -29,6 +29,7 @@
    return RI;
  }
@@ -9,9 +9,27 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
  void Cpu0InstrInfo::
  copyPhysReg(MachineBasicBlock &MBB,
              MachineBasicBlock::iterator I, DebugLoc DL,
+@@ -45,6 +46,8 @@
+       Opc = Cpu0::MFLO, SrcReg = 0;
+     else if (SrcReg == Cpu0::SW)	// add $ra, $ZERO, $SW
+       Opc = Cpu0::ADD, ZeroReg = Cpu0::ZERO;
++    else if (SrcReg == Cpu0::ACC)
++      Opc = Cpu0::MFACC, SrcReg = 0;
+   }
+   else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
+     if (DestReg == Cpu0::HI)
+@@ -55,6 +58,8 @@
+     //  cmp $SW, $ZERO, $rc
+     else if (DestReg == Cpu0::SW)
+       Opc = Cpu0::CMP, ZeroReg = Cpu0::ZERO;
++    else if (DestReg == Cpu0::ACC)
++      Opc = Cpu0::MTACC, DestReg = 0;
+   }
+ 
+   assert(Opc && "Cannot copy registers");
 diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
---- 8/8/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
+--- 8/8/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:37:16.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-02-04 13:38:55.000000000 +0800
 @@ -352,6 +352,36 @@
    let neverHasSideEffects = 1;
  }
@@ -49,6 +67,15 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
  class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
    FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
       instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
+@@ -398,7 +428,7 @@
+ 
+ /// Arithmetic Instructions (3-Operand, R-Type)
+ def CMP     : CmpInstr<0x10, "cmp", IIAlu, CPURegs, SR, 0>;
+-def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
++//def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+ def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
+ def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
+ def SDIV    : Div32<Cpu0DivRem, 0x16, "div", IIIdiv>;
 @@ -415,6 +445,10 @@
  def MTHI : MoveToLOHI<0x42, "mthi", CPURegs, [HI]>;
  def MTLO : MoveToLOHI<0x43, "mtlo", CPURegs, [LO]>;
@@ -74,9 +101,18 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
  multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
  Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
 diff -Naur 8/8/Cpu0/Cpu0RegisterInfo.td 8/8_2/Cpu0/Cpu0RegisterInfo.td
---- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-02-03 19:35:45.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-02-03 19:35:45.000000000 +0800
-@@ -73,3 +73,5 @@
+--- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-02-03 19:37:16.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-02-04 13:37:02.000000000 +0800
+@@ -51,6 +51,8 @@
+   // Hi/Lo registers
+   def HI   : Register<"HI">, DwarfRegNum<[18]>;
+   def LO   : Register<"LO">, DwarfRegNum<[19]>;
++
++  def ACC : Register<"acc">, DwarfRegNum<[20]>;
+ }
+ 
+ //===----------------------------------------------------------------------===//
+@@ -73,3 +75,5 @@
  // Status Registers
  def SR   : RegisterClass<"Cpu0", [i32], 32, (add SW)>;
  
