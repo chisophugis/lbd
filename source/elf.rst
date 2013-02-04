@@ -962,7 +962,7 @@ In the CMP decode function, we didn't decode shamt field because the we
 don't want it to be displayed and it's not in the assembler print pattern of 
 Cpu0InstrInfo.td.
 
-The RET (Cpu0ISD::Ret) and JR (ISD::BRIND) both for "ret" instruction. 
+The RET (Cpu0ISD::Ret) and JR (ISD::BRIND) are both for "ret" instruction. 
 The former is for instruction encode in assembly and obj while the latter is 
 for decode in disassembler. 
 The IR node Cpu0ISD::Ret is created in LowerReturn() which called at function 
