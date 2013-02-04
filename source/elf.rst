@@ -23,8 +23,8 @@ This chapter will use the binutils which has been installed in
 You will learn the objdump, readelf, ..., tools and understand the ELF file 
 format itself through using these tools to analyze the cpu0 generated obj in 
 this chapter. 
-LLVM has the llvm-objdump tool which like objdump but it's only support the 
-native CPU. 
+LLVM has the llvm-objdump tool which like objdump. We will make cpu0 support 
+llvm-objdump tool in this chapter. 
 The binutils support other CPU ELF dump as a cross compiler tool chains. 
 Linux platform has binutils already and no need to install it further.
 We use Linux binutils in this chapter just because iMac will display Chinese 
