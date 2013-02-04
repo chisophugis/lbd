@@ -9,6 +9,7 @@ mkdir ${GEN_DIR}/4
 mkdir ${GEN_DIR}/6
 mkdir ${GEN_DIR}/7
 mkdir ${GEN_DIR}/8
+mkdir ${GEN_DIR}/9
 cp -rf 2 ${GEN_DIR}/.
 patch -fp0 < 3-1.patch
 mkdir 3
@@ -95,8 +96,12 @@ cp -rf ${GEN_DIR}/8/8 8/.
 patch -fp0 < 8-9.patch
 mv 8/8 8/9
 cp -rf 8/9 ${GEN_DIR}/8/.
+patch -fp0 < 9-1.patch
+mkdir 9
+mv 8/9 9/1
+cp -rf 9/1 ${GEN_DIR}/9/.
 cp -rf ${GEN_DIR}/2 .
-rm -rf 3 4 6 7 8
+rm -rf 3 4 6 7 8 9
 cp -rf InputFiles llvm3.1 ${GEN_DIR}/.
 cp -rf InputFiles src_files_modify ${GEN_DIR}/.
 mv ${GEN_DIR} ../.

@@ -1,7 +1,7 @@
 diff -Naur 4/2/Cpu0/Cpu0InstrInfo.td 4/4/Cpu0/Cpu0InstrInfo.td
---- 4/2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
-+++ 4/4/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
-@@ -196,7 +196,7 @@
+--- 4/2/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 4/4/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
+@@ -187,7 +187,7 @@
  defm ST     : StoreM32<0x01, "st",  store_a>;
  
  /// Arithmetic Instructions (ALU Immediate)
@@ -10,7 +10,7 @@ diff -Naur 4/2/Cpu0/Cpu0InstrInfo.td 4/4/Cpu0/Cpu0InstrInfo.td
  // add defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
  def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
  
-@@ -206,17 +206,18 @@
+@@ -196,17 +196,18 @@
  def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
  def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
  def DIV     : ArithLogicR<0x16, "div", sdiv, IIIdiv, CPURegs, 1>;
@@ -32,7 +32,7 @@ diff -Naur 4/2/Cpu0/Cpu0InstrInfo.td 4/4/Cpu0/Cpu0InstrInfo.td
  def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>;
  
  let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
-@@ -234,13 +235,13 @@
+@@ -224,13 +225,13 @@
            (ADDiu ZERO, imm:$in)>;
  
  def : Pat<(not CPURegs:$in),

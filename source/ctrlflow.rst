@@ -207,8 +207,8 @@ Run ch7_1_1.cpp with clang will get result as follows,
     }
 
 
-The **“icmp ne”** stand for integer compare NotEqual, **“slt”** stand for Set 
-Less Than, **“sle”** stand for Set Less Equal. 
+The **“icmp ne”** stand for integer compare NotEqual, **“slt”** stands for Set 
+Less Than, **“sle”** stands for Set Less Equal. 
 Run version 6/2/Cpu0 with ``llc  -view-isel-dags`` or ``-debug`` option, you 
 can see it has translated **if** statement into 
 (br (brcond (%1, setcc(%2, Constant<c>, setne)), BasicBlock_02), BasicBlock_01).
@@ -302,8 +302,17 @@ if $cond != 0, it is equal to (JNEOp (CMPOp RC:$cond, ZEROReg), bb:$dst) in
 cpu0 translation.
 
 The CMP instruction will set the result to register SW, and then JNE check the 
-condition based on SW status. Since SW is a reserved register, it will be 
-correct even an instruction is inserted between CMP and JNE as follows,
+condition based on SW status as :num:`Figure #ctrlflow-f1`. 
+Since SW belongs to a different register class, it 
+is correct even an instruction is inserted between CMP and JNE as follows,
+
+.. _ctrlflow-f1:
+.. figure:: ../Fig/ctrlflow/1.png
+  :height: 465 px
+  :width: 446 px
+  :align: center
+
+  JNE (CMP $r2, $r3),
 
 .. code-block:: c++
 
@@ -311,7 +320,8 @@ correct even an instruction is inserted between CMP and JNE as follows,
     addiu $r1, $r2, 3   // $r1 register never be allocated to $SW
     jne BasicBlock_02
 
-The reserved registers setting by the following function code we defined before,
+The reserved registers setting by the following 
+function code we defined before,
 
 .. code-block:: c++
     
@@ -322,7 +332,7 @@ The reserved registers setting by the following function code we defined before,
     getReservedRegs(const MachineFunction &MF) const {
       static const uint16_t ReservedCPURegs[] = {
         Cpu0::ZERO, Cpu0::AT, Cpu0::GP, Cpu0::FP,
-        Cpu0::SW, Cpu0::SP, Cpu0::LR, Cpu0::PC
+        Cpu0::SP, Cpu0::LR, Cpu0::PC
       };
       BitVector Reserved(getNumRegs());
       typedef TargetRegisterClass::iterator RegIter;
@@ -340,7 +350,11 @@ The reserved registers setting by the following function code we defined before,
 
 Although the following definition in Cpu0RegisterInfo.td has no real effect in 
 Reserved Registers, you should comment the Reserved Registers in it for 
-readability.
+readability. Setting SW into another register class to prevent the SW register 
+allocated to the register used by other instruction. 
+The copyPhysReg() is called when DestReg and SrcReg belong to different Register 
+Class. As comment, the only possibility in (DestReg==SW, SrcReg==CPU0Regs) is 
+"cmp $SW, $ZERO, $rc".
 
 .. code-block:: c++
 
@@ -358,7 +372,34 @@ readability.
       // Callee save
       S0, S1, S2, 
       // Reserved
-      ZERO, AT, GP, FP, SW, SP, LR, PC)>;
+      ZERO, AT, GP, FP, SP, LR, PC)>;
+
+	// Status Registers
+	def SR   : RegisterClass<"Cpu0", [i32], 32, (add SW)>;
+	
+
+  // Cpu0InstrInfo.cpp
+  //- Called when DestReg and SrcReg belong to different Register Class.
+  void Cpu0InstrInfo::
+  copyPhysReg(MachineBasicBlock &MBB,
+        MachineBasicBlock::iterator I, DebugLoc DL,
+        unsigned DestReg, unsigned SrcReg,
+        bool KillSrc) const {
+    unsigned Opc = 0, ZeroReg = 0;
+  
+    if (Cpu0::CPURegsRegClass.contains(DestReg)) { // Copy to CPU Reg.
+      ...
+      else if (SrcReg == Cpu0::SW)  // add $ra, $ZERO, $SW
+        Opc = Cpu0::ADD, ZeroReg = Cpu0::ZERO;
+    }
+    else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
+    ...
+      // Only possibility in (DestReg==SW, SrcReg==CPU0Regs) is 
+      //  cmp $SW, $ZERO, $rc
+      else if (DestReg == Cpu0::SW)
+        Opc = Cpu0::CMP, ZeroReg = Cpu0::ZERO;
+    }
+
 
 7/1/Cpu0 include support for control flow statement. 
 Run with it as well as the following ``llc`` option, you can get the obj file 
@@ -484,7 +525,30 @@ Finally we list the code added for full support of control flow statement,
       }
       ...
     }
-    
+
+    // Cpu0InstrInfo.cpp  
+    //- Called when DestReg and SrcReg belong to different Register Class.
+    void Cpu0InstrInfo::
+    copyPhysReg(MachineBasicBlock &MBB,
+                MachineBasicBlock::iterator I, DebugLoc DL,
+                unsigned DestReg, unsigned SrcReg,
+                bool KillSrc) const {
+      if (Cpu0::CPURegsRegClass.contains(DestReg)) { // Copy to CPU Reg.
+        ...
+      else if (SrcReg == Cpu0::SW)  // add $ra, $ZERO, $SW
+        Opc = Cpu0::ADD, ZeroReg = Cpu0::ZERO;
+      }
+      else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
+        ...
+        // Only possibility in (DestReg==SW, SrcReg==CPU0Regs) is 
+        //  cmp $SW, $ZERO, $rc
+        else if (DestReg == Cpu0::SW)
+          Opc = Cpu0::CMP, ZeroReg = Cpu0::ZERO;
+      }
+      ...
+    }
+
+
     // Cpu0ISelLowering.cpp
     Cpu0TargetLowering::
     Cpu0TargetLowering(Cpu0TargetMachine &TM)
@@ -505,16 +569,19 @@ Finally we list the code added for full support of control flow statement,
     }
     
     // Cpu0InstrFormats.td
-    class BranchBase<bits<8> op, dag outs, dag ins, string asmstr,
-                      list<dag> pattern, InstrItinClass itin>:
-      Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
-    {
-      bits<24> imm24;
-    
-      let Opcode = op;
-    
-      let Inst{23-0}  = imm24;
-    }
+	//===----------------------------------------------------------------------===//
+	// Format J instruction class in Cpu0 : <|opcode|address|>
+	//===----------------------------------------------------------------------===//
+	
+	class FJ<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern,
+			 InstrItinClass itin>: Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmJ>
+	{
+	  bits<24> addr;
+	
+	  let Opcode = op;
+	
+	  let Inst{23-0} = addr;
+	}
     
     // Cpu0InstrInfo.td
     // Instruction operand types
@@ -525,24 +592,27 @@ Finally we list the code added for full support of control flow statement,
     }
     ...
     /// Conditional Branch
-    class CBranch<bits<8> op, string instr_asm, RegisterClass RC>:
-      BranchBase<op, (outs), (ins RC:$cond, brtarget:$imm24),
-                 !strconcat(instr_asm, "\t$imm24"),
-                 [], IIBranch> {
-      let isBranch = 1;
-      let isTerminator = 1;
-      let hasDelaySlot = 0;
-    }
-    
-    // Unconditional branch
-    class UncondBranch<bits<8> op, string instr_asm>:
-      BranchBase<op, (outs), (ins brtarget:$imm24),
-                 !strconcat(instr_asm, "\t$imm24"), [(br bb:$imm24)], IIBranch> {
-      let isBranch = 1;
-      let isTerminator = 1;
-      let isBarrier = 1;
-      let hasDelaySlot = 0;
-    }
+	class CBranch<bits<8> op, string instr_asm, RegisterClass RC,
+					   list<Register> UseRegs>:
+	  FJ<op, (outs), (ins RC:$ra, brtarget:$addr),
+				 !strconcat(instr_asm, "\t$addr"),
+				 [(brcond RC:$ra, bb:$addr)], IIBranch> {
+	  let isBranch = 1;
+	  let isTerminator = 1;
+	  let hasDelaySlot = 0;
+	  let neverHasSideEffects = 1;
+	}
+	
+	// Unconditional branch, such as JMP
+	class UncondBranch<bits<8> op, string instr_asm>:
+	  FJ<op, (outs), (ins brtarget:$addr),
+				 !strconcat(instr_asm, "\t$addr"), [(br bb:$addr)], IIBranch> {
+	  let isBranch = 1;
+	  let isTerminator = 1;
+	  let isBarrier = 1;
+	  let hasDelaySlot = 0;
+	  let DecoderMethod = "DecodeJumpRelativeTarget";
+	}
     ...
     /// Jump and Branch Instructions
     def JEQ     : CBranch<0x20, "jeq", CPURegs>;

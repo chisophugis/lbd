@@ -1,6 +1,6 @@
 diff -Naur 8/7/Cpu0/Cpu0ISelLowering.cpp 8/8/Cpu0/Cpu0ISelLowering.cpp
---- 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-01-22 20:44:37.000000000 +0800
-+++ 8/8/Cpu0/Cpu0ISelLowering.cpp	2013-01-22 21:21:13.000000000 +0800
+--- 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 8/8/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -553,13 +553,51 @@
                                  const SmallVectorImpl<SDValue> &OutVals,
                                  DebugLoc dl, SelectionDAG &DAG) const {

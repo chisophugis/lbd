@@ -1,6 +1,6 @@
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
---- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -64,14 +64,24 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -61,8 +61,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
  /// and generate load operations for arguments places on the stack.
  SDValue
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
---- 6/2/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:45.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:45.000000000 +0800
 @@ -77,6 +77,7 @@
      const Cpu0Subtarget *Subtarget;
  
@@ -82,30 +82,31 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
  	//- must be exist without function all
      virtual SDValue
        LowerReturn(SDValue Chain,
-diff -Naur 6/2/Cpu0/Cpu0InstrFormats.td 7/1/Cpu0/Cpu0InstrFormats.td
---- 6/2/Cpu0/Cpu0InstrFormats.td	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrFormats.td	2013-01-16 21:39:45.000000000 +0800
-@@ -110,6 +110,17 @@
-   let Inst{15-0}  = imm16;
- }
+diff -Naur 6/2/Cpu0/Cpu0InstrInfo.cpp 7/1/Cpu0/Cpu0InstrInfo.cpp
+--- 6/2/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:45.000000000 +0800
+@@ -42,12 +42,18 @@
+       Opc = Cpu0::MFHI, SrcReg = 0;
+     else if (SrcReg == Cpu0::LO)
+       Opc = Cpu0::MFLO, SrcReg = 0;
++    else if (SrcReg == Cpu0::SW)	// add $ra, $ZERO, $SW
++      Opc = Cpu0::ADD, ZeroReg = Cpu0::ZERO;
+   }
+   else if (Cpu0::CPURegsRegClass.contains(SrcReg)) { // Copy from CPU Reg.
+     if (DestReg == Cpu0::HI)
+       Opc = Cpu0::MTHI, DestReg = 0;
+     else if (DestReg == Cpu0::LO)
+       Opc = Cpu0::MTLO, DestReg = 0;
++    // Only possibility in (DestReg==SW, SrcReg==CPU0Regs) is 
++    //  cmp $SW, $ZERO, $rc
++    else if (DestReg == Cpu0::SW)
++      Opc = Cpu0::CMP, ZeroReg = Cpu0::ZERO;
+   }
  
-+class BranchBase<bits<8> op, dag outs, dag ins, string asmstr,
-+                  list<dag> pattern, InstrItinClass itin>:
-+  Cpu0Inst<outs, ins, asmstr, pattern, itin, FrmL>
-+{
-+  bits<24> imm24;
-+
-+  let Opcode = op;
-+
-+  let Inst{23-0}  = imm24;
-+}
-+
- //===----------------------------------------------------------------------===//
- // Format J instruction class in Cpu0 : <|opcode|address|>
- //===----------------------------------------------------------------------===//
+   assert(Opc && "Cannot copy registers");
 diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
---- 6/2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
 @@ -53,6 +53,12 @@
  //===----------------------------------------------------------------------===//
  // Cpu0 Operand, Complex Patterns and Transformations Definitions.
@@ -119,51 +120,80 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
  
  // Signed Operand
  def simm16      : Operand<i32> {
-@@ -237,6 +243,26 @@
+@@ -146,6 +152,16 @@
+   let isReMaterializable = 1;
+ }
+ 
++class CmpInstr<bits<8> op, string instr_asm, 
++               InstrItinClass itin, RegisterClass RC, RegisterClass RD, 
++               bit isComm = 0>:
++  FA<op, (outs RD:$rc), (ins RC:$ra, RC:$rb),
++     !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
++  let rc = 0;
++  let shamt = 0;
++  let isCommutable = isComm;
++}
++
+ // Arithmetic and logical instructions with 2 register operands.
+ class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode,
+                   Operand Od, PatLeaf imm_type, RegisterClass RC> :
+@@ -228,6 +244,29 @@
    def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>;
  }
  
 +// Conditional Branch
-+class CBranch<bits<8> op, string instr_asm, RegisterClass RC>:
-+  BranchBase<op, (outs), (ins RC:$cond, brtarget:$imm24),
-+             !strconcat(instr_asm, "\t$imm24"),
-+             [], IIBranch> {
++class CBranch<bits<8> op, string instr_asm, RegisterClass RC,
++                   list<Register> UseRegs>:
++  FJ<op, (outs), (ins RC:$ra, brtarget:$addr),
++             !strconcat(instr_asm, "\t$addr"),
++             [(brcond RC:$ra, bb:$addr)], IIBranch> {
 +  let isBranch = 1;
 +  let isTerminator = 1;
 +  let hasDelaySlot = 0;
++  let neverHasSideEffects = 1;
 +}
 +
-+// Unconditional branch
++// Unconditional branch, such as JMP
 +class UncondBranch<bits<8> op, string instr_asm>:
-+  BranchBase<op, (outs), (ins brtarget:$imm24),
-+             !strconcat(instr_asm, "\t$imm24"), [(br bb:$imm24)], IIBranch> {
++  FJ<op, (outs), (ins brtarget:$addr),
++             !strconcat(instr_asm, "\t$addr"), [(br bb:$addr)], IIBranch> {
 +  let isBranch = 1;
 +  let isTerminator = 1;
 +  let isBarrier = 1;
 +  let hasDelaySlot = 0;
++  let DecoderMethod = "DecodeJumpRelativeTarget";
 +}
 +
  // Mul, Div
  class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
             RegisterClass RC, list<Register> DefRegs>:
-@@ -334,6 +360,16 @@
+@@ -298,6 +337,7 @@
+ def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+ 
+ /// Arithmetic Instructions (3-Operand, R-Type)
++def CMP     : CmpInstr<0x10, "cmp", IIAlu, CPURegs, SR, 0>;
+ def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+ def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
+ def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
+@@ -324,6 +364,17 @@
  // work, srl for lshr llvm IR instruction
  def SHR     : shift_rotate_imm32<0x1F, 0x00, "shr", srl>;
  
 +/// Jump and Branch Instructions
-+def JEQ     : CBranch<0x20, "jeq", CPURegs>;
-+def JNE     : CBranch<0x21, "jne", CPURegs>;
-+def JLT     : CBranch<0x22, "jlt", CPURegs>;
-+def JGT     : CBranch<0x23, "jgt", CPURegs>;
-+def JLE     : CBranch<0x24, "jle", CPURegs>;
-+def JGE     : CBranch<0x25, "jge", CPURegs>;
++def JEQ     : CBranch<0x20, "jeq", SR, [SW]>;
++def JNE     : CBranch<0x21, "jne", SR, [SW]>;
++def JLT     : CBranch<0x22, "jlt", SR, [SW]>;
++def JGT     : CBranch<0x23, "jgt", SR, [SW]>;
++def JLE     : CBranch<0x24, "jle", SR, [SW]>;
++def JGE     : CBranch<0x25, "jge", SR, [SW]>;
++
 +def JMP     : UncondBranch<0x26, "jmp">;
 +
 +
  let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
      isBarrier=1, hasCtrlDep=1 in
    def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
-@@ -380,6 +416,41 @@
+@@ -370,6 +421,41 @@
  def : Pat<(not CPURegs:$in),
            (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
  
@@ -206,8 +236,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
  multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
    def : Pat<(seteq RC:$lhs, RC:$rhs),
 diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
---- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -42,6 +42,8 @@
  
    switch(MO.getTargetFlags()) {
@@ -238,9 +268,37 @@ diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
      return LowerSymbolOperand(MO, MOTy, offset);
    case MachineOperand::MO_RegisterMask:
      break;
+diff -Naur 6/2/Cpu0/Cpu0RegisterInfo.cpp 7/1/Cpu0/Cpu0RegisterInfo.cpp
+--- 6/2/Cpu0/Cpu0RegisterInfo.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0RegisterInfo.cpp	2013-02-03 19:35:45.000000000 +0800
+@@ -70,7 +70,7 @@
+ getReservedRegs(const MachineFunction &MF) const {
+   static const uint16_t ReservedCPURegs[] = {
+     Cpu0::ZERO, Cpu0::AT, Cpu0::FP,
+-    Cpu0::SW, Cpu0::SP, Cpu0::LR, Cpu0::PC
++    Cpu0::SP, Cpu0::LR, Cpu0::PC
+   };
+   BitVector Reserved(getNumRegs());
+   typedef TargetRegisterClass::iterator RegIter;
+diff -Naur 6/2/Cpu0/Cpu0RegisterInfo.td 7/1/Cpu0/Cpu0RegisterInfo.td
+--- 6/2/Cpu0/Cpu0RegisterInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/Cpu0RegisterInfo.td	2013-02-03 19:35:45.000000000 +0800
+@@ -65,8 +65,11 @@
+   // Callee save
+   S0, S1, S2, 
+   // Reserved
+-  ZERO, AT, GP, FP, SW, SP, LR, PC)>;
++  ZERO, AT, GP, FP, SP, LR, PC)>;
+ 
+ // Hi/Lo Registers
+ def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
+ 
++// Status Registers
++def SR   : RegisterClass<"Cpu0", [i32], 32, (add SW)>;
++
 diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -58,6 +58,7 @@
    case MCSymbolRefExpr::VK_None:           break;
  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
@@ -249,10 +307,24 @@ diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0Ins
    case MCSymbolRefExpr::VK_Cpu0_GOT16:     OS << "%got(";    break;
    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
+diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 7/1/Cpu0/MCTargetDesc/Cpu0BaseInfo.h
+--- 6/2/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-02-03 19:35:45.000000000 +0800
+@@ -143,6 +143,10 @@
+     return 14;
+   case Cpu0::PC:
+     return 15;
++  case Cpu0::HI:
++    return 18;
++  case Cpu0::LO:
++    return 19;
+   default: llvm_unreachable("Unknown register number!");
+   }
+ }
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-16 21:39:45.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-16 21:39:45.000000000 +0800
-@@ -69,10 +69,24 @@
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-03 19:35:45.000000000 +0800
+@@ -69,10 +69,18 @@
  
    void EncodeInstruction(const MCInst &MI, raw_ostream &OS,
                           SmallVectorImpl<MCFixup> &Fixups) const;
@@ -261,23 +333,17 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu
    // binary encoding for an instruction.
    uint64_t getBinaryCodeForInstr(const MCInst &MI,
                                   SmallVectorImpl<MCFixup> &Fixups) const;
-+                                 
-+  // getBranchJumpOpValue - Return binary encoding of the jump
-+  // target operand. If the machine operand requires relocation,
-+  // record the relocation and return zero.
-+   unsigned getJumpTargetOpValue(const MCInst &MI, unsigned OpNo,
-+                                 SmallVectorImpl<MCFixup> &Fixups) const;
 +
-+   // getBranchTargetOpValue - Return binary encoding of the branch
-+   // target operand. If the machine operand requires relocation,
-+   // record the relocation and return zero.
++  // getBranchTargetOpValue - Return binary encoding of the branch
++  // target operand, such as JMP #BB01, JEQ, JSUB. If the machine operand
++  // requires relocation, record the relocation and return zero.
 +  unsigned getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
 +                                  SmallVectorImpl<MCFixup> &Fixups) const;
 +
     // getMachineOpValue - Return binary encoding of operand. If the machin
     // operand requires relocation, record the relocation and return zero.
    unsigned getMachineOpValue(const MCInst &MI,const MCOperand &MO,
-@@ -128,6 +142,38 @@
+@@ -128,6 +136,22 @@
    EmitInstruction(Binary, Size, OS);
  }
  
@@ -294,22 +360,6 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu
 +  const MCExpr *Expr = MO.getExpr();
 +  Fixups.push_back(MCFixup::Create(0, Expr,
 +                                   MCFixupKind(Cpu0::fixup_Cpu0_PC24)));
-+  return 0;
-+}
-+
-+/// getJumpTargetOpValue - Return binary encoding of the jump
-+/// target operand. If the machine operand requires relocation,
-+/// record the relocation and return zero.
-+unsigned Cpu0MCCodeEmitter::
-+getJumpTargetOpValue(const MCInst &MI, unsigned OpNo,
-+                     SmallVectorImpl<MCFixup> &Fixups) const {
-+
-+  const MCOperand &MO = MI.getOperand(OpNo);
-+  assert(MO.isExpr() && "getJumpTargetOpValue expects only expressions");
-+
-+  const MCExpr *Expr = MO.getExpr();
-+  Fixups.push_back(MCFixup::Create(0, Expr,
-+                                   MCFixupKind(Cpu0::fixup_Cpu0_24)));
 +  return 0;
 +}
 +

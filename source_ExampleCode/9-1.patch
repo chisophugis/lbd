@@ -1,0 +1,461 @@
+diff -Naur 8/9/Cpu0/CMakeLists.txt 9/1/Cpu0/CMakeLists.txt
+--- 8/9/Cpu0/CMakeLists.txt	2013-02-03 19:35:46.000000000 +0800
++++ 9/1/Cpu0/CMakeLists.txt	2013-02-03 19:35:46.000000000 +0800
+@@ -9,7 +9,7 @@
+ #  came from Cpu0InstrInfo.td.
+ tablegen(LLVM Cpu0GenRegisterInfo.inc -gen-register-info)
+ tablegen(LLVM Cpu0GenInstrInfo.inc -gen-instr-info)
+-
++tablegen(LLVM Cpu0GenDisassemblerTables.inc -gen-disassembler)
+ tablegen(LLVM Cpu0GenCodeEmitter.inc -gen-emitter)
+ tablegen(LLVM Cpu0GenMCCodeEmitter.inc -gen-emitter -mc-emitter)
+ 
+@@ -17,6 +17,7 @@
+ tablegen(LLVM Cpu0GenDAGISel.inc -gen-dag-isel)
+ tablegen(LLVM Cpu0GenCallingConv.inc -gen-callingconv)
+ tablegen(LLVM Cpu0GenSubtargetInfo.inc -gen-subtarget)
++tablegen(LLVM Cpu0GenEDInfo.inc -gen-enhanced-disassembly-info)
+ 
+ # Cpu0CommonTableGen must be defined
+ add_public_tablegen_target(Cpu0CommonTableGen)
+@@ -40,5 +41,6 @@
+ 
+ # Should match with "subdirectories =  MCTargetDesc TargetInfo" in LLVMBuild.txt
+ add_subdirectory(InstPrinter)
++add_subdirectory(Disassembler)
+ add_subdirectory(TargetInfo)
+ add_subdirectory(MCTargetDesc)
+diff -Naur 8/9/Cpu0/Cpu0InstrInfo.td 9/1/Cpu0/Cpu0InstrInfo.td
+--- 8/9/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:46.000000000 +0800
++++ 9/1/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:46.000000000 +0800
+@@ -180,6 +180,7 @@
+   let rc = 0;
+   let shamt = 0;
+   let isCommutable = isComm;
++  let DecoderMethod = "DecodeCMPInstruction";
+ }
+ 
+ // Arithmetic and logical instructions with 2 register operands.
+@@ -274,6 +275,7 @@
+   let isTerminator = 1;
+   let hasDelaySlot = 0;
+   let neverHasSideEffects = 1;
++  let DecoderMethod = "DecodeBranchTarget";
+ }
+ 
+ // Unconditional branch, such as JMP
+@@ -287,12 +289,22 @@
+   let DecoderMethod = "DecodeJumpRelativeTarget";
+ }
+ 
++let isBranch=1, isTerminator=1, isBarrier=1, imm16=0, hasDelaySlot = 1,
++    isIndirectBranch = 1 in
++class JumpFR<bits<8> op, string instr_asm, RegisterClass RC>:
++  FL<op, (outs), (ins RC:$ra),
++     !strconcat(instr_asm, "\t$ra"), [(brind RC:$ra)], IIBranch> {
++  let rb = 0;
++  let imm16 = 0;
++}
++
+ // Jump and Link (Call)
+ let isCall=1, hasDelaySlot=0 in {
+   class JumpLink<bits<8> op, string instr_asm>:
+     FJ<op, (outs), (ins calltarget:$target, variable_ops),
+        !strconcat(instr_asm, "\t$target"), [(Cpu0JmpLink imm:$target)],
+        IIBranch> {
++       let DecoderMethod = "DecodeJumpAbsoluteTarget";
+        }
+ 
+   class JumpLinkReg<bits<8> op, string instr_asm,
+@@ -437,6 +449,7 @@
+ /// Jump and Branch Instructions
+ def SWI     : JumpLink<0x2A, "swi">;
+ def JSUB    : JumpLink<0x2B, "jsub">;
++def JR      : JumpFR<0x2C, "ret", CPURegs>;
+ 
+ let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
+     isBarrier=1, hasCtrlDep=1, addr=0 in
+diff -Naur 8/9/Cpu0/Disassembler/CMakeLists.txt 9/1/Cpu0/Disassembler/CMakeLists.txt
+--- 8/9/Cpu0/Disassembler/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
++++ 9/1/Cpu0/Disassembler/CMakeLists.txt	2013-02-03 19:35:46.000000000 +0800
+@@ -0,0 +1,15 @@
++include_directories( ${CMAKE_CURRENT_BINARY_DIR}/.. ${CMAKE_CURRENT_SOURCE_DIR}/.. )
++
++add_llvm_library(LLVMCpu0Disassembler
++  Cpu0Disassembler.cpp
++  )
++
++# workaround for hanging compilation on MSVC9 and 10
++if( MSVC_VERSION EQUAL 1400 OR MSVC_VERSION EQUAL 1500 OR MSVC_VERSION EQUAL 1600 )
++set_property(
++  SOURCE Cpu0Disassembler.cpp
++  PROPERTY COMPILE_FLAGS "/Od"
++  )
++endif()
++
++add_dependencies(LLVMCpu0Disassembler Cpu0CommonTableGen)
+diff -Naur 8/9/Cpu0/Disassembler/Cpu0Disassembler.cpp 9/1/Cpu0/Disassembler/Cpu0Disassembler.cpp
+--- 8/9/Cpu0/Disassembler/Cpu0Disassembler.cpp	1970-01-01 08:00:00.000000000 +0800
++++ 9/1/Cpu0/Disassembler/Cpu0Disassembler.cpp	2013-02-03 19:35:46.000000000 +0800
+@@ -0,0 +1,313 @@
++//===- Cpu0Disassembler.cpp - Disassembler for Cpu0 -------------*- C++ -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is distributed under the University of Illinois Open Source
++// License. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file is part of the Cpu0 Disassembler.
++//
++//===----------------------------------------------------------------------===//
++
++#include "Cpu0.h"
++#include "Cpu0Subtarget.h"
++#include "Cpu0RegisterInfo.h"
++#include "llvm/MC/EDInstInfo.h"
++#include "llvm/MC/MCDisassembler.h"
++#include "llvm/MC/MCFixedLenDisassembler.h"
++#include "llvm/Support/MemoryObject.h"
++#include "llvm/Support/TargetRegistry.h"
++#include "llvm/MC/MCSubtargetInfo.h"
++#include "llvm/MC/MCInst.h"
++#include "llvm/Support/MathExtras.h"
++
++#include "Cpu0GenEDInfo.inc"
++
++using namespace llvm;
++
++typedef MCDisassembler::DecodeStatus DecodeStatus;
++
++/// Cpu0Disassembler - a disasembler class for Cpu032.
++class Cpu0Disassembler : public MCDisassembler {
++public:
++  /// Constructor     - Initializes the disassembler.
++  ///
++  Cpu0Disassembler(const MCSubtargetInfo &STI, bool bigEndian) :
++    MCDisassembler(STI), isBigEndian(bigEndian) {
++  }
++
++  ~Cpu0Disassembler() {
++  }
++
++  /// getInstruction - See MCDisassembler.
++  DecodeStatus getInstruction(MCInst &instr,
++                              uint64_t &size,
++                              const MemoryObject &region,
++                              uint64_t address,
++                              raw_ostream &vStream,
++                              raw_ostream &cStream) const;
++
++  /// getEDInfo - See MCDisassembler.
++  const EDInstInfo *getEDInfo() const;
++
++private:
++  bool isBigEndian;
++};
++
++const EDInstInfo *Cpu0Disassembler::getEDInfo() const {
++  return instInfoCpu0;
++}
++
++// Decoder tables for Cpu0 register
++static const unsigned CPURegsTable[] = {
++  Cpu0::ZERO, Cpu0::AT, Cpu0::V0, Cpu0::V1,
++  Cpu0::A0, Cpu0::A1, Cpu0::T9, Cpu0::S0, 
++  Cpu0::S1, Cpu0::S2, Cpu0::GP, Cpu0::FP, 
++  Cpu0::SW, Cpu0::SP, Cpu0::LR, Cpu0::PC
++};
++
++static DecodeStatus DecodeCPURegsRegisterClass(MCInst &Inst,
++                                               unsigned RegNo,
++                                               uint64_t Address,
++                                               const void *Decoder);
++static DecodeStatus DecodeCMPInstruction(MCInst &Inst,
++                                       unsigned Insn,
++                                       uint64_t Address,
++                                       const void *Decoder);
++static DecodeStatus DecodeBranchTarget(MCInst &Inst,
++                                       unsigned Insn,
++                                       uint64_t Address,
++                                       const void *Decoder);
++static DecodeStatus DecodeJumpRelativeTarget(MCInst &Inst,
++                                       unsigned Insn,
++                                       uint64_t Address,
++                                       const void *Decoder);
++static DecodeStatus DecodeJumpAbsoluteTarget(MCInst &Inst,
++                                     unsigned Insn,
++                                     uint64_t Address,
++                                     const void *Decoder);
++
++static DecodeStatus DecodeMem(MCInst &Inst,
++                              unsigned Insn,
++                              uint64_t Address,
++                              const void *Decoder);
++static DecodeStatus DecodeSimm16(MCInst &Inst,
++                                 unsigned Insn,
++                                 uint64_t Address,
++                                 const void *Decoder);
++
++namespace llvm {
++extern Target TheCpu0elTarget, TheCpu0Target, TheCpu064Target,
++              TheCpu064elTarget;
++}
++
++static MCDisassembler *createCpu0Disassembler(
++                       const Target &T,
++                       const MCSubtargetInfo &STI) {
++  return new Cpu0Disassembler(STI,true);
++}
++
++static MCDisassembler *createCpu0elDisassembler(
++                       const Target &T,
++                       const MCSubtargetInfo &STI) {
++  return new Cpu0Disassembler(STI,false);
++}
++
++extern "C" void LLVMInitializeCpu0Disassembler() {
++  // Register the disassembler.
++  TargetRegistry::RegisterMCDisassembler(TheCpu0Target,
++                                         createCpu0Disassembler);
++  TargetRegistry::RegisterMCDisassembler(TheCpu0elTarget,
++                                         createCpu0elDisassembler);
++}
++
++
++#include "Cpu0GenDisassemblerTables.inc"
++
++  /// readInstruction - read four bytes from the MemoryObject
++  /// and return 32 bit word sorted according to the given endianess
++static DecodeStatus readInstruction32(const MemoryObject &region,
++                                      uint64_t address,
++                                      uint64_t &size,
++                                      uint32_t &insn,
++                                      bool isBigEndian) {
++  uint8_t Bytes[4];
++
++  // We want to read exactly 4 Bytes of data.
++  if (region.readBytes(address, 4, (uint8_t*)Bytes, NULL) == -1) {
++    size = 0;
++    return MCDisassembler::Fail;
++  }
++
++  if (isBigEndian) {
++    // Encoded as a big-endian 32-bit word in the stream.
++    insn = (Bytes[3] <<  0) |
++           (Bytes[2] <<  8) |
++           (Bytes[1] << 16) |
++           (Bytes[0] << 24);
++  }
++  else {
++    // Encoded as a small-endian 32-bit word in the stream.
++    insn = (Bytes[0] <<  0) |
++           (Bytes[1] <<  8) |
++           (Bytes[2] << 16) |
++           (Bytes[3] << 24);
++  }
++
++  return MCDisassembler::Success;
++}
++
++DecodeStatus
++Cpu0Disassembler::getInstruction(MCInst &instr,
++                                 uint64_t &Size,
++                                 const MemoryObject &Region,
++                                 uint64_t Address,
++                                 raw_ostream &vStream,
++                                 raw_ostream &cStream) const {
++  uint32_t Insn;
++
++  DecodeStatus Result = readInstruction32(Region, Address, Size,
++                                          Insn, isBigEndian);
++  if (Result == MCDisassembler::Fail)
++    return MCDisassembler::Fail;
++
++  // Calling the auto-generated decoder function.
++  Result = decodeInstruction(DecoderTableCpu032, instr, Insn, Address,
++                             this, STI);
++  if (Result != MCDisassembler::Fail) {
++    Size = 4;
++    return Result;
++  }
++
++  return MCDisassembler::Fail;
++}
++
++static DecodeStatus DecodeCPURegsRegisterClass(MCInst &Inst,
++                                               unsigned RegNo,
++                                               uint64_t Address,
++                                               const void *Decoder) {
++  if (RegNo > 16)
++    return MCDisassembler::Fail;
++
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[RegNo]));
++  return MCDisassembler::Success;
++}
++
++static DecodeStatus DecodeMem(MCInst &Inst,
++                              unsigned Insn,
++                              uint64_t Address,
++                              const void *Decoder) {
++  int Offset = SignExtend32<16>(Insn & 0xffff);
++  int Reg = (int)fieldFromInstruction(Insn, 20, 4);
++  int Base = (int)fieldFromInstruction(Insn, 16, 4);
++
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[Reg]));
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[Base]));
++  Inst.addOperand(MCOperand::CreateImm(Offset));
++
++  return MCDisassembler::Success;
++}
++
++/* CMP instruction define $rc and then $ra, $rb; The printOperand() print 
++operand 1 and operand 2 (operand 0 is $rc and operand 1 is $ra), so we Create 
++register $rc first and create $ra next, as follows,
++
++// Cpu0InstrInfo.td
++class CmpInstr<bits<8> op, string instr_asm, 
++                    InstrItinClass itin, RegisterClass RC, RegisterClass RD, bit isComm = 0>:
++  FA<op, (outs RD:$rc), (ins RC:$ra, RC:$rb),
++     !strconcat(instr_asm, "\t$ra, $rb"), [], itin> {
++
++// Cpu0AsmWriter.inc
++void Cpu0InstPrinter::printInstruction(const MCInst *MI, raw_ostream &O) {
++...
++  case 3:
++    // CMP, JEQ, JGE, JGT, JLE, JLT, JNE
++    printOperand(MI, 1, O); 
++    break;
++...
++  case 1:
++    // CMP
++    printOperand(MI, 2, O); 
++    return;
++    break;
++*/
++static DecodeStatus DecodeCMPInstruction(MCInst &Inst,
++                                       unsigned Insn,
++                                       uint64_t Address,
++                                       const void *Decoder) {
++  int Reg_a = (int)fieldFromInstruction(Insn, 20, 4);
++  int Reg_b = (int)fieldFromInstruction(Insn, 16, 4);
++  int Reg_c = (int)fieldFromInstruction(Insn, 12, 4);
++  int shamt = (int)fieldFromInstruction(Insn, 0, 12);
++
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[Reg_c]));
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[Reg_a]));
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[Reg_b]));
++//  Inst.addOperand(MCOperand::CreateImm(shamt));
++  return MCDisassembler::Success;
++}
++
++/* CBranch instruction define $ra and then imm24; The printOperand() print 
++operand 1 (operand 0 is $ra and operand 1 is imm24), so we Create register 
++operand first and create imm24 next, as follows,
++
++// Cpu0InstrInfo.td
++class CBranch<bits<8> op, string instr_asm, RegisterClass RC,
++                   list<Register> UseRegs>:
++  CBranchBase<op, (outs), (ins RC:$ra, brtarget:$imm24),
++             !strconcat(instr_asm, "\t$imm24"),
++             [(brcond RC:$ra, bb:$imm24)], IIBranch> {
++
++// Cpu0AsmWriter.inc
++void Cpu0InstPrinter::printInstruction(const MCInst *MI, raw_ostream &O) {
++...
++  case 3:
++    // CMP, JEQ, JGE, JGT, JLE, JLT, JNE
++    printOperand(MI, 1, O); 
++    break;
++*/
++static DecodeStatus DecodeBranchTarget(MCInst &Inst,
++                                       unsigned Insn,
++                                       uint64_t Address,
++                                       const void *Decoder) {
++  int BranchOffset = fieldFromInstruction(Insn, 0, 24);
++  if (BranchOffset > 0x8fffff)
++  	BranchOffset = -1*(0x1000000 - BranchOffset);
++  Inst.addOperand(MCOperand::CreateReg(CPURegsTable[0]));
++  Inst.addOperand(MCOperand::CreateImm(BranchOffset));
++  return MCDisassembler::Success;
++}
++
++static DecodeStatus DecodeJumpRelativeTarget(MCInst &Inst,
++                                     unsigned Insn,
++                                     uint64_t Address,
++                                     const void *Decoder) {
++
++  int JumpOffset = fieldFromInstruction(Insn, 0, 24);
++  if (JumpOffset > 0x8fffff)
++  	JumpOffset = -1*(0x1000000 - JumpOffset);
++  Inst.addOperand(MCOperand::CreateImm(JumpOffset));
++  return MCDisassembler::Success;
++}
++
++static DecodeStatus DecodeJumpAbsoluteTarget(MCInst &Inst,
++                                     unsigned Insn,
++                                     uint64_t Address,
++                                     const void *Decoder) {
++
++  unsigned JumpOffset = fieldFromInstruction(Insn, 0, 24);
++  Inst.addOperand(MCOperand::CreateImm(JumpOffset));
++  return MCDisassembler::Success;
++}
++
++static DecodeStatus DecodeSimm16(MCInst &Inst,
++                                 unsigned Insn,
++                                 uint64_t Address,
++                                 const void *Decoder) {
++  Inst.addOperand(MCOperand::CreateImm(SignExtend32<16>(Insn)));
++  return MCDisassembler::Success;
++}
++
+diff -Naur 8/9/Cpu0/Disassembler/LLVMBuild.txt 9/1/Cpu0/Disassembler/LLVMBuild.txt
+--- 8/9/Cpu0/Disassembler/LLVMBuild.txt	1970-01-01 08:00:00.000000000 +0800
++++ 9/1/Cpu0/Disassembler/LLVMBuild.txt	2013-02-03 19:35:46.000000000 +0800
+@@ -0,0 +1,23 @@
++;===- ./lib/Target/Cpu0/Disassembler/LLVMBuild.txt --------------*- Conf -*--===;
++;
++;                     The LLVM Compiler Infrastructure
++;
++; This file is distributed under the University of Illinois Open Source
++; License. See LICENSE.TXT for details.
++;
++;===------------------------------------------------------------------------===;
++;
++; This is an LLVMBuild description file for the components in this subdirectory.
++;
++; For more information on the LLVMBuild system, please see:
++;
++;   http://llvm.org/docs/LLVMBuild.html
++;
++;===------------------------------------------------------------------------===;
++
++[component_0]
++type = Library
++name = Cpu0Disassembler
++parent = Cpu0
++required_libraries = MC Support Cpu0Info
++add_to_library_groups = Cpu0
+diff -Naur 8/9/Cpu0/LLVMBuild.txt 9/1/Cpu0/LLVMBuild.txt
+--- 8/9/Cpu0/LLVMBuild.txt	2013-02-03 19:35:46.000000000 +0800
++++ 9/1/Cpu0/LLVMBuild.txt	2013-02-03 19:35:46.000000000 +0800
+@@ -18,7 +18,7 @@
+ # Following comments extracted from http://llvm.org/docs/LLVMBuild.html
+ 
+ [common]
+-subdirectories = InstPrinter MCTargetDesc TargetInfo
++subdirectories = Disassembler InstPrinter MCTargetDesc TargetInfo
+ 
+ [component_0]
+ # TargetGroup components are an extension of LibraryGroups, specifically for 
+@@ -33,7 +33,7 @@
+ #  , and supports JIT compilation. They are optional.
+ #has_asmparser = 1
+ has_asmprinter = 1
+-#has_disassembler = 1
++has_disassembler = 1
+ #has_jit = 1
+ 
+ [component_1]

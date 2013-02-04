@@ -1,6 +1,6 @@
 diff -Naur 4/4/Cpu0/Cpu0FrameLowering.cpp 4/4_2/Cpu0/Cpu0FrameLowering.cpp
---- 4/4/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:44.000000000 +0800
-+++ 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:44.000000000 +0800
+--- 4/4/Cpu0/Cpu0FrameLowering.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -100,7 +100,7 @@
    MachineBasicBlock::iterator MBBI = MBB.begin();
    DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
@@ -52,9 +52,9 @@ diff -Naur 4/4/Cpu0/Cpu0FrameLowering.cpp 4/4_2/Cpu0/Cpu0FrameLowering.cpp
  	assert("No expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);");
  //    expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);
 diff -Naur 4/4/Cpu0/Cpu0InstrInfo.td 4/4_2/Cpu0/Cpu0InstrInfo.td
---- 4/4/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
-+++ 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
-@@ -196,9 +196,9 @@
+--- 4/4/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
+@@ -187,9 +187,9 @@
  defm ST     : StoreM32<0x01, "st",  store_a>;
  
  /// Arithmetic Instructions (ALU Immediate)
@@ -65,8 +65,8 @@ diff -Naur 4/4/Cpu0/Cpu0InstrInfo.td 4/4_2/Cpu0/Cpu0InstrInfo.td
 +//def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
  
  /// Arithmetic Instructions (3-Operand, R-Type)
- def CMP		: CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
-@@ -232,15 +232,15 @@
+ def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+@@ -222,15 +222,15 @@
  // Small immediates
  
  def : Pat<(i32 immSExt16:$in),

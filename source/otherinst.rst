@@ -973,8 +973,8 @@ from TargetSelectionDAG.td.
   // Cpu0RegisterInfo.td
     ...
     // Hi/Lo registers
-    def HI  : Register<"hi">, DwarfRegNum<[18]>;
-    def LO  : Register<"lo">, DwarfRegNum<[19]>;
+    def HI  : Register<"HI">, DwarfRegNum<[18]>;
+    def LO  : Register<"LO">, DwarfRegNum<[19]>;
     ...
     // Hi/Lo Registers
     def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
@@ -1068,6 +1068,7 @@ from TargetSelectionDAG.td.
   ...
   def mulhs      : SDNode<"ISD::MULHS"     , SDTIntBinOp, [SDNPCommutative]>;
   def mulhu      : SDNode<"ISD::MULHU"     , SDTIntBinOp, [SDNPCommutative]>;
+
 
     
 Except the custom type, llvm IR operations of expand and promote type will call 

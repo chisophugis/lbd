@@ -1,6 +1,6 @@
 diff -Naur 2/Cpu0/CMakeLists.txt 3/1/Cpu0/CMakeLists.txt
---- 2/Cpu0/CMakeLists.txt	2013-01-16 21:39:44.000000000 +0800
-+++ 3/1/Cpu0/CMakeLists.txt	2013-01-16 21:39:44.000000000 +0800
+--- 2/Cpu0/CMakeLists.txt	2013-02-03 19:35:44.000000000 +0800
++++ 3/1/Cpu0/CMakeLists.txt	2013-02-03 19:35:44.000000000 +0800
 @@ -9,6 +9,8 @@
  #  came from Cpu0InstrInfo.td.
  tablegen(LLVM Cpu0GenRegisterInfo.inc -gen-register-info)
@@ -24,8 +24,8 @@ diff -Naur 2/Cpu0/CMakeLists.txt 3/1/Cpu0/CMakeLists.txt
  
  # Should match with "subdirectories =  MCTargetDesc TargetInfo" in LLVMBuild.txt
 diff -Naur 2/Cpu0/Cpu0.td 3/1/Cpu0/Cpu0.td
---- 2/Cpu0/Cpu0.td	2013-01-16 21:39:44.000000000 +0800
-+++ 3/1/Cpu0/Cpu0.td	2013-01-16 21:39:44.000000000 +0800
+--- 2/Cpu0/Cpu0.td	2013-02-03 19:35:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0.td	2013-02-03 19:35:44.000000000 +0800
 @@ -22,6 +22,7 @@
  include "Cpu0RegisterInfo.td"
  include "Cpu0Schedule.td"
@@ -36,7 +36,7 @@ diff -Naur 2/Cpu0/Cpu0.td 3/1/Cpu0/Cpu0.td
  
 diff -Naur 2/Cpu0/Cpu0CallingConv.td 3/1/Cpu0/Cpu0CallingConv.td
 --- 2/Cpu0/Cpu0CallingConv.td	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0CallingConv.td	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0CallingConv.td	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,18 @@
 +//===-- Cpu0CallingConv.td - Calling Conventions for Cpu0 --*- tablegen -*-===//
 +//
@@ -58,7 +58,7 @@ diff -Naur 2/Cpu0/Cpu0CallingConv.td 3/1/Cpu0/Cpu0CallingConv.td
 +
 diff -Naur 2/Cpu0/Cpu0FrameLowering.cpp 3/1/Cpu0/Cpu0FrameLowering.cpp
 --- 2/Cpu0/Cpu0FrameLowering.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0FrameLowering.cpp	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,100 @@
 +//===-- Cpu0FrameLowering.cpp - Cpu0 Frame Information --------------------===//
 +//
@@ -162,7 +162,7 @@ diff -Naur 2/Cpu0/Cpu0FrameLowering.cpp 3/1/Cpu0/Cpu0FrameLowering.cpp
 +
 diff -Naur 2/Cpu0/Cpu0FrameLowering.h 3/1/Cpu0/Cpu0FrameLowering.h
 --- 2/Cpu0/Cpu0FrameLowering.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0FrameLowering.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0FrameLowering.h	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,43 @@
 +//===-- Cpu0FrameLowering.h - Define frame lowering for Cpu0 ----*- C++ -*-===//
 +//
@@ -209,7 +209,7 @@ diff -Naur 2/Cpu0/Cpu0FrameLowering.h 3/1/Cpu0/Cpu0FrameLowering.h
 +
 diff -Naur 2/Cpu0/Cpu0ISelLowering.cpp 3/1/Cpu0/Cpu0ISelLowering.cpp
 --- 2/Cpu0/Cpu0ISelLowering.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,72 @@
 +//===-- Cpu0ISelLowering.cpp - Cpu0 DAG Lowering Implementation -----------===//
 +//
@@ -285,7 +285,7 @@ diff -Naur 2/Cpu0/Cpu0ISelLowering.cpp 3/1/Cpu0/Cpu0ISelLowering.cpp
 +}
 diff -Naur 2/Cpu0/Cpu0ISelLowering.h 3/1/Cpu0/Cpu0ISelLowering.h
 --- 2/Cpu0/Cpu0ISelLowering.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,62 @@
 +//===-- Cpu0ISelLowering.h - Cpu0 DAG Lowering Interface --------*- C++ -*-===//
 +//
@@ -351,7 +351,7 @@ diff -Naur 2/Cpu0/Cpu0ISelLowering.h 3/1/Cpu0/Cpu0ISelLowering.h
 +#endif // Cpu0ISELLOWERING_H
 diff -Naur 2/Cpu0/Cpu0InstrInfo.cpp 3/1/Cpu0/Cpu0InstrInfo.cpp
 --- 2/Cpu0/Cpu0InstrInfo.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,24 @@
 +//===-- Cpu0InstrInfo.cpp - Cpu0 Instruction Information ------------------===//
 +//
@@ -379,7 +379,7 @@ diff -Naur 2/Cpu0/Cpu0InstrInfo.cpp 3/1/Cpu0/Cpu0InstrInfo.cpp
 +    {}
 diff -Naur 2/Cpu0/Cpu0InstrInfo.h 3/1/Cpu0/Cpu0InstrInfo.h
 --- 2/Cpu0/Cpu0InstrInfo.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0InstrInfo.h	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,33 @@
 +//===-- Cpu0InstrInfo.h - Cpu0 Instruction Information ----------*- C++ -*-===//
 +//
@@ -416,7 +416,7 @@ diff -Naur 2/Cpu0/Cpu0InstrInfo.h 3/1/Cpu0/Cpu0InstrInfo.h
 +#endif
 diff -Naur 2/Cpu0/Cpu0MachineFunction.h 3/1/Cpu0/Cpu0MachineFunction.h
 --- 2/Cpu0/Cpu0MachineFunction.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0MachineFunction.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0MachineFunction.h	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,40 @@
 +//===-- Cpu0MachineFunctionInfo.h - Private data used for Cpu0 ----*- C++ -*-=//
 +//
@@ -460,7 +460,7 @@ diff -Naur 2/Cpu0/Cpu0MachineFunction.h 3/1/Cpu0/Cpu0MachineFunction.h
 +
 diff -Naur 2/Cpu0/Cpu0SelectionDAGInfo.cpp 3/1/Cpu0/Cpu0SelectionDAGInfo.cpp
 --- 2/Cpu0/Cpu0SelectionDAGInfo.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0SelectionDAGInfo.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0SelectionDAGInfo.cpp	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,23 @@
 +//===-- Cpu0SelectionDAGInfo.cpp - Cpu0 SelectionDAG Info -----------------===//
 +//
@@ -487,7 +487,7 @@ diff -Naur 2/Cpu0/Cpu0SelectionDAGInfo.cpp 3/1/Cpu0/Cpu0SelectionDAGInfo.cpp
 +}
 diff -Naur 2/Cpu0/Cpu0SelectionDAGInfo.h 3/1/Cpu0/Cpu0SelectionDAGInfo.h
 --- 2/Cpu0/Cpu0SelectionDAGInfo.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0SelectionDAGInfo.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0SelectionDAGInfo.h	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,31 @@
 +//===-- Cpu0SelectionDAGInfo.h - Cpu0 SelectionDAG Info ---------*- C++ -*-===//
 +//
@@ -522,7 +522,7 @@ diff -Naur 2/Cpu0/Cpu0SelectionDAGInfo.h 3/1/Cpu0/Cpu0SelectionDAGInfo.h
 +#endif
 diff -Naur 2/Cpu0/Cpu0Subtarget.cpp 3/1/Cpu0/Cpu0Subtarget.cpp
 --- 2/Cpu0/Cpu0Subtarget.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0Subtarget.cpp	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0Subtarget.cpp	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,45 @@
 +//===-- Cpu0Subtarget.cpp - Cpu0 Subtarget Information --------------------===//
 +//
@@ -570,8 +570,8 @@ diff -Naur 2/Cpu0/Cpu0Subtarget.cpp 3/1/Cpu0/Cpu0Subtarget.cpp
 +}
 +
 diff -Naur 2/Cpu0/Cpu0Subtarget.h 3/1/Cpu0/Cpu0Subtarget.h
---- 2/Cpu0/Cpu0Subtarget.h	2013-01-16 21:39:44.000000000 +0800
-+++ 3/1/Cpu0/Cpu0Subtarget.h	2013-01-16 21:39:44.000000000 +0800
+--- 2/Cpu0/Cpu0Subtarget.h	2013-02-03 19:35:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0Subtarget.h	2013-02-03 19:35:44.000000000 +0800
 @@ -18,11 +18,13 @@
  #include "llvm/MC/MCInstrItineraries.h"
  #include <string>
@@ -601,8 +601,8 @@ diff -Naur 2/Cpu0/Cpu0Subtarget.h 3/1/Cpu0/Cpu0Subtarget.h
  };
  } // End llvm namespace
 diff -Naur 2/Cpu0/Cpu0TargetMachine.cpp 3/1/Cpu0/Cpu0TargetMachine.cpp
---- 2/Cpu0/Cpu0TargetMachine.cpp	2013-01-16 21:39:44.000000000 +0800
-+++ 3/1/Cpu0/Cpu0TargetMachine.cpp	2013-01-16 21:39:44.000000000 +0800
+--- 2/Cpu0/Cpu0TargetMachine.cpp	2013-02-03 19:35:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0TargetMachine.cpp	2013-02-03 19:35:44.000000000 +0800
 @@ -11,9 +11,80 @@
  //
  //===----------------------------------------------------------------------===//
@@ -686,7 +686,7 @@ diff -Naur 2/Cpu0/Cpu0TargetMachine.cpp 3/1/Cpu0/Cpu0TargetMachine.cpp
  
 diff -Naur 2/Cpu0/Cpu0TargetMachine.h 3/1/Cpu0/Cpu0TargetMachine.h
 --- 2/Cpu0/Cpu0TargetMachine.h	1970-01-01 08:00:00.000000000 +0800
-+++ 3/1/Cpu0/Cpu0TargetMachine.h	2013-01-16 21:39:44.000000000 +0800
++++ 3/1/Cpu0/Cpu0TargetMachine.h	2013-02-03 19:35:44.000000000 +0800
 @@ -0,0 +1,88 @@
 +//===-- Cpu0TargetMachine.h - Define TargetMachine for Cpu0 -----*- C++ -*-===//
 +//

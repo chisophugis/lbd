@@ -31,9 +31,7 @@ def Pseudo    : Format<0>;
 def FrmA      : Format<1>;
 def FrmL      : Format<2>;
 def FrmJ      : Format<3>;
-def FrmFR     : Format<4>;
-def FrmFI     : Format<5>;
-def FrmOther  : Format<6>; // Instruction w/ a custom format
+def FrmOther  : Format<4>; // Instruction w/ a custom format
 
 // Generic Cpu0 Format
 class Cpu0Inst<dag outs, dag ins, string asmstr, list<dag> pattern,

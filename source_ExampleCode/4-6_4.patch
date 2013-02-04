@@ -1,6 +1,6 @@
 diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.cpp 4/6_4/Cpu0/Cpu0ISelLowering.cpp
---- 4/6_2/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:45.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0ISelLowering.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -43,6 +43,14 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -76,8 +76,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.cpp 4/6_4/Cpu0/Cpu0ISelLowering.cpp
  
  /// LowerFormalArguments - transform physical registers into virtual registers
 diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.h 4/6_4/Cpu0/Cpu0ISelLowering.h
---- 4/6_2/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:45.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0ISelLowering.h	2013-01-16 21:39:45.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:45.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:45.000000000 +0800
 @@ -25,7 +25,10 @@
      enum NodeType {
        // Start the numbering from where ISD NodeType finishes.
@@ -100,8 +100,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0ISelLowering.h 4/6_4/Cpu0/Cpu0ISelLowering.h
      // Subtarget Info
      const Cpu0Subtarget *Subtarget;
 diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.cpp 4/6_4/Cpu0/Cpu0InstrInfo.cpp
---- 4/6_2/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:45.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0InstrInfo.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -28,6 +28,42 @@
    return RI;
  }
@@ -146,8 +146,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.cpp 4/6_4/Cpu0/Cpu0InstrInfo.cpp
  Cpu0InstrInfo::emitFrameIndexDebugValue(MachineFunction &MF, int FrameIx,
                                          uint64_t Offset, const MDNode *MDPtr,
 diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.h 4/6_4/Cpu0/Cpu0InstrInfo.h
---- 4/6_2/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:45.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0InstrInfo.h	2013-01-16 21:39:45.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0InstrInfo.h	2013-02-03 19:35:45.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.h	2013-02-03 19:35:45.000000000 +0800
 @@ -36,6 +36,11 @@
    ///
    virtual const Cpu0RegisterInfo &getRegisterInfo() const;
@@ -161,8 +161,8 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.h 4/6_4/Cpu0/Cpu0InstrInfo.h
    virtual MachineInstr* emitFrameIndexDebugValue(MachineFunction &MF,
                                                   int FrameIx, uint64_t Offset,
 diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
---- 4/6_2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
-+++ 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
+--- 4/6_2/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 4/6_4/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
 @@ -23,10 +23,20 @@
  
  def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>;
@@ -184,15 +184,15 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
  //===----------------------------------------------------------------------===//
  // Cpu0 Operand, Complex Patterns and Transformations Definitions.
  //===----------------------------------------------------------------------===//
-@@ -212,6 +222,18 @@
+@@ -203,6 +213,18 @@
  class Mult32<bits<8> op, string instr_asm, InstrItinClass itin>:
    Mult<op, instr_asm, itin, CPURegs, [HI, LO]>;
  
 +class Div<SDNode opNode, bits<8> op, string instr_asm, InstrItinClass itin,
 +          RegisterClass RC, list<Register> DefRegs>:
-+  FL<op, (outs), (ins RC:$rb, RC:$rc),
-+     !strconcat(instr_asm, "\t$$zero, $rb, $rc"),
-+     [(opNode RC:$rb, RC:$rc)], itin> {
++  FL<op, (outs), (ins RC:$ra, RC:$rb),
++     !strconcat(instr_asm, "\t$ra, $rb"),
++     [(opNode RC:$ra, RC:$rb)], itin> {
 +  let imm16 = 0;
 +  let Defs = DefRegs;
 +}
@@ -203,7 +203,7 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
  // Move from Hi/Lo
  class MoveFromLOHI<bits<8> op, string instr_asm, RegisterClass RC,
                     list<Register> UseRegs>:
-@@ -223,6 +245,16 @@
+@@ -214,6 +236,16 @@
    let neverHasSideEffects = 1;
  }
  
@@ -220,7 +220,7 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
  class EffectiveAddress<string instr_asm, RegisterClass RC, Operand Mem> :
    FMem<0x09, (outs RC:$ra), (ins Mem:$addr),
       instr_asm, [(set RC:$ra, addr:$addr)], IIAlu>;
-@@ -250,8 +282,8 @@
+@@ -240,8 +272,8 @@
  def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
  def SUB     : ArithLogicR<0x14, "sub", sub, IIAlu, CPURegs, 1>;
  def MUL     : ArithLogicR<0x15, "mul", mul, IIImul, CPURegs, 1>;
@@ -231,7 +231,7 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
  def AND     : ArithLogicR<0x18, "and", and, IIAlu, CPURegs, 1>;
  def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
  def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
-@@ -262,6 +294,8 @@
+@@ -252,6 +284,8 @@
  
  def MFHI : MoveFromLOHI<0x40, "mfhi", CPURegs, [HI]>;
  def MFLO : MoveFromLOHI<0x41, "mflo", CPURegs, [LO]>;
@@ -240,7 +240,7 @@ diff -Naur 4/6_2/Cpu0/Cpu0InstrInfo.td 4/6_4/Cpu0/Cpu0InstrInfo.td
  
  /// Shift Instructions
  // work, sra for ashr llvm IR instruction
-@@ -296,7 +330,8 @@
+@@ -286,7 +320,8 @@
            
  // Arbitrary immediates
  def : Pat<(i32 imm:$imm),

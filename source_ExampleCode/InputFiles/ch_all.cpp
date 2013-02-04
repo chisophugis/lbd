@@ -117,7 +117,7 @@ T sum(T amount, ...)
 #endif
 int main()
 {
-	int result = 0;
+  int result = 0;
   result = test_operators();
   result = test_globalvar();
   result = test_struct();

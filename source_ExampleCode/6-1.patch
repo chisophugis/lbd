@@ -1,6 +1,6 @@
 diff -Naur 5/Cpu0/CMakeLists.txt 6/1/Cpu0/CMakeLists.txt
---- 5/Cpu0/CMakeLists.txt	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/CMakeLists.txt	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/CMakeLists.txt	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/CMakeLists.txt	2013-02-03 19:35:45.000000000 +0800
 @@ -29,9 +29,11 @@
    Cpu0ISelLowering.cpp
    Cpu0FrameLowering.cpp
@@ -14,8 +14,8 @@ diff -Naur 5/Cpu0/CMakeLists.txt 6/1/Cpu0/CMakeLists.txt
    )
  
 diff -Naur 5/Cpu0/Cpu0AsmPrinter.cpp 6/1/Cpu0/Cpu0AsmPrinter.cpp
---- 5/Cpu0/Cpu0AsmPrinter.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0AsmPrinter.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0AsmPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0AsmPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -186,6 +186,9 @@
    MCInstLowering.Initialize(Mang, &MF->getContext());
  
@@ -41,8 +41,8 @@ diff -Naur 5/Cpu0/Cpu0AsmPrinter.cpp 6/1/Cpu0/Cpu0AsmPrinter.cpp
    }
  }
 diff -Naur 5/Cpu0/Cpu0ISelDAGToDAG.cpp 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp
---- 5/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -13,6 +13,7 @@
  
  #define DEBUG_TYPE "cpu0-isel"
@@ -111,8 +111,8 @@ diff -Naur 5/Cpu0/Cpu0ISelDAGToDAG.cpp 6/1/Cpu0/Cpu0ISelDAGToDAG.cpp
      const ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Node);
      unsigned Size = CN->getValueSizeInBits(0);
 diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
---- 5/Cpu0/Cpu0ISelLowering.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-01-22 13:22:22.000000000 +0800
+--- 5/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -14,9 +14,11 @@
  
  #define DEBUG_TYPE "cpu0-lower"
@@ -237,8 +237,8 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.cpp 6/1/Cpu0/Cpu0ISelLowering.cpp
  
  /// LowerFormalArguments - transform physical registers into virtual registers
 diff -Naur 5/Cpu0/Cpu0ISelLowering.h 6/1/Cpu0/Cpu0ISelLowering.h
---- 5/Cpu0/Cpu0ISelLowering.h	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0ISelLowering.h	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0ISelLowering.h	2013-02-03 19:35:45.000000000 +0800
 @@ -25,10 +25,32 @@
      enum NodeType {
        // Start the numbering from where ISD NodeType finishes.
@@ -298,8 +298,8 @@ diff -Naur 5/Cpu0/Cpu0ISelLowering.h 6/1/Cpu0/Cpu0ISelLowering.h
      virtual SDValue
        LowerFormalArguments(SDValue Chain,
 diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
---- 5/Cpu0/Cpu0InstrInfo.td	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0InstrInfo.td	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
 @@ -27,6 +27,13 @@
                                           [SDTCisInt<0>,
                                            SDTCisSameAs<0, 1>]>;
@@ -344,7 +344,7 @@ diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
  // shamt field must fit in 5 bits.
  def immZExt5 : ImmLeaf<i32, [{return Imm == (Imm & 0x1f);}]>;
  
-@@ -294,7 +317,6 @@
+@@ -284,7 +307,6 @@
  def OR      : ArithLogicR<0x19, "or", or, IIAlu, CPURegs, 1>;
  def XOR     : ArithLogicR<0x1A, "xor", xor, IIAlu, CPURegs, 1>;
  
@@ -352,7 +352,7 @@ diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
  def MULT    : Mult32<0x50, "mult", IIImul>;
  def MULTu   : Mult32<0x51, "multu", IIImul>;
  
-@@ -334,15 +356,26 @@
+@@ -324,15 +346,26 @@
  //===----------------------------------------------------------------------===//
  
  // Small immediates
@@ -381,14 +381,14 @@ diff -Naur 5/Cpu0/Cpu0InstrInfo.td 6/1/Cpu0/Cpu0InstrInfo.td
  
  def : Pat<(not CPURegs:$in),
            (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
-@@ -354,4 +387,3 @@
+@@ -344,4 +377,3 @@
  }
  
  defm : SeteqPats<CPURegs, XOR>;
 -
 diff -Naur 5/Cpu0/Cpu0MCInstLower.cpp 6/1/Cpu0/Cpu0MCInstLower.cpp
---- 5/Cpu0/Cpu0MCInstLower.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0MCInstLower.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0MCInstLower.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0MCInstLower.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -42,6 +42,16 @@
  
    switch(MO.getTargetFlags()) {
@@ -417,7 +417,7 @@ diff -Naur 5/Cpu0/Cpu0MCInstLower.cpp 6/1/Cpu0/Cpu0MCInstLower.cpp
   }
 diff -Naur 5/Cpu0/Cpu0MachineFunction.cpp 6/1/Cpu0/Cpu0MachineFunction.cpp
 --- 5/Cpu0/Cpu0MachineFunction.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 6/1/Cpu0/Cpu0MachineFunction.cpp	2013-01-22 13:20:53.000000000 +0800
++++ 6/1/Cpu0/Cpu0MachineFunction.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -0,0 +1,44 @@
 +//===-- Cpu0MachineFunctionInfo.cpp - Private data used for Cpu0 ----------===//
 +//
@@ -464,8 +464,8 @@ diff -Naur 5/Cpu0/Cpu0MachineFunction.cpp 6/1/Cpu0/Cpu0MachineFunction.cpp
 +
 +void Cpu0FunctionInfo::anchor() { }
 diff -Naur 5/Cpu0/Cpu0MachineFunction.h 6/1/Cpu0/Cpu0MachineFunction.h
---- 5/Cpu0/Cpu0MachineFunction.h	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0MachineFunction.h	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0MachineFunction.h	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0MachineFunction.h	2013-02-03 19:35:45.000000000 +0800
 @@ -23,14 +23,25 @@
  /// Cpu0FunctionInfo - This class is derived from MachineFunction private
  /// Cpu0 target-specific information for each MachineFunction.
@@ -494,8 +494,8 @@ diff -Naur 5/Cpu0/Cpu0MachineFunction.h 6/1/Cpu0/Cpu0MachineFunction.h
  };
  
 diff -Naur 5/Cpu0/Cpu0RegisterInfo.cpp 6/1/Cpu0/Cpu0RegisterInfo.cpp
---- 5/Cpu0/Cpu0RegisterInfo.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0RegisterInfo.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0RegisterInfo.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0RegisterInfo.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -78,6 +78,11 @@
    for (unsigned I = 0; I < array_lengthof(ReservedCPURegs); ++I)
      Reserved.set(ReservedCPURegs[I]);
@@ -509,8 +509,8 @@ diff -Naur 5/Cpu0/Cpu0RegisterInfo.cpp 6/1/Cpu0/Cpu0RegisterInfo.cpp
  }
  
 diff -Naur 5/Cpu0/Cpu0Subtarget.cpp 6/1/Cpu0/Cpu0Subtarget.cpp
---- 5/Cpu0/Cpu0Subtarget.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0Subtarget.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0Subtarget.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0Subtarget.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -14,6 +14,7 @@
  #include "Cpu0Subtarget.h"
  #include "Cpu0.h"
@@ -538,8 +538,8 @@ diff -Naur 5/Cpu0/Cpu0Subtarget.cpp 6/1/Cpu0/Cpu0Subtarget.cpp
    std::string CPUName = CPU;
    if (CPUName.empty())
 diff -Naur 5/Cpu0/Cpu0Subtarget.h 6/1/Cpu0/Cpu0Subtarget.h
---- 5/Cpu0/Cpu0Subtarget.h	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/Cpu0Subtarget.h	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/Cpu0Subtarget.h	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/Cpu0Subtarget.h	2013-02-03 19:35:45.000000000 +0800
 @@ -47,6 +47,9 @@
    // IsLittle - The target is Little Endian
    bool IsLittle;
@@ -560,7 +560,7 @@ diff -Naur 5/Cpu0/Cpu0Subtarget.h 6/1/Cpu0/Cpu0Subtarget.h
  
 diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
 --- 5/Cpu0/Cpu0TargetObjectFile.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 6/1/Cpu0/Cpu0TargetObjectFile.cpp	2013-01-22 13:20:53.000000000 +0800
++++ 6/1/Cpu0/Cpu0TargetObjectFile.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -0,0 +1,102 @@
 +//===-- Cpu0TargetObjectFile.cpp - Cpu0 Object Files ----------------------===//
 +//
@@ -666,7 +666,7 @@ diff -Naur 5/Cpu0/Cpu0TargetObjectFile.cpp 6/1/Cpu0/Cpu0TargetObjectFile.cpp
 +}
 diff -Naur 5/Cpu0/Cpu0TargetObjectFile.h 6/1/Cpu0/Cpu0TargetObjectFile.h
 --- 5/Cpu0/Cpu0TargetObjectFile.h	1970-01-01 08:00:00.000000000 +0800
-+++ 6/1/Cpu0/Cpu0TargetObjectFile.h	2013-01-22 13:20:53.000000000 +0800
++++ 6/1/Cpu0/Cpu0TargetObjectFile.h	2013-02-03 19:35:45.000000000 +0800
 @@ -0,0 +1,41 @@
 +//===-- llvm/Target/Cpu0TargetObjectFile.h - Cpu0 Object Info ---*- C++ -*-===//
 +//
@@ -710,8 +710,8 @@ diff -Naur 5/Cpu0/Cpu0TargetObjectFile.h 6/1/Cpu0/Cpu0TargetObjectFile.h
 +
 +#endif
 diff -Naur 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -56,6 +56,12 @@
    switch (Kind) {
    default:                                 llvm_unreachable("Invalid kind!");
@@ -726,8 +726,8 @@ diff -Naur 5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 6/1/Cpu0/InstPrinter/Cpu0InstP
  
    OS << SRE->getSymbol();
 diff -Naur 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-22 13:20:53.000000000 +0800
-+++ 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-01-22 13:20:53.000000000 +0800
+--- 5/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 6/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -157,6 +157,30 @@
  
    assert (Kind == MCExpr::SymbolRef);

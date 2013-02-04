@@ -582,6 +582,9 @@ in the following,
   2.  Running pass 'CPU0 DAG->DAG Pattern Instruction Selection' on function 
   '@main'
   Illegal instruction: 4
+  
+Now, the LowerFormalArguments() has the correct number, but LowerCall() has not  
+the correct number of values!
 
 
 Store outgoing arguments to stack frame
@@ -1079,24 +1082,24 @@ It correct arguements offset im main() from (0+40)$sp, (8+40)$sp, ..., to
   bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_1.bc -o 
   ch8_1.cpu0.s
   118-165-78-230:InputFiles Jonathan$ cat ch8_1.cpu0.s 
-  ...
+    ...
     !ADJCALLSTACKDOWN 24
     addiu $2, $zero, 6
-    st  $2, 60($sp) // correct offset
+    st  $2, 20($sp)		// Correct offset
     addiu $2, $zero, 5
-    st  $2, 56($sp)
+    st  $2, 16($sp)
     addiu $2, $zero, 4
-    st  $2, 52($sp)
+    st  $2, 12($sp)
     addiu $2, $zero, 3
-    st  $2, 48($sp)
+    st  $2, 8($sp)
     addiu $2, $zero, 2
-    st  $2, 44($sp)
+    st  $2, 4($sp)
     addiu $2, $zero, 1
-    st  $2, 40($sp)
+    st  $2, 0($sp)
     ld  $6, %call24(_Z5sum_iiiiiii)($gp)
     jalr  $6
     !ADJCALLSTACKUP 24
-  ...
+    ...
 
 
 The incoming arguments is the formal arguments defined in compiler and program 

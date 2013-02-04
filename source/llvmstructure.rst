@@ -61,6 +61,8 @@ R14				Link Register (LR)
 R15				Program Counter (PC)
 MAR				Memory Address Register (MAR)
 MDR				Memory Data Register (MDR)
+HI				High part of MULT result
+LO				Low part of MULT result
 ============	===========
 
 The Cpu0 Instruction Set
@@ -336,6 +338,44 @@ The following table details the Cpu0 instruction set:
 	  - Pop word
 	  - POP Ra
 	  - Ra <= (byte)[SP]; SP += 4
+   	* - L
+	  - MFHI
+	  - 40
+	  - Move HI to GPR
+	  - MFHI Ra
+	  - Ra <= HI
+   	* - L
+	  - MFLO
+	  - 41
+	  - Move LO to GPR
+	  - MFLO Ra
+	  - Ra <= LO
+   	* - L
+	  - MTHI
+	  - 42
+	  - Move GPR to HI
+	  - MTHI Ra
+	  - HI <= Ra
+   	* - L
+	  - MFLO
+	  - 43
+	  - Move GPR to LO
+	  - MTLO Ra
+	  - LO <= Ra
+   	* - L
+	  - MULT
+	  - 50
+	  - Multiply for 64 bits result
+	  - MULT Ra, Rb
+	  - (HI,LO) <= MULT(Ra,Rb)
+   	* - L
+	  - MULTU
+	  - 50
+	  - MULT for unsigned 64 bits
+	  - MULTU Ra, Rb
+	  - (HI,LO) <= MULTU(Ra,Rb)
+
+
 
 
 The Status Register
@@ -943,9 +983,7 @@ The Cpu0InstrFormats.td is included by Cpu0InstInfo.td as follows,
   def FrmA      : Format<1>; 
   def FrmL      : Format<2>; 
   def FrmJ      : Format<3>; 
-  def FrmFR     : Format<4>; 
-  def FrmFI     : Format<5>; 
-  def FrmOther  : Format<6>; // Instruction w/ a custom format 
+  def FrmOther  : Format<4>; // Instruction w/ a custom format 
   
   // Generic Cpu0 Format 
   class Cpu0Inst<dag outs, dag ins, string asmstr, list<dag> pattern, 

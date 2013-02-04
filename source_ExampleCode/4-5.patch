@@ -1,6 +1,6 @@
 diff -Naur 4/4_2/Cpu0/Cpu0FrameLowering.cpp 4/5/Cpu0/Cpu0FrameLowering.cpp
---- 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:44.000000000 +0800
-+++ 4/5/Cpu0/Cpu0FrameLowering.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 4/4_2/Cpu0/Cpu0FrameLowering.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 4/5/Cpu0/Cpu0FrameLowering.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -100,7 +100,7 @@
    MachineBasicBlock::iterator MBBI = MBB.begin();
    DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
@@ -52,8 +52,8 @@ diff -Naur 4/4_2/Cpu0/Cpu0FrameLowering.cpp 4/5/Cpu0/Cpu0FrameLowering.cpp
  	assert("No expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);");
  //    expandLargeImm(SP, StackSize, false, TII, MBB, MBBI, dl);
 diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
---- 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:44.000000000 +0800
-+++ 4/5/Cpu0/Cpu0InstrInfo.td	2013-01-16 21:39:45.000000000 +0800
+--- 4/4_2/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
++++ 4/5/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
 @@ -45,6 +45,12 @@
    let EncoderMethod = "getMemEncoding";
  }
@@ -67,7 +67,7 @@ diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
  // Node immediate fits as 16-bit sign extended on target immediate.
  // e.g. addi, andi
  def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
-@@ -182,6 +188,10 @@
+@@ -173,6 +179,10 @@
    def #NAME# : StoreM<op, instr_asm, OpNode, CPURegs, mem, Pseudo>;
  }
  
@@ -78,7 +78,7 @@ diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
  //===----------------------------------------------------------------------===//
  // Instruction definition
  //===----------------------------------------------------------------------===//
-@@ -196,9 +206,9 @@
+@@ -187,9 +197,9 @@
  defm ST     : StoreM32<0x01, "st",  store_a>;
  
  /// Arithmetic Instructions (ALU Immediate)
@@ -89,8 +89,8 @@ diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
 +def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
  
  /// Arithmetic Instructions (3-Operand, R-Type)
- def CMP		: CmpInstr<0x10, "cmp", IIAlu, CPURegs, 1>;
-@@ -225,6 +235,14 @@
+ def ADD     : ArithLogicR<0x13, "add", add, IIAlu, CPURegs, 1>;
+@@ -215,6 +225,14 @@
    def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
                  "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
  
@@ -105,7 +105,7 @@ diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
  //===----------------------------------------------------------------------===//
  //  Arbitrary patterns that map to one or more instructions
  //===----------------------------------------------------------------------===//
-@@ -232,15 +250,15 @@
+@@ -222,15 +240,15 @@
  // Small immediates
  
  def : Pat<(i32 immSExt16:$in),
@@ -125,8 +125,8 @@ diff -Naur 4/4_2/Cpu0/Cpu0InstrInfo.td 4/5/Cpu0/Cpu0InstrInfo.td
  
  defm : SeteqPats<CPURegs, XOR>;
 diff -Naur 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-16 21:39:44.000000000 +0800
-+++ 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-01-16 21:39:45.000000000 +0800
+--- 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
++++ 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-03 19:35:45.000000000 +0800
 @@ -110,3 +110,13 @@
    O << ")";
  }
@@ -142,8 +142,8 @@ diff -Naur 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 4/5/Cpu0/InstPrinter/Cpu0I
 +}
 +
 diff -Naur 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.h 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.h
---- 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.h	2013-01-16 21:39:44.000000000 +0800
-+++ 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.h	2013-01-16 21:39:45.000000000 +0800
+--- 4/4_2/Cpu0/InstPrinter/Cpu0InstPrinter.h	2013-02-03 19:35:45.000000000 +0800
++++ 4/5/Cpu0/InstPrinter/Cpu0InstPrinter.h	2013-02-03 19:35:45.000000000 +0800
 @@ -39,6 +39,7 @@
    void printOperand(const MCInst *MI, unsigned OpNo, raw_ostream &O);
    void printUnsignedImm(const MCInst *MI, int opNum, raw_ostream &O);
