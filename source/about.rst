@@ -36,6 +36,7 @@ Revision history
 
 Version 3.2.6, Not Released Yet
 	Update CMP instruction implementation.
+	Add llvm-objdump section.
 Version 3.2.5, Released January 27, 2013
 	Add "LLVMBackendTutorialExampleCode/llvm3.1".
 	Add  section "Structure type support". 
