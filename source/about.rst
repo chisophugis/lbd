@@ -34,7 +34,8 @@ have been finished and published online.
 Revision history
 ----------------
 
-Version 3.2.6, Not Released Yet
+Version 3.2.7, Not Released Yet
+Version 3.2.6, Released February 4, 2013
 	Update CMP instruction implementation.
 	Add llvm-objdump section.
 Version 3.2.5, Released January 27, 2013
