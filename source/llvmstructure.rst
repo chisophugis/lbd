@@ -370,7 +370,7 @@ The following table details the Cpu0 instruction set:
 	  - (HI,LO) <= MULT(Ra,Rb)
    	* - L
 	  - MULTU
-	  - 50
+	  - 51
 	  - MULT for unsigned 64 bits
 	  - MULTU Ra, Rb
 	  - (HI,LO) <= MULTU(Ra,Rb)
