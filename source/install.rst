@@ -485,6 +485,19 @@ Install binutils by command ``brew install binutils`` as follows,
   gaddr2line  gc++filt  gnm   gobjdump  greadelf  gstrings
   gar   gelfedit  gobjcopy  granlib gsize   gstrip
 
+Install Icarus Verilog tool by command ``brew install icarus-verilog`` as follows,
+
+.. code-block:: bash
+
+  JonathantekiiMac:~ Jonathan$ brew install icarus-verilog
+  ==> Downloading ftp://icarus.com/pub/eda/verilog/v0.9/verilog-0.9.5.tar.gz
+  ######################################################################## 100.0%
+  ######################################################################## 100.0%
+  ==> ./configure --prefix=/usr/local/Cellar/icarus-verilog/0.9.5
+  ==> make
+  ==> make installdirs
+  ==> make install
+  /usr/local/Cellar/icarus-verilog/0.9.5: 39 files, 12M, built in 55 seconds
 
 Setting Up Your Linux Machine
 -----------------------------
@@ -784,6 +797,10 @@ Install other tools on Linux
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Download Graphviz from [#]_ according your 
 Linux distribution. Files compare tools Kdiff3 came from web site [8]_. 
+
+Download the snapshot version of Icarus Verilog tool from web site, 
+ftp://icarus.com/pub/eda/verilog/snapshots or go to http://iverilog.icarus.com/ 
+and click snapshot version link. Follow the INSTALL file guide to install it. 
 
 
 

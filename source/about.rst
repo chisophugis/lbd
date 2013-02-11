@@ -35,6 +35,8 @@ Revision history
 ----------------
 
 Version 3.2.7, Not Released Yet
+	Add section AsmParser support.
+	Add Icarus Verilog tool installation in Appendix A. 
 Version 3.2.6, Released February 4, 2013
 	Update CMP instruction implementation.
 	Add llvm-objdump section.
