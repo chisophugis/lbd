@@ -1,6 +1,6 @@
 diff -Naur 3/5/Cpu0/Cpu0InstrInfo.td 4/1/Cpu0/Cpu0InstrInfo.td
---- 3/5/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:44.000000000 +0800
-+++ 4/1/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:35:45.000000000 +0800
+--- 3/5/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
++++ 4/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
 @@ -36,6 +36,8 @@
    let DecoderMethod= "DecodeSimm16";
  }
@@ -96,8 +96,8 @@ diff -Naur 3/5/Cpu0/Cpu0InstrInfo.td 4/1/Cpu0/Cpu0InstrInfo.td
      isBarrier=1, hasCtrlDep=1 in
    def RET : FJ <0x2C, (outs), (ins CPURegs:$target),
 diff -Naur 3/5/Cpu0/Cpu0Schedule.td 4/1/Cpu0/Cpu0Schedule.td
---- 3/5/Cpu0/Cpu0Schedule.td	2013-02-03 19:35:44.000000000 +0800
-+++ 4/1/Cpu0/Cpu0Schedule.td	2013-02-03 19:35:45.000000000 +0800
+--- 3/5/Cpu0/Cpu0Schedule.td	2013-02-13 09:35:33.000000000 +0800
++++ 4/1/Cpu0/Cpu0Schedule.td	2013-02-13 09:35:33.000000000 +0800
 @@ -11,6 +11,7 @@
  // Functional units across Cpu0 chips sets. Based on GCC/Cpu0 backend files.
  //===----------------------------------------------------------------------===//

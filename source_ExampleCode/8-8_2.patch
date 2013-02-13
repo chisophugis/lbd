@@ -1,6 +1,6 @@
 diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
---- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-02-03 19:37:16.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-02-04 13:41:00.000000000 +0800
+--- 8/8/Cpu0/Cpu0InstrInfo.cpp	2013-02-13 09:35:33.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.cpp	2013-02-13 09:35:33.000000000 +0800
 @@ -29,6 +29,7 @@
    return RI;
  }
@@ -28,8 +28,8 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.cpp 8/8_2/Cpu0/Cpu0InstrInfo.cpp
  
    assert(Opc && "Cannot copy registers");
 diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
---- 8/8/Cpu0/Cpu0InstrInfo.td	2013-02-03 19:37:16.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-02-04 13:38:55.000000000 +0800
+--- 8/8/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
 @@ -352,6 +352,36 @@
    let neverHasSideEffects = 1;
  }
@@ -87,7 +87,7 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
  /// Shift Instructions
  // work, sra for ashr llvm IR instruction
  def SRA     : shift_rotate_imm32<0x1B, 0x00, "sra", sra>;
-@@ -489,6 +523,12 @@
+@@ -490,6 +524,12 @@
  def : Pat<(not CPURegs:$in),
            (XOR CPURegs:$in, (ADDiu ZERO, 1))>;
  
@@ -101,8 +101,8 @@ diff -Naur 8/8/Cpu0/Cpu0InstrInfo.td 8/8_2/Cpu0/Cpu0InstrInfo.td
  multiclass BrcondPats<RegisterClass RC, Instruction JEQOp, Instruction JNEOp, 
  Instruction JLTOp, Instruction JGTOp, Instruction JLEOp, Instruction JGEOp, 
 diff -Naur 8/8/Cpu0/Cpu0RegisterInfo.td 8/8_2/Cpu0/Cpu0RegisterInfo.td
---- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-02-03 19:37:16.000000000 +0800
-+++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-02-04 13:37:02.000000000 +0800
+--- 8/8/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:35:33.000000000 +0800
++++ 8/8_2/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:35:33.000000000 +0800
 @@ -51,6 +51,8 @@
    // Hi/Lo registers
    def HI   : Register<"HI">, DwarfRegNum<[18]>;

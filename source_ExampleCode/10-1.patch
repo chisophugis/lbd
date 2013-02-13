@@ -1,6 +1,6 @@
 diff -Naur 9/1/Cpu0/AsmParser/CMakeLists.txt 10/1/Cpu0/AsmParser/CMakeLists.txt
 --- 9/1/Cpu0/AsmParser/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
-+++ 10/1/Cpu0/AsmParser/CMakeLists.txt	2013-02-09 21:54:45.000000000 +0800
++++ 10/1/Cpu0/AsmParser/CMakeLists.txt	2013-02-13 09:38:40.000000000 +0800
 @@ -0,0 +1,6 @@
 +include_directories( ${CMAKE_CURRENT_BINARY_DIR}/.. ${CMAKE_CURRENT_SOURCE_DIR}/.. )
 +add_llvm_library(LLVMCpu0AsmParser
@@ -10,8 +10,8 @@ diff -Naur 9/1/Cpu0/AsmParser/CMakeLists.txt 10/1/Cpu0/AsmParser/CMakeLists.txt
 +add_dependencies(LLVMCpu0AsmParser Cpu0CommonTableGen)
 diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParser.cpp
 --- 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 10/1/Cpu0/AsmParser/Cpu0AsmParser.cpp	2013-02-09 21:54:45.000000000 +0800
-@@ -0,0 +1,1255 @@
++++ 10/1/Cpu0/AsmParser/Cpu0AsmParser.cpp	2013-02-10 10:28:37.000000000 +0800
+@@ -0,0 +1,1064 @@
 +//===-- Cpu0AsmParser.cpp - Parse Cpu0 assembly to MCInst instructions ----===//
 +//
 +//                     The LLVM Compiler Infrastructure
@@ -44,9 +44,6 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +    aTReg(1), reorder(true), macro(true) {
 +  }
 +
-+  unsigned getATRegNum() {return aTReg;}
-+  bool setATReg(unsigned Reg);
-+
 +  bool isReorder() {return reorder;}
 +  void setReorder() {reorder = true;}
 +  void setNoreorder() {reorder = false;}
@@ -64,15 +61,6 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +
 +namespace {
 +class Cpu0AsmParser : public MCTargetAsmParser {
-+
-+  enum FpFormatTy {
-+    FP_FORMAT_NONE = -1,
-+    FP_FORMAT_S,
-+    FP_FORMAT_D,
-+    FP_FORMAT_L,
-+    FP_FORMAT_W
-+  } FpFormat;
-+
 +  MCSubtargetInfo &STI;
 +  MCAsmParser &Parser;
 +  Cpu0AssemblerOptions Options;
@@ -138,21 +126,8 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +
 +  int matchRegisterByNumber(unsigned RegNum, StringRef Mnemonic);
 +
-+  void setFpFormat(FpFormatTy Format) {
-+    FpFormat = Format;
-+  }
-+
-+  void setDefaultFpFormat();
-+
-+  void setFpFormat(StringRef Format);
-+
-+  FpFormatTy getFpFormat() {return FpFormat;}
-+
-+  bool requestsDoubleOperand(StringRef Mnemonic);
-+
 +  unsigned getReg(int RC,int RegNo);
 +
-+  unsigned getATReg();
 +public:
 +  Cpu0AsmParser(MCSubtargetInfo &sti, MCAsmParser &parser)
 +    : MCTargetAsmParser(), STI(sti), Parser(parser) {
@@ -570,50 +545,6 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +  return -1;
 +}
 +
-+void Cpu0AsmParser::setDefaultFpFormat() {
-+#if 0
-+  if (isCpu064() || isFP64())
-+    FpFormat = FP_FORMAT_D;
-+  else
-+#endif
-+    FpFormat = FP_FORMAT_S;
-+}
-+
-+bool Cpu0AsmParser::requestsDoubleOperand(StringRef Mnemonic){
-+
-+  bool IsDouble = StringSwitch<bool>(Mnemonic.lower())
-+    .Case("ldxc1", true)
-+    .Case("ldc1",  true)
-+    .Case("sdxc1", true)
-+    .Case("sdc1",  true)
-+    .Default(false);
-+
-+  return IsDouble;
-+}
-+void Cpu0AsmParser::setFpFormat(StringRef Format) {
-+
-+  FpFormat = StringSwitch<FpFormatTy>(Format.lower())
-+    .Case(".s",  FP_FORMAT_S)
-+    .Case(".d",  FP_FORMAT_D)
-+    .Case(".l",  FP_FORMAT_L)
-+    .Case(".w",  FP_FORMAT_W)
-+    .Default(FP_FORMAT_NONE);
-+}
-+
-+bool Cpu0AssemblerOptions::setATReg(unsigned Reg) {
-+  if (Reg > 15)
-+    return false;
-+
-+  aTReg = Reg;
-+  return true;
-+}
-+
-+unsigned Cpu0AsmParser::getATReg() {
-+  unsigned Reg = Options.getATRegNum();
-+  
-+  return getReg(Cpu0::CPURegsRegClassID,Reg);
-+}
-+
 +unsigned Cpu0AsmParser::getReg(int RC,int RegNo) {
 +  return *(getContext().getRegisterInfo().getRegClass(RC).begin() + RegNo);
 +}
@@ -926,29 +857,6 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +  return VK;
 +}
 +
-+static int ConvertCcString(StringRef CondString) {
-+  int CC = StringSwitch<unsigned>(CondString)
-+      .Case(".f",    0)
-+      .Case(".un",   1)
-+      .Case(".eq",   2)
-+      .Case(".ueq",  3)
-+      .Case(".olt",  4)
-+      .Case(".ult",  5)
-+      .Case(".ole",  6)
-+      .Case(".ule",  7)
-+      .Case(".sf",   8)
-+      .Case(".ngle", 9)
-+      .Case(".seq",  10)
-+      .Case(".ngl",  11)
-+      .Case(".lt",   12)
-+      .Case(".nge",  13)
-+      .Case(".le",   14)
-+      .Case(".ngt",  15)
-+      .Default(-1);
-+
-+  return CC;
-+}
-+
 +bool Cpu0AsmParser::
 +parseMathOperation(StringRef Name, SMLoc NameLoc,
 +                   SmallVectorImpl<MCParsedAsmOperand*> &Operands) {
@@ -962,7 +870,7 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +  Operands.push_back(Cpu0Operand::CreateToken(Format2, NameLoc));
 +
 +  // set the format for the first register
-+  setFpFormat(Format1);
++//  setFpFormat(Format1);
 +
 +  // Read the remaining operands.
 +  if (getLexer().isNot(AsmToken::EndOfStatement)) {
@@ -980,9 +888,6 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +
 +    }
 +    Parser.Lex();  // Eat the comma.
-+
-+    //set the format for the first register
-+    setFpFormat(Format2);
 +
 +    // Parse and remember the operand.
 +    if (ParseOperand(Operands, Name)) {
@@ -1005,51 +910,12 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +bool Cpu0AsmParser::
 +ParseInstruction(ParseInstructionInfo &Info, StringRef Name, SMLoc NameLoc,
 +                 SmallVectorImpl<MCParsedAsmOperand*> &Operands) {
-+  // floating point instructions: should register be treated as double?
-+  if (requestsDoubleOperand(Name)) {
-+    setFpFormat(FP_FORMAT_D);
-+  Operands.push_back(Cpu0Operand::CreateToken(Name, NameLoc));
-+  }
-+  else {
-+    setDefaultFpFormat();
-+    // Create the leading tokens for the mnemonic, split by '.' characters.
-+    size_t Start = 0, Next = Name.find('.');
-+    StringRef Mnemonic = Name.slice(Start, Next);
 +
-+    Operands.push_back(Cpu0Operand::CreateToken(Mnemonic, NameLoc));
++  // Create the leading tokens for the mnemonic, split by '.' characters.
++  size_t Start = 0, Next = Name.find('.');
++  StringRef Mnemonic = Name.slice(Start, Next);
 +
-+    if (Next != StringRef::npos) {
-+      // there is a format token in mnemonic
-+      // StringRef Rest = Name.slice(Next, StringRef::npos);
-+      size_t Dot = Name.find('.', Next+1);
-+      StringRef Format = Name.slice(Next, Dot);
-+      if (Dot == StringRef::npos) //only one '.' in a string, it's a format
-+        Operands.push_back(Cpu0Operand::CreateToken(Format, NameLoc));
-+      else {
-+        if (Name.startswith("c.")){
-+          // floating point compare, add '.' and immediate represent for cc
-+          Operands.push_back(Cpu0Operand::CreateToken(".", NameLoc));
-+          int Cc = ConvertCcString(Format);
-+          if (Cc == -1) {
-+            return Error(NameLoc, "Invalid conditional code");
-+          }
-+          SMLoc E = SMLoc::getFromPointer(
-+              Parser.getTok().getLoc().getPointer() -1 );
-+          Operands.push_back(Cpu0Operand::CreateImm(
-+              MCConstantExpr::Create(Cc, getContext()), NameLoc, E));
-+        } else {
-+          // trunc, ceil, floor ...
-+          return parseMathOperation(Name, NameLoc, Operands);
-+        }
-+
-+        // the rest is a format
-+        Format = Name.slice(Dot, StringRef::npos);
-+        Operands.push_back(Cpu0Operand::CreateToken(Format, NameLoc));
-+      }
-+
-+      setFpFormat(Format);
-+    }
-+  }
++  Operands.push_back(Cpu0Operand::CreateToken(Mnemonic, NameLoc));
 +
 +  // Read the remaining operands.
 +  if (getLexer().isNot(AsmToken::EndOfStatement)) {
@@ -1086,60 +952,6 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +   SMLoc Loc = getLexer().getLoc();
 +   Parser.EatToEndOfStatement();
 +   return Error(Loc, ErrorMsg);
-+}
-+
-+bool Cpu0AsmParser::parseSetNoAtDirective() {
-+  // line should look like:
-+  //  .set noat
-+  // set at reg to 0
-+  Options.setATReg(0);
-+  // eat noat
-+  Parser.Lex();
-+  // if this is not the end of the statement, report error
-+  if (getLexer().isNot(AsmToken::EndOfStatement)) {
-+    reportParseError("unexpected token in statement");
-+    return false;
-+  }
-+  Parser.Lex(); // Consume the EndOfStatement
-+  return false;
-+}
-+bool Cpu0AsmParser::parseSetAtDirective() {
-+  // line can be
-+  //  .set at - defaults to $1
-+  // or .set at=$reg
-+  getParser().Lex();
-+  if (getLexer().is(AsmToken::EndOfStatement)) {
-+    Options.setATReg(1);
-+    Parser.Lex(); // Consume the EndOfStatement
-+    return false;
-+  } else if (getLexer().is(AsmToken::Equal)) {
-+    getParser().Lex(); //eat '='
-+    if (getLexer().isNot(AsmToken::Dollar)) {
-+      reportParseError("unexpected token in statement");
-+      return false;
-+    }
-+    Parser.Lex(); // eat '$'
-+    if (getLexer().isNot(AsmToken::Integer)) {
-+      reportParseError("unexpected token in statement");
-+      return false;
-+    }
-+    const AsmToken &Reg = Parser.getTok();
-+    if (!Options.setATReg(Reg.getIntVal())) {
-+      reportParseError("unexpected token in statement");
-+      return false;
-+    }
-+    getParser().Lex(); //eat reg
-+
-+    if (getLexer().isNot(AsmToken::EndOfStatement)) {
-+      reportParseError("unexpected token in statement");
-+      return false;
-+     }
-+    Parser.Lex(); // Consume the EndOfStatement
-+    return false;
-+  } else {
-+    reportParseError("unexpected token in statement");
-+    return false;
-+  }
 +}
 +
 +bool Cpu0AsmParser::parseSetReorderDirective() {
@@ -1198,11 +1010,7 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +  // get next token
 +  const AsmToken &Tok = Parser.getTok();
 +
-+  if (Tok.getString() == "noat") {
-+    return parseSetNoAtDirective();
-+  } else if (Tok.getString() == "at") {
-+    return parseSetAtDirective();
-+  } else if (Tok.getString() == "reorder") {
++  if (Tok.getString() == "reorder") {
 +    return parseSetReorderDirective();
 +  } else if (Tok.getString() == "noreorder") {
 +    return parseSetNoReorderDirective();
@@ -1267,9 +1075,10 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +#define GET_REGISTER_MATCHER
 +#define GET_MATCHER_IMPLEMENTATION
 +#include "Cpu0GenAsmMatcher.inc"
++
 diff -Naur 9/1/Cpu0/AsmParser/LLVMBuild.txt 10/1/Cpu0/AsmParser/LLVMBuild.txt
 --- 9/1/Cpu0/AsmParser/LLVMBuild.txt	1970-01-01 08:00:00.000000000 +0800
-+++ 10/1/Cpu0/AsmParser/LLVMBuild.txt	2013-02-09 21:54:45.000000000 +0800
++++ 10/1/Cpu0/AsmParser/LLVMBuild.txt	2013-02-13 09:38:40.000000000 +0800
 @@ -0,0 +1,23 @@
 +;===- ./lib/Target/Mips/AsmParser/LLVMBuild.txt ----------------*- Conf -*--===;
 +;
@@ -1295,8 +1104,8 @@ diff -Naur 9/1/Cpu0/AsmParser/LLVMBuild.txt 10/1/Cpu0/AsmParser/LLVMBuild.txt
 +required_libraries = MC MCParser Support MipsDesc MipsInfo
 +add_to_library_groups = Cpu0
 diff -Naur 9/1/Cpu0/CMakeLists.txt 10/1/Cpu0/CMakeLists.txt
---- 9/1/Cpu0/CMakeLists.txt	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/CMakeLists.txt	2013-02-09 22:33:55.000000000 +0800
+--- 9/1/Cpu0/CMakeLists.txt	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/CMakeLists.txt	2013-02-13 09:38:40.000000000 +0800
 @@ -12,12 +12,12 @@
  tablegen(LLVM Cpu0GenDisassemblerTables.inc -gen-disassembler)
  tablegen(LLVM Cpu0GenCodeEmitter.inc -gen-emitter)
@@ -1317,8 +1126,8 @@ diff -Naur 9/1/Cpu0/CMakeLists.txt 10/1/Cpu0/CMakeLists.txt
  add_subdirectory(MCTargetDesc)
 +add_subdirectory(AsmParser)
 diff -Naur 9/1/Cpu0/Cpu0.td 10/1/Cpu0/Cpu0.td
---- 9/1/Cpu0/Cpu0.td	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/Cpu0.td	2013-02-09 21:54:45.000000000 +0800
+--- 9/1/Cpu0/Cpu0.td	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/Cpu0.td	2013-02-13 09:38:40.000000000 +0800
 @@ -49,6 +49,17 @@
    bit isMCAsmWriter = 1;
  }
@@ -1346,8 +1155,8 @@ diff -Naur 9/1/Cpu0/Cpu0.td 10/1/Cpu0/Cpu0.td
 +  let AssemblyParserVariants = [Cpu0AsmParserVariant];
  }
 diff -Naur 9/1/Cpu0/Cpu0InstrFormats.td 10/1/Cpu0/Cpu0InstrFormats.td
---- 9/1/Cpu0/Cpu0InstrFormats.td	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/Cpu0InstrFormats.td	2013-02-09 21:54:45.000000000 +0800
+--- 9/1/Cpu0/Cpu0InstrFormats.td	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/Cpu0InstrFormats.td	2013-02-13 09:38:40.000000000 +0800
 @@ -76,6 +76,15 @@
    let isPseudo = 1;
  }
@@ -1365,8 +1174,8 @@ diff -Naur 9/1/Cpu0/Cpu0InstrFormats.td 10/1/Cpu0/Cpu0InstrFormats.td
  // Format A instruction class in Cpu0 : <|opcode|ra|rb|rc|cx|>
  //===----------------------------------------------------------------------===//
 diff -Naur 9/1/Cpu0/Cpu0InstrInfo.td 10/1/Cpu0/Cpu0InstrInfo.td
---- 9/1/Cpu0/Cpu0InstrInfo.td	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/Cpu0InstrInfo.td	2013-02-09 22:56:54.000000000 +0800
+--- 9/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:38:40.000000000 +0800
 @@ -92,11 +92,17 @@
    let PrintMethod = "printUnsignedImm";
  }
@@ -1433,8 +1242,8 @@ diff -Naur 9/1/Cpu0/Cpu0InstrInfo.td 10/1/Cpu0/Cpu0InstrInfo.td
  
  /// Load and Store Instructions
 diff -Naur 9/1/Cpu0/Cpu0RegisterInfo.td 10/1/Cpu0/Cpu0RegisterInfo.td
---- 9/1/Cpu0/Cpu0RegisterInfo.td	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/Cpu0RegisterInfo.td	2013-02-09 21:54:45.000000000 +0800
+--- 9/1/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:38:40.000000000 +0800
 @@ -26,11 +26,11 @@
  //===----------------------------------------------------------------------===//
  //  Registers
@@ -1499,8 +1308,8 @@ diff -Naur 9/1/Cpu0/Cpu0RegisterInfo.td 10/1/Cpu0/Cpu0RegisterInfo.td
  // Hi/Lo Registers
  def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
 diff -Naur 9/1/Cpu0/LLVMBuild.txt 10/1/Cpu0/LLVMBuild.txt
---- 9/1/Cpu0/LLVMBuild.txt	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/LLVMBuild.txt	2013-02-09 21:54:45.000000000 +0800
+--- 9/1/Cpu0/LLVMBuild.txt	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/LLVMBuild.txt	2013-02-13 09:38:40.000000000 +0800
 @@ -18,7 +18,7 @@
  # Following comments extracted from http://llvm.org/docs/LLVMBuild.html
  
@@ -1520,8 +1329,8 @@ diff -Naur 9/1/Cpu0/LLVMBuild.txt 10/1/Cpu0/LLVMBuild.txt
  has_disassembler = 1
  #has_jit = 1
 diff -Naur 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-09 10:53:37.000000000 +0800
-+++ 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-09 22:52:12.000000000 +0800
+--- 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:38:40.000000000 +0800
 @@ -151,6 +151,9 @@
                         SmallVectorImpl<MCFixup> &Fixups) const {
  
