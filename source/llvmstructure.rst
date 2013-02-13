@@ -180,8 +180,8 @@ The following table details the Cpu0 instruction set:
 	  - DIV
 	  - 16
 	  - Divide
-	  - DIV Ra, Rb, Rc
-	  - Ra <= Rb / Rc
+	  - DIV Ra, Rb
+	  - HI<=Ra%Rb, LO<=Ra/Rb
 	* - A
 	  - AND
 	  - 18
