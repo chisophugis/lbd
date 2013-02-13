@@ -34,8 +34,10 @@ have been finished and published online.
 Revision history
 ----------------
 
-Version 3.2.7, Not Released Yet
-	Add section AsmParser support.
+Version 3.2.8, Not Released Yet
+    
+Version 3.2.7, Released February 13, 2013
+	Add chapter Run backend.
 	Add Icarus Verilog tool installation in Appendix A. 
 Version 3.2.6, Released February 4, 2013
 	Update CMP instruction implementation.

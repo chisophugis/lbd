@@ -10,9 +10,9 @@ We can write a C++ main
 function as well as the boot code by assembly hand code, and translate this 
 main()+bootcode() into obj file.
 Combined with llvm-objdump support in last chapter, 
-this main()+bootcode() elf can translated back to hex file format which include 
-the disassemble code as comment. 
-Further, we can design the Cpu0 with Verilog language tool and run the Cpu0 
+this main()+bootcode() elf can be translated back to hex file format which 
+include the disassemble code as comment. 
+Furthermore, we can design the Cpu0 with Verilog language tool and run the Cpu0 
 backend on PC by feed the hex file and see the Cpu0 instructions execution 
 result.
 
@@ -1343,7 +1343,7 @@ the following structure and functions in Cpu0GenAsmMatcher.inc.
   };
 
 
-Above 3 Pseudo Instruction definitions in cpu0InstrInfo.td such as 
+Above 3 Pseudo Instruction definitions in Cpu0InstrInfo.td such as 
 LoadImm32Reg are handled by Cpu0AsmParser.cpp as follows,
 
 .. code-block:: c++
@@ -1513,4 +1513,1041 @@ programing than implicit representation.
 Verilog of CPU0
 ------------------
 
+Verilog language is an IEEE standard in IC design. There are a lot of book and 
+documents for this language. Web site [#]_ has a pdf [#]_ in this. 
+Example code LLVMBackendTutorialExampleCode/cpu0s_verilog/raw/cpu0s.v is the 
+cpu0 design in Verilog. In Appendix A, we have downloaded and installed Icarus 
+Verilog tool both on iMac and Linux. The cpu0s.v is a simple design with only 
+270 lines of code. Alough it has not the pipeline features, we can assume the 
+cpu0 backend code run on the pipeline machine since the pipeline version can 
+use the same machine instructions. Verilog is C like syntex language 
+and this book is a compiler book, we list the cpu0s.v and it's build command 
+directly as below, and expect 
+readers can understand the Verilog code just with a little patient and no need 
+further explanation.
 
+.. code-block:: c++
+
+  // cpu0s.v
+    // Operand width
+  `define INT32 2'b11     // 32 bits
+  `define INT24 2'b10     // 24 bits
+  `define INT16 2'b01     // 16 bits
+  `define BYTE  2'b00     // 8  bits
+  
+  // Reference web: http://ccckmit.wikidot.com/ocs:cpu0
+  module cpu0(input clock, reset, output reg [2:0] tick, 
+        output reg [31:0] ir, pc, mar, mdr, inout [31:0] dbus, 
+        output reg m_en, m_rw, output reg [1:0] m_size);
+    reg signed [31:0] R [0:15], HI, LO; // High and Low part of 64 bit result
+    reg [7:0] op;
+    reg [3:0] a, b, c;
+    reg [4:0] c5;
+    reg signed [31:0] c12, c16, c24, Ra, Rb, Rc, pc0; // pc0 : instruction pc
+  
+    // register name
+    `define PC   R[15]   // Program Counter
+    `define LR   R[14]   // Link Register
+    `define SP   R[13]   // Stack Pointer
+    `define SW   R[12]   // Status Word
+    // SW Flage
+    `define N    `SW[31] // Negative flag
+    `define Z    `SW[30] // Zero
+    `define C    `SW[29] // Carry
+    `define V    `SW[28] // Overflow
+    `define I    `SW[7]  // Hardware Interrupt Enable
+    `define T    `SW[6]  // Software Interrupt Enable
+    `define M    `SW[0]  // Mode bit
+    // Instruction Opcode 
+    parameter [7:0] LD=8'h00,ST=8'h01,LDB=8'h02,STB=8'h03,LDR=8'h04,STR=8'h05,
+    LBR=8'h06,SBR=8'h07,LDI=8'h08,ADDiu=8'h09,CMP=8'h10,MOV=8'h12,ADD=8'h13,
+    SUB=8'h14,MUL=8'h15,SDIV=8'h16,AND=8'h18,OR=8'h19,XOR=8'h1A,
+    SRA=8'h1B,ROL=8'h1C,ROR=8'h1D,SHL=8'h1E,SHR=8'h1F,
+    JEQ=8'h20,JNE=8'h21,JLT=8'h22,JGT=8'h23,JLE=8'h24,JGE=8'h25,JMP=8'h26,
+    SWI=8'h2A,JSUB=8'h2B,RET=8'h2C,IRET=8'h2D,JALR=8'h2E,
+    PUSH=8'h30,POP=8'h31,PUSHB=8'h32,POPB=8'h33,
+    MFHI=8'h40,MFLO=8'h41,MTHI=8'h42,MTLO=8'h43,MULT=8'h50;
+    
+    reg [2:0] state, next_state;
+    parameter Reset=3'h0, Fetch=3'h1, Decode=3'h2, Execute=3'h3, WriteBack=3'h4;
+  
+    task memReadStart(input [31:0] addr, input [1:0] size); begin // Read Memory Word
+    mar = addr;     // read(m[addr])
+    m_rw = 1;     // Access Mode: read 
+    m_en = 1;     // Enable read
+    m_size = size;
+    end endtask
+  
+    task memReadEnd(output [31:0] data); begin // Read Memory Finish, get data
+    mdr = dbus; // get momory, dbus = m[addr]
+    data = mdr; // return to data
+    m_en = 0; // read complete
+    end endtask
+  
+    // Write memory -- addr: address to write, data: date to write
+    task memWriteStart(input [31:0] addr, input [31:0] data, input [1:0] size); begin 
+    mar = addr;    // write(m[addr], data)
+    mdr = data;
+    m_rw = 0;    // access mode: write
+    m_en = 1;     // Enable write
+    m_size  = size;
+    end endtask
+  
+    task memWriteEnd; begin // Write Memory Finish
+    m_en = 0; // write complete
+    end endtask
+  
+    task regSet(input [3:0] i, input [31:0] data); begin
+    if (i!=0) R[i] = data;
+    end endtask
+  
+    task regHILOSet(input [31:0] data1, input [31:0] data2); begin
+    HI = data1;
+    LO = data2;
+    end endtask
+  
+    always @(posedge clock or posedge reset) begin
+    if (reset) state <= Reset; 
+    else state <= next_state;
+    end
+    
+    always @(state or reset) begin
+    m_en = 0;
+    case (state)    
+    Reset: begin 
+      `PC = 0; tick = 0; R[0] = 0; `SW = 0; `LR = -1; 
+      next_state = reset?Reset:Fetch;
+    end
+    Fetch: begin  // Tick 1 : instruction fetch, throw PC to address bus, 
+                  // memory.read(m[PC])
+      memReadStart(`PC, `INT32);
+      pc0  = `PC;
+      `PC = `PC+4;
+      next_state = Decode;
+    end
+    Decode: begin  // Tick 2 : instruction decode, ir = m[PC]
+      memReadEnd(ir); // IR = dbus = m[PC]
+      {op,a,b,c} = ir[31:12];
+      c24 = $signed(ir[23:0]);
+      c16 = $signed(ir[15:0]);
+      c12 = $signed(ir[11:0]);
+      c5  = ir[4:0];
+      Ra = R[a];
+      Rb = R[b];
+      Rc = R[c];
+      next_state = Execute;
+    end
+    Execute: begin // Tick 3 : instruction execution
+      case (op)
+      // load and store instructions
+      LD:  memReadStart(Rb+c16, `INT32);      // LD Ra,[Rb+Cx]; Ra<=[Rb+Cx]
+      ST:  memWriteStart(Rb+c16, Ra, `INT32); // ST Ra,[Rb+Cx]; Ra=>[Rb+Cx]
+      LDB: memReadStart(Rb+c16, `BYTE);     // LDB Ra,[Rb+Cx]; Ra<=(byte)[Rb+Cx]
+      STB: memWriteStart(Rb+c16, Ra, `BYTE);// STB Ra,[Rb+Cx]; Ra=>(byte)[Rb+Cx]
+      LDR: memReadStart(Rb+Rc, `INT32);       // LDR Ra, [Rb+Rc]; Ra<=[Rb+ Rc]
+      STR: memWriteStart(Rb+Rc, Ra, `INT32);  // STR Ra, [Rb+Rc]; Ra=>[Rb+ Rc]
+      LBR: memReadStart(Rb+Rc, `BYTE);      // LBR Ra,[Rb+Rc]; Ra<=(byte)[Rb+Rc]
+      SBR: memWriteStart(Rb+Rc, Ra, `BYTE); // SBR Ra,[Rb+Rc]; Ra=>(byte)[Rb+Rc]
+      LDI: R[a] = c16;                   // LDI Ra,Cx; Ra<=Cx
+      // Mathematic 
+      ADDiu: R[a] = Rb+c16;                   // ADDiu Ra, Rb+Cx; Ra<=Rb+Cx
+      CMP: begin `N=(Ra-Rb<0);`Z=(Ra-Rb==0); end // CMP Ra, Rb; SW=(Ra >=< Rb)
+      MOV: regSet(a, Rb);                  // MOV Ra,Rb; Ra<=Rb 
+      ADD: regSet(a, Rb+Rc);               // ADD Ra,Rb,Rc; Ra<=Rb+Rc
+      SUB: regSet(a, Rb-Rc);               // SUB Ra,Rb,Rc; Ra<=Rb-Rc
+      MUL: regSet(a, Rb*Rc);               // MUL Ra,Rb,Rc;     Ra<=Rb*Rc
+      SDIV: regHILOSet(Ra%Rb, Ra/Rb);          // SDIV Ra,Rb; HI<=Ra%Rb; LO<=Ra/Rb
+                         // with exception overflow
+      AND: regSet(a, Rb&Rc);               // AND Ra,Rb,Rc; Ra<=(Rb and Rc)
+      OR:  regSet(a, Rb|Rc);               // OR Ra,Rb,Rc; Ra<=(Rb or Rc)
+      XOR: regSet(a, Rb^Rc);               // XOR Ra,Rb,Rc; Ra<=(Rb xor Rc)
+      SHL: regSet(a, Rb<<c5);     // Shift Left; SHL Ra,Rb,Cx; Ra<=(Rb << Cx)
+      SRA: regSet(a, (Rb&'h80000000)|(Rb>>c5)); 
+                    // Shift Right with signed bit fill;
+                    // SHR Ra,Rb,Cx; Ra<=(Rb&0x80000000)|(Rb>>Cx)
+      SHR: regSet(a, Rb>>c5);     // Shift Right with 0 fill; 
+                    // SHR Ra,Rb,Cx; Ra<=(Rb >> Cx)
+      // Jump Instructions
+      JEQ: if (`Z) `PC=`PC+c24;            // JEQ Cx; if SW(=) PC  PC+Cx
+      JNE: if (!`Z) `PC=`PC+c24;           // JNE Cx; if SW(!=) PC PC+Cx
+      JLT: if (`N)`PC=`PC+c24;             // JLT Cx; if SW(<) PC  PC+Cx
+      JGT: if (!`N&&!`Z) `PC=`PC+c24;      // JGT Cx; if SW(>) PC  PC+Cx
+      JLE: if (`N || `Z) `PC=`PC+c24;      // JLE Cx; if SW(<=) PC PC+Cx    
+      JGE: if (!`N || `Z) `PC=`PC+c24;     // JGE Cx; if SW(>=) PC PC+Cx
+      JMP: `PC = `PC+c24;                  // JMP Cx; PC <= PC+Cx
+      SWI: begin 
+      `LR=`PC;`PC= c24; `I = 1'b1; 
+      end // Software Interrupt; SWI Cx; LR <= PC; PC <= Cx; INT<=1
+      JSUB:begin `LR=`PC;`PC=`PC + c24; end // JSUB Cx; LR<=PC; PC<=PC+Cx
+      JALR:begin `LR=`PC;`PC=Ra; end // JALR Ra,Rb; Ra<=PC; PC<=Rb
+      RET: begin `PC=`LR; end               // RET; PC <= LR
+      IRET:begin 
+      `PC=`LR;`I = 1'b0; 
+      end // Interrupt Return; IRET; PC <= LR; INT<=0
+      // 
+      PUSH:begin 
+      `SP = `SP-4; memWriteStart(`SP, Ra, `INT32); 
+      end // PUSH Ra; SP-=4; [SP]<=Ra;
+      POP: begin 
+      memReadStart(`SP, `INT32); `SP = `SP + 4; 
+      end // POP Ra; Ra=[SP]; SP+=4;
+      PUSHB:begin 
+      `SP = `SP-1; memWriteStart(`SP, Ra, `BYTE); 
+      end // Push byte; PUSHB Ra; SP--; [SP]<=Ra;(byte)
+      POPB:begin 
+      memReadStart(`SP, `BYTE); `SP = `SP+1; 
+      end // Pop byte; POPB Ra; Ra<=[SP]; SP++;(byte)
+      MULT: {HI, LO}=Ra*Rb; // MULT Ra,Rb; HI<=((Ra*Rb)>>32); 
+                // LO<=((Ra*Rb) and 0x00000000ffffffff);
+                // with exception overflow
+      MFLO: regSet(a, LO);            // MFLO Ra; Ra<=LO
+      MFHI: regSet(a, HI);            // MFHI Ra; Ra<=HI
+      MTLO: LO = Ra;             // MTLO Ra; LO<=Ra
+      MTHI: HI = Ra;             // MTHI Ra; HI<=Ra
+      endcase
+      next_state = WriteBack;
+    end
+    WriteBack: begin // Read/Write finish, close memory
+      case (op)
+      LD, LDB, LDR, LBR, POP, POPB  : memReadEnd(R[a]); 
+                        //read memory complete
+      ST, STB, STR, SBR, PUSH, PUSHB: memWriteEnd(); 
+                        // write memory complete
+      endcase
+      case (op)
+      MULT, SDIV, MTHI, MTLO :
+      $display("%4dns %8x : %8x HI=%8x LO=%8x SW=%8x", $stime, pc0, ir, HI, 
+      LO, `SW);
+      default : 
+      $display("%4dns %8x : %8x R[%02d]=%-8x=%-d SW=%8x", $stime, pc0, ir, a, 
+      R[a], R[a], `SW);
+      endcase
+      if (op==RET && `PC < 0) begin
+      $display("RET to PC < 0, finished!");
+      $finish;
+      end
+      next_state = Fetch;
+    end                
+    endcase
+    pc = `PC;
+    end
+  
+  endmodule
+  
+  module memory0(input clock, reset, en, rw, input [1:0] m_size, 
+          input [31:0] abus, dbus_in, output [31:0] dbus_out);
+    reg [7:0] m [0:1024];
+    reg [31:0] data;
+  
+    integer i;
+    initial begin
+    $readmemh("cpu0s.hex", m);
+    for (i=0; i < 1024; i=i+4) begin
+       $display("%8x: %8x", i, {m[i], m[i+1], m[i+2], m[i+3]});
+    end
+    end
+  
+    always @(clock or abus or en or rw or dbus_in) 
+    begin
+    if (abus >=0 && abus <= 1023) begin
+      if (en == 1 && rw == 0) begin // r_w==0:write
+      data = dbus_in;
+      case (m_size)
+      `BYTE:  {m[abus]} = dbus_in[7:0];
+      `INT16: {m[abus], m[abus+1] } = dbus_in[15:0];
+      `INT24: {m[abus], m[abus+1], m[abus+2]} = dbus_in[24:0];
+      `INT32: {m[abus], m[abus+1], m[abus+2], m[abus+3]} = dbus_in;
+      endcase
+      end else if (en == 1 && rw == 1) begin// r_w==1:read
+      case (m_size)
+      `BYTE:  data = {8'h00  , 8'h00,   8'h00,   m[abus]      };
+      `INT16: data = {8'h00  , 8'h00,   m[abus], m[abus+1]    };
+      `INT24: data = {8'h00  , m[abus], m[abus+1], m[abus+2]  };
+      `INT32: data = {m[abus], m[abus+1], m[abus+2], m[abus+3]};
+      endcase
+      end else
+      data = 32'hZZZZZZZZ;
+    end else
+      data = 32'hZZZZZZZZ;
+    end
+    assign dbus_out = data;
+  endmodule
+  
+  module main;
+    reg clock, reset;
+    wire [2:0] tick;
+    wire [31:0] pc, ir, mar, mdr, dbus;
+    wire m_en, m_rw;
+    wire [1:0] m_size;
+  
+    cpu0 cpu(.clock(clock), .reset(reset), .pc(pc), .tick(tick), .ir(ir),
+    .mar(mar), .mdr(mdr), .dbus(dbus), .m_en(m_en), .m_rw(m_rw), .m_size(m_size));
+  
+    memory0 mem(.clock(clock), .reset(reset), .en(m_en), .rw(m_rw), .m_size(m_size), 
+    .abus(mar), .dbus_in(mdr), .dbus_out(dbus));
+  
+    initial
+    begin
+    clock = 0;
+    reset = 1;
+    #20 reset = 0;
+    #10000 $finish;
+    end
+  
+    always #10 clock=clock+1;
+  endmodule
+
+.. code-block:: bash
+
+  JonathantekiiMac:raw Jonathan$ pwd
+  /Users/Jonathan/test/2/lbd/LLVMBackendTutorialExampleCode/cpu0_verilog/raw
+  JonathantekiiMac:raw Jonathan$ iverilog -o cpu0s cpu0s.v 
+
+
+Now let's compile ch10_2.cpp as below. Since code size grows up from low to high 
+address and stack grows up from high to low address. We set $sp at 1020 since 
+cpu0s.v use 1024 bytes of memory.
+
+.. code-block:: c++
+
+  // InitRegs.h
+  asm("addiu $1,  $ZERO, 0");
+  asm("addiu $2,  $ZERO, 0");
+  asm("addiu $3,  $ZERO, 0");
+  asm("addiu $4,  $ZERO, 0");
+  asm("addiu $5,  $ZERO, 0");
+  asm("addiu $6,  $ZERO, 0");
+  asm("addiu $7,  $ZERO, 0");
+  asm("addiu $8,  $ZERO, 0");
+  asm("addiu $9,  $ZERO, 0");
+  asm("addiu $10, $ZERO, 0");
+  asm("addiu $11, $ZERO, 0");
+  asm("addiu $12, $ZERO, 0");
+  asm("addiu $14, $ZERO, -1");
+  
+  // ch10_2.cpp
+  #include "InitRegs.h"
+  
+  asm("addiu $sp, $zero, 1020"); // Set $sp at 1020
+  
+  int test_operators();
+  int test_control();
+  
+  int main()
+  {
+    int a = 0;
+    a = test_operators();
+    a += test_control();
+  
+    return a;
+  }
+  
+  int test_operators()
+  {
+    int a = 11;
+    int b = 2;
+    int c = 0;
+    int d = 0;
+    int e, f, g, h, i, j, k, l = 0;
+    unsigned int a1 = -5, k1 = 0;
+  
+    c = a + b;
+    d = a - b;
+    e = a * b;
+    f = a / b;
+    b = (a+1)%12;
+    g = (a & b);
+    h = (a | b);
+    i = (a ^ b);
+    j = (a << 2);
+    k = (a >> 2);
+    k1 = (a1 >> 2);
+  
+    b = !a;
+    int* p = &b;
+    
+    return c;
+  }
+  
+  int test_control()
+  {
+    unsigned int a = 0;
+    int b = 1;
+    int c = 2;
+    int d = 3;
+    int e = 4;
+    int f = 5;
+    int g = 6;
+    int h = 7;
+    int i = 8;
+    
+    if (a == 0) {
+    a++;
+    }
+    if (b != 0) {
+    b++;
+    }
+    if (c > 0) {
+    c++;
+    }
+    if (d >= 0) {
+    d++;
+    }
+    if (e < 0) {
+    e++;
+    }
+    if (f <= 0) {
+    f++;
+    }
+    if (g <= 1) {
+    g++;
+    }
+    if (h >= 1) {
+    h++;
+    }
+    if (i < h) {
+    i++;
+    }
+    if (a != b) {
+    a++;
+    }
+    
+    return (b+c+d+e+f+g+h+i);
+  }
+
+.. code-block:: bash
+
+  JonathantekiiMac:InputFiles Jonathan$ pwd
+  /Users/Jonathan/test/2/lbd/LLVMBackendTutorialExampleCode/InputFiles
+  JonathantekiiMac:InputFiles Jonathan$ clang -c ch10_2.cpp -emit-llvm -o 
+  ch10_2.bc
+  JonathantekiiMac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_
+  build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=obj 
+  ch10_2.bc -o ch10_2.cpu0.o
+  JonathantekiiMac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_
+  build/bin/Debug/llvm-objdump -d ch10_2.cpu0.o | tail -n +6| awk '{print "/* " 
+  $1 " */\t" $2 " " $3 " " $4 " " $5 "\t/* " $6"\t" $7" " $8" " $9" " $10 "\t*/"}'
+   > ../cpu0_verilog/raw/cpu0s.hex
+  
+Since our backend didn't implement the linker and loader, we adjust the 
+**"jsub #offset"** by hand as follow,
+
+.. code-block:: c++
+
+  /* 0: */  09 10 00 00 /* addiu  $at, $zero, 0   */
+  /* 4: */  09 20 00 00 /* addiu  $2, $zero, 0  */
+  /* 8: */  09 30 00 00 /* addiu  $3, $zero, 0  */
+  /* c: */  09 40 00 00 /* addiu  $4, $zero, 0  */
+  /* 10: */ 09 50 00 00 /* addiu  $5, $zero, 0  */
+  /* 14: */ 09 60 00 00 /* addiu  $6, $zero, 0  */
+  /* 18: */ 09 70 00 00 /* addiu  $7, $zero, 0  */
+  /* 1c: */ 09 80 00 00 /* addiu  $8, $zero, 0  */
+  /* 20: */ 09 90 00 00 /* addiu  $9, $zero, 0  */
+  /* 24: */ 09 a0 00 00 /* addiu  $gp, $zero, 0   */
+  /* 28: */ 09 b0 00 00 /* addiu  $fp, $zero, 0   */
+  /* 2c: */ 09 c0 00 00 /* addiu  $sw, $zero, 0   */
+  /* 30: */ 09 e0 ff ff /* addiu  $lr, $zero, -1  */
+  /* 34: */ 09 d0 03 fc /* addiu  $sp, $zero, 1020  */ // Set $sp at 1020
+  /* 38: */ 09 dd ff f0 /* addiu  $sp, $sp, -16   */
+  /* 3c: */ 01 ed 00 0c /* st $lr, 12($sp)    */
+  /* 40: */ 09 20 00 00 /* addiu  $2, $zero, 0  */
+  /* 44: */ 01 2d 00 08 /* st $2, 8($sp)    */
+  /* 48: */ 01 2d 00 04 /* st $2, 4($sp)    */
+  /* 4c: */ 2b 00 00 20 /* jsub 0x20    */ // Change jsub offset
+  /* 50: */ 01 2d 00 04 /* st $2, 4($sp)    */
+  /* 54: */ 2b 00 01 44 /* jsub 0 x144    */ // Change jsub offset
+  /* 58: */ 00 3d 00 04 /* ld $3, 4($sp)    */
+  /* 5c: */ 13 23 20 00 /* add  $2, $3, $2  */
+  /* 60: */ 01 2d 00 04 /* st $2, 4($sp)    */
+  /* 64: */ 00 ed 00 0c /* ld $lr, 12($sp)    */
+  /* 68: */ 09 dd 00 10 /* addiu  $sp, $sp, 16  */
+  /* 6c: */ 2c 00 00 00 /* ret  $zero     */
+  /* 70: */ 09 dd ff c0 /* addiu  $sp, $sp, -64   */
+  /* 74: */ 09 20 00 0b /* addiu  $2, $zero, 11   */
+  /* 78: */ 01 2d 00 3c /* st $2, 60($sp)   */
+  /* 7c: */ 09 20 00 02 /* addiu  $2, $zero, 2  */
+  /* 80: */ 01 2d 00 38 /* st $2, 56($sp)   */
+  /* 84: */ 09 20 00 00 /* addiu  $2, $zero, 0  */
+  /* 88: */ 01 2d 00 34 /* st $2, 52($sp)   */
+  /* 8c: */ 01 2d 00 30 /* st $2, 48($sp)   */
+  /* 90: */ 01 2d 00 10 /* st $2, 16($sp)   */
+  /* 94: */ 09 30 ff fb /* addiu  $3, $zero, -5   */
+  /* 98: */ 01 3d 00 0c /* st $3, 12($sp)   */
+  /* 9c: */ 01 2d 00 08 /* st $2, 8($sp)    */
+  /* a0: */ 00 3d 00 38 /* ld $3, 56($sp)   */
+  /* a4: */ 00 4d 00 3c /* ld $4, 60($sp)   */
+  /* a8: */ 13 34 30 00 /* add  $3, $4, $3  */
+  /* ac: */ 01 3d 00 34 /* st $3, 52($sp)   */
+  /* b0: */ 00 3d 00 38 /* ld $3, 56($sp)   */
+  /* b4: */ 00 4d 00 3c /* ld $4, 60($sp)   */
+  /* b8: */ 14 34 30 00 /* sub  $3, $4, $3  */
+  /* bc: */ 01 3d 00 30 /* st $3, 48($sp)   */
+  /* c0: */ 00 3d 00 38 /* ld $3, 56($sp)   */
+  /* c4: */ 00 4d 00 3c /* ld $4, 60($sp)   */
+  /* c8: */ 15 34 30 00 /* mul  $3, $4, $3  */
+  /* cc: */ 01 3d 00 2c /* st $3, 44($sp)   */
+  /* d0: */ 00 3d 00 38 /* ld $3, 56($sp)   */
+  /* d4: */ 00 4d 00 3c /* ld $4, 60($sp)   */
+  /* d8: */ 16 43 00 00 /* div  $4, $3    */
+  /* dc: */ 41 30 00 00 /* mflo $3    */
+  /* e0: */ 09 40 2a aa /* addiu  $4, $zero, 10922  */
+  /* e4: */ 1e 44 00 10 /* shl  $4, $4, 16  */
+  /* e8: */ 09 50 aa ab /* addiu  $5, $zero, -21845   */
+  /* ec: */ 19 44 50 00 /* or $4, $4, $5  */
+  /* f0: */ 01 3d 00 28 /* st $3, 40($sp)   */
+  /* f4: */ 00 3d 00 3c /* ld $3, 60($sp)   */
+  /* f8: */ 09 33 00 01 /* addiu  $3, $3, 1   */
+  /* fc: */ 50 34 00 00 /* mult $3, $4    */
+  /* 100: */  40 40 00 00 /* mfhi $4    */
+  /* 104: */  1f 54 00 1f /* shr  $5, $4, 31  */
+  /* 108: */  1b 44 00 01 /* sra  $4, $4, 1   */
+  /* 10c: */  13 44 50 00 /* add  $4, $4, $5  */
+  /* 110: */  09 50 00 0c /* addiu  $5, $zero, 12   */
+  /* 114: */  15 44 50 00 /* mul  $4, $4, $5  */
+  /* 118: */  14 33 40 00 /* sub  $3, $3, $4  */
+  /* 11c: */  01 3d 00 38 /* st $3, 56($sp)   */
+  /* 120: */  00 4d 00 3c /* ld $4, 60($sp)   */
+  /* 124: */  18 34 30 00 /* and  $3, $4, $3  */
+  /* 128: */  01 3d 00 24 /* st $3, 36($sp)   */
+  /* 12c: */  00 3d 00 38 /* ld $3, 56($sp)   */
+  /* 130: */  00 4d 00 3c /* ld $4, 60($sp)   */
+  /* 134: */  19 34 30 00 /* or $3, $4, $3  */
+  /* 138: */  01 3d 00 20 /* st $3, 32($sp)   */
+  /* 13c: */  00 3d 00 38 /* ld $3, 56($sp)   */
+  /* 140: */  00 4d 00 3c /* ld $4, 60($sp)   */
+  /* 144: */  1a 34 30 00 /* xor  $3, $4, $3  */
+  /* 148: */  01 3d 00 1c /* st $3, 28($sp)   */
+  /* 14c: */  00 3d 00 3c /* ld $3, 60($sp)   */
+  /* 150: */  1e 33 00 02 /* shl  $3, $3, 2   */
+  /* 154: */  01 3d 00 18 /* st $3, 24($sp)   */
+  /* 158: */  00 3d 00 3c /* ld $3, 60($sp)   */
+  /* 15c: */  1b 33 00 02 /* sra  $3, $3, 2   */
+  /* 160: */  01 3d 00 14 /* st $3, 20($sp)   */
+  /* 164: */  00 3d 00 0c /* ld $3, 12($sp)   */
+  /* 168: */  1f 33 00 02 /* shr  $3, $3, 2   */
+  /* 16c: */  01 3d 00 08 /* st $3, 8($sp)    */
+  /* 170: */  00 3d 00 3c /* ld $3, 60($sp)   */
+  /* 174: */  1a 23 20 00 /* xor  $2, $3, $2  */
+  /* 178: */  09 30 00 01 /* addiu  $3, $zero, 1  */
+  /* 17c: */  1a 22 30 00 /* xor  $2, $2, $3  */
+  /* 180: */  18 22 30 00 /* and  $2, $2, $3  */
+  /* 184: */  01 2d 00 38 /* st $2, 56($sp)   */
+  /* 188: */  09 2d 00 38 /* addiu  $2, $sp, 56   */
+  /* 18c: */  01 2d 00 00 /* st $2, 0($sp)    */
+  /* 190: */  00 2d 00 34 /* ld $2, 52($sp)   */
+  /* 194: */  09 dd 00 40 /* addiu  $sp, $sp, 64  */
+  /* 198: */  2c 00 00 00 /* ret  $zero     */
+  /* 19c: */  09 dd ff d8 /* addiu  $sp, $sp, -40   */
+  /* 1a0: */  09 30 00 00 /* addiu  $3, $zero, 0  */
+  /* 1a4: */  01 3d 00 24 /* st $3, 36($sp)   */
+  /* 1a8: */  09 20 00 01 /* addiu  $2, $zero, 1  */
+  /* 1ac: */  01 2d 00 20 /* st $2, 32($sp)   */
+  /* 1b0: */  09 40 00 02 /* addiu  $4, $zero, 2  */
+  /* 1b4: */  01 4d 00 1c /* st $4, 28($sp)   */
+  /* 1b8: */  09 40 00 03 /* addiu  $4, $zero, 3  */
+  /* 1bc: */  01 4d 00 18 /* st $4, 24($sp)   */
+  /* 1c0: */  09 40 00 04 /* addiu  $4, $zero, 4  */
+  /* 1c4: */  01 4d 00 14 /* st $4, 20($sp)   */
+  /* 1c8: */  09 40 00 05 /* addiu  $4, $zero, 5  */
+  /* 1cc: */  01 4d 00 10 /* st $4, 16($sp)   */
+  /* 1d0: */  09 40 00 06 /* addiu  $4, $zero, 6  */
+  /* 1d4: */  01 4d 00 0c /* st $4, 12($sp)   */
+  /* 1d8: */  09 40 00 07 /* addiu  $4, $zero, 7  */
+  /* 1dc: */  01 4d 00 08 /* st $4, 8($sp)    */
+  /* 1e0: */  09 40 00 08 /* addiu  $4, $zero, 8  */
+  /* 1e4: */  01 4d 00 04 /* st $4, 4($sp)    */
+  /* 1e8: */  00 4d 00 24 /* ld $4, 36($sp)   */
+  /* 1ec: */  10 43 00 00 /* cmp  $zero, $4, $3   */
+  /* 1f0: */  21 00 00 10 /* jne  $zero, 16   */
+  /* 1f4: */  26 00 00 00 /* jmp  0     */
+  /* 1f8: */  00 4d 00 24 /* ld $4, 36($sp)   */
+  /* 1fc: */  09 44 00 01 /* addiu  $4, $4, 1   */
+  /* 200: */  01 4d 00 24 /* st $4, 36($sp)   */
+  /* 204: */  00 4d 00 20 /* ld $4, 32($sp)   */
+  /* 208: */  10 43 00 00 /* cmp  $zero, $4, $3   */
+  /* 20c: */  20 00 00 10 /* jeq  $zero, 16   */
+  /* 210: */  26 00 00 00 /* jmp  0     */
+  /* 214: */  00 4d 00 20 /* ld $4, 32($sp)   */
+  /* 218: */  09 44 00 01 /* addiu  $4, $4, 1   */
+  /* 21c: */  01 4d 00 20 /* st $4, 32($sp)   */
+  /* 220: */  00 4d 00 1c /* ld $4, 28($sp)   */
+  /* 224: */  10 42 00 00 /* cmp  $zero, $4, $2   */
+  /* 228: */  22 00 00 10 /* jlt  $zero, 16   */
+  /* 22c: */  26 00 00 00 /* jmp  0     */
+  /* 230: */  00 4d 00 1c /* ld $4, 28($sp)   */
+  /* 234: */  09 44 00 01 /* addiu  $4, $4, 1   */
+  /* 238: */  01 4d 00 1c /* st $4, 28($sp)   */
+  /* 23c: */  00 4d 00 18 /* ld $4, 24($sp)   */
+  /* 240: */  10 43 00 00 /* cmp  $zero, $4, $3   */
+  /* 244: */  22 00 00 10 /* jlt  $zero, 16   */
+  /* 248: */  26 00 00 00 /* jmp  0     */
+  /* 24c: */  00 4d 00 18 /* ld $4, 24($sp)   */
+  /* 250: */  09 44 00 01 /* addiu  $4, $4, 1   */
+  /* 254: */  01 4d 00 18 /* st $4, 24($sp)   */
+  /* 258: */  09 40 ff ff /* addiu  $4, $zero, -1   */
+  /* 25c: */  00 5d 00 14 /* ld $5, 20($sp)   */
+  /* 260: */  10 54 00 00 /* cmp  $zero, $5, $4   */
+  /* 264: */  23 00 00 10 /* jgt  $zero, 16   */
+  /* 268: */  26 00 00 00 /* jmp  0     */
+  /* 26c: */  00 4d 00 14 /* ld $4, 20($sp)   */
+  /* 270: */  09 44 00 01 /* addiu  $4, $4, 1   */
+  /* 274: */  01 4d 00 14 /* st $4, 20($sp)   */
+  /* 278: */  00 4d 00 10 /* ld $4, 16($sp)   */
+  /* 27c: */  10 43 00 00 /* cmp  $zero, $4, $3   */
+  /* 280: */  23 00 00 10 /* jgt  $zero, 16   */
+  /* 284: */  26 00 00 00 /* jmp  0     */
+  /* 288: */  00 3d 00 10 /* ld $3, 16($sp)   */
+  /* 28c: */  09 33 00 01 /* addiu  $3, $3, 1   */
+  /* 290: */  01 3d 00 10 /* st $3, 16($sp)   */
+  /* 294: */  00 3d 00 0c /* ld $3, 12($sp)   */
+  /* 298: */  10 32 00 00 /* cmp  $zero, $3, $2   */
+  /* 29c: */  23 00 00 10 /* jgt  $zero, 16   */
+  /* 2a0: */  26 00 00 00 /* jmp  0     */
+  /* 2a4: */  00 3d 00 0c /* ld $3, 12($sp)   */
+  /* 2a8: */  09 33 00 01 /* addiu  $3, $3, 1   */
+  /* 2ac: */  01 3d 00 0c /* st $3, 12($sp)   */
+  /* 2b0: */  00 3d 00 08 /* ld $3, 8($sp)    */
+  /* 2b4: */  10 32 00 00 /* cmp  $zero, $3, $2   */
+  /* 2b8: */  22 00 00 10 /* jlt  $zero, 16   */
+  /* 2bc: */  26 00 00 00 /* jmp  0     */
+  /* 2c0: */  00 2d 00 08 /* ld $2, 8($sp)    */
+  /* 2c4: */  09 22 00 01 /* addiu  $2, $2, 1   */
+  /* 2c8: */  01 2d 00 08 /* st $2, 8($sp)    */
+  /* 2cc: */  00 2d 00 08 /* ld $2, 8($sp)    */
+  /* 2d0: */  00 3d 00 04 /* ld $3, 4($sp)    */
+  /* 2d4: */  10 32 00 00 /* cmp  $zero, $3, $2   */
+  /* 2d8: */  25 00 00 10 /* jge  $zero, 16   */
+  /* 2dc: */  26 00 00 00 /* jmp  0     */
+  /* 2e0: */  00 2d 00 04 /* ld $2, 4($sp)    */
+  /* 2e4: */  09 22 00 01 /* addiu  $2, $2, 1   */
+  /* 2e8: */  01 2d 00 04 /* st $2, 4($sp)    */
+  /* 2ec: */  00 2d 00 20 /* ld $2, 32($sp)   */
+  /* 2f0: */  00 3d 00 24 /* ld $3, 36($sp)   */
+  /* 2f4: */  10 32 00 00 /* cmp  $zero, $3, $2   */
+  /* 2f8: */  20 00 00 10 /* jeq  $zero, 16   */
+  /* 2fc: */  26 00 00 00 /* jmp  0     */
+  /* 300: */  00 2d 00 24 /* ld $2, 36($sp)   */
+  /* 304: */  09 22 00 01 /* addiu  $2, $2, 1   */
+  /* 308: */  01 2d 00 24 /* st $2, 36($sp)   */
+  /* 30c: */  00 2d 00 1c /* ld $2, 28($sp)   */
+  /* 310: */  00 3d 00 20 /* ld $3, 32($sp)   */
+  /* 314: */  13 23 20 00 /* add  $2, $3, $2  */
+  /* 318: */  00 3d 00 18 /* ld $3, 24($sp)   */
+  /* 31c: */  13 22 30 00 /* add  $2, $2, $3  */
+  /* 320: */  00 3d 00 14 /* ld $3, 20($sp)   */
+  /* 324: */  13 22 30 00 /* add  $2, $2, $3  */
+  /* 328: */  00 3d 00 10 /* ld $3, 16($sp)   */
+  /* 32c: */  13 22 30 00 /* add  $2, $2, $3  */
+  /* 330: */  00 3d 00 0c /* ld $3, 12($sp)   */
+  /* 334: */  13 22 30 00 /* add  $2, $2, $3  */
+  /* 338: */  00 3d 00 08 /* ld $3, 8($sp)    */
+  /* 33c: */  13 22 30 00 /* add  $2, $2, $3  */
+  /* 340: */  00 3d 00 04 /* ld $3, 4($sp)    */
+  /* 344: */  13 22 30 00 /* add  $2, $2, $3  */
+  /* 348: */  09 dd 00 28 /* addiu  $sp, $sp, 40  */
+  /* 34c: */  2c 00 00 00 /* ret  $zero     */
+
+Now, run the cpu0 backend to get the result as follows,
+
+.. code-block:: bash
+
+  JonathantekiiMac:raw Jonathan$ ./cpu0s
+  WARNING: cpu0s.v:212: $readmemh(cpu0s.hex): Not enough words in the file for 
+  the requested range [0:1024].
+  00000000: 09100000
+  00000004: 09200000
+  00000008: 09300000
+  0000000c: 09400000
+  00000010: 09500000
+  00000014: 09600000
+  00000018: 09700000
+  0000001c: 09800000
+  00000020: 09900000
+  00000024: 09a00000
+  00000028: 09b00000
+  0000002c: 09c00000
+  00000030: 09e0ffff
+  00000034: 09d003fc
+  00000038: 09ddfff0
+  0000003c: 01ed000c
+  00000040: 09200000
+  00000044: 012d0008
+  00000048: 012d0004
+  0000004c: 2b000020
+  00000050: 012d0004
+  00000054: 2b000144
+  00000058: 003d0004
+  0000005c: 13232000
+  00000060: 012d0004
+  00000064: 00ed000c
+  00000068: 09dd0010
+  0000006c: 2c000000
+  00000070: 09ddffc0
+  00000074: 0920000b
+  00000078: 012d003c
+  0000007c: 09200002
+  00000080: 012d0038
+  00000084: 09200000
+  00000088: 012d0034
+  0000008c: 012d0030
+  00000090: 012d0010
+  00000094: 0930fffb
+  00000098: 013d000c
+  0000009c: 012d0008
+  000000a0: 003d0038
+  000000a4: 004d003c
+  000000a8: 13343000
+  000000ac: 013d0034
+  000000b0: 003d0038
+  000000b4: 004d003c
+  000000b8: 14343000
+  000000bc: 013d0030
+  000000c0: 003d0038
+  000000c4: 004d003c
+  000000c8: 15343000
+  000000cc: 013d002c
+  000000d0: 003d0038
+  000000d4: 004d003c
+  000000d8: 16430000
+  000000dc: 41300000
+  000000e0: 09402aaa
+  000000e4: 1e440010
+  000000e8: 0950aaab
+  000000ec: 19445000
+  000000f0: 013d0028
+  000000f4: 003d003c
+  000000f8: 09330001
+  000000fc: 50340000
+  00000100: 40400000
+  00000104: 1f54001f
+  00000108: 1b440001
+  0000010c: 13445000
+  00000110: 0950000c
+  00000114: 15445000
+  00000118: 14334000
+  0000011c: 013d0038
+  00000120: 004d003c
+  00000124: 18343000
+  00000128: 013d0024
+  0000012c: 003d0038
+  00000130: 004d003c
+  00000134: 19343000
+  00000138: 013d0020
+  0000013c: 003d0038
+  00000140: 004d003c
+  00000144: 1a343000
+  00000148: 013d001c
+  0000014c: 003d003c
+  00000150: 1e330002
+  00000154: 013d0018
+  00000158: 003d003c
+  0000015c: 1b330002
+  00000160: 013d0014
+  00000164: 003d000c
+  00000168: 1f330002
+  0000016c: 013d0008
+  00000170: 003d003c
+  00000174: 1a232000
+  00000178: 09300001
+  0000017c: 1a223000
+  00000180: 18223000
+  00000184: 012d0038
+  00000188: 092d0038
+  0000018c: 012d0000
+  00000190: 002d0034
+  00000194: 09dd0040
+  00000198: 2c000000
+  0000019c: 09ddffd8
+  000001a0: 09300000
+  000001a4: 013d0024
+  000001a8: 09200001
+  000001ac: 012d0020
+  000001b0: 09400002
+  000001b4: 014d001c
+  000001b8: 09400003
+  000001bc: 014d0018
+  000001c0: 09400004
+  000001c4: 014d0014
+  000001c8: 09400005
+  000001cc: 014d0010
+  000001d0: 09400006
+  000001d4: 014d000c
+  000001d8: 09400007
+  000001dc: 014d0008
+  000001e0: 09400008
+  000001e4: 014d0004
+  000001e8: 004d0024
+  000001ec: 10430000
+  000001f0: 21000010
+  000001f4: 26000000
+  000001f8: 004d0024
+  000001fc: 09440001
+  00000200: 014d0024
+  00000204: 004d0020
+  00000208: 10430000
+  0000020c: 20000010
+  00000210: 26000000
+  00000214: 004d0020
+  00000218: 09440001
+  0000021c: 014d0020
+  00000220: 004d001c
+  00000224: 10420000
+  00000228: 22000010
+  0000022c: 26000000
+  00000230: 004d001c
+  00000234: 09440001
+  00000238: 014d001c
+  0000023c: 004d0018
+  00000240: 10430000
+  00000244: 22000010
+  00000248: 26000000
+  0000024c: 004d0018
+  00000250: 09440001
+  00000254: 014d0018
+  00000258: 0940ffff
+  0000025c: 005d0014
+  00000260: 10540000
+  00000264: 23000010
+  00000268: 26000000
+  0000026c: 004d0014
+  00000270: 09440001
+  00000274: 014d0014
+  00000278: 004d0010
+  0000027c: 10430000
+  00000280: 23000010
+  00000284: 26000000
+  00000288: 003d0010
+  0000028c: 09330001
+  00000290: 013d0010
+  00000294: 003d000c
+  00000298: 10320000
+  0000029c: 23000010
+  000002a0: 26000000
+  000002a4: 003d000c
+  000002a8: 09330001
+  000002ac: 013d000c
+  000002b0: 003d0008
+  000002b4: 10320000
+  000002b8: 22000010
+  000002bc: 26000000
+  000002c0: 002d0008
+  000002c4: 09220001
+  000002c8: 012d0008
+  000002cc: 002d0008
+  000002d0: 003d0004
+  000002d4: 10320000
+  000002d8: 25000010
+  000002dc: 26000000
+  000002e0: 002d0004
+  000002e4: 09220001
+  000002e8: 012d0004
+  000002ec: 002d0020
+  000002f0: 003d0024
+  000002f4: 10320000
+  000002f8: 20000010
+  000002fc: 26000000
+  00000300: 002d0024
+  00000304: 09220001
+  00000308: 012d0024
+  0000030c: 002d001c
+  00000310: 003d0020
+  00000314: 13232000
+  00000318: 003d0018
+  0000031c: 13223000
+  00000320: 003d0014
+  00000324: 13223000
+  00000328: 003d0010
+  0000032c: 13223000
+  00000330: 003d000c
+  00000334: 13223000
+  00000338: 003d0008
+  0000033c: 13223000
+  00000340: 003d0004
+  00000344: 13223000
+  00000348: 09dd0028
+  0000034c: 2c000000
+  00000350: xxxxxxxx
+  00000354: xxxxxxxx
+  00000358: xxxxxxxx
+  0000035c: xxxxxxxx
+  00000360: xxxxxxxx
+  00000364: xxxxxxxx
+  00000368: xxxxxxxx
+  0000036c: xxxxxxxx
+  00000370: xxxxxxxx
+  00000374: xxxxxxxx
+  00000378: xxxxxxxx
+  0000037c: xxxxxxxx
+  00000380: xxxxxxxx
+  00000384: xxxxxxxx
+  00000388: xxxxxxxx
+  0000038c: xxxxxxxx
+  00000390: xxxxxxxx
+  00000394: xxxxxxxx
+  00000398: xxxxxxxx
+  0000039c: xxxxxxxx
+  000003a0: xxxxxxxx
+  000003a4: xxxxxxxx
+  000003a8: xxxxxxxx
+  000003ac: xxxxxxxx
+  000003b0: xxxxxxxx
+  000003b4: xxxxxxxx
+  000003b8: xxxxxxxx
+  000003bc: xxxxxxxx
+  000003c0: xxxxxxxx
+  000003c4: xxxxxxxx
+  000003c8: xxxxxxxx
+  000003cc: xxxxxxxx
+  000003d0: xxxxxxxx
+  000003d4: xxxxxxxx
+  000003d8: xxxxxxxx
+  000003dc: xxxxxxxx
+  000003e0: xxxxxxxx
+  000003e4: xxxxxxxx
+  000003e8: xxxxxxxx
+  000003ec: xxxxxxxx
+  000003f0: xxxxxxxx
+  000003f4: xxxxxxxx
+  000003f8: xxxxxxxx
+  000003fc: xxxxxxxx
+    90ns 00000000 : 09100000 R[01]=00000000=0          SW=00000000
+   170ns 00000004 : 09200000 R[02]=00000000=0          SW=00000000
+   250ns 00000008 : 09300000 R[03]=00000000=0          SW=00000000
+   330ns 0000000c : 09400000 R[04]=00000000=0          SW=00000000
+   410ns 00000010 : 09500000 R[05]=00000000=0          SW=00000000
+   490ns 00000014 : 09600000 R[06]=00000000=0          SW=00000000
+   570ns 00000018 : 09700000 R[07]=00000000=0          SW=00000000
+   650ns 0000001c : 09800000 R[08]=00000000=0          SW=00000000
+   730ns 00000020 : 09900000 R[09]=00000000=0          SW=00000000
+   810ns 00000024 : 09a00000 R[10]=00000000=0          SW=00000000
+   890ns 00000028 : 09b00000 R[11]=00000000=0          SW=00000000
+   970ns 0000002c : 09c00000 R[12]=00000000=0          SW=00000000
+  1050ns 00000030 : 09e0ffff R[14]=ffffffff=-1         SW=00000000
+  1130ns 00000034 : 09d003fc R[13]=000003fc=1020       SW=00000000
+  1210ns 00000038 : 09ddfff0 R[13]=000003ec=1004       SW=00000000
+  1290ns 0000003c : 01ed000c R[14]=ffffffff=-1         SW=00000000
+  1370ns 00000040 : 09200000 R[02]=00000000=0          SW=00000000
+  1450ns 00000044 : 012d0008 R[02]=00000000=0          SW=00000000
+  1530ns 00000048 : 012d0004 R[02]=00000000=0          SW=00000000
+  1610ns 0000004c : 2b000020 R[00]=00000000=0          SW=00000000
+  1690ns 00000070 : 09ddffc0 R[13]=000003ac=940        SW=00000000
+  1770ns 00000074 : 0920000b R[02]=0000000b=11         SW=00000000
+  1850ns 00000078 : 012d003c R[02]=0000000b=11         SW=00000000
+  1930ns 0000007c : 09200002 R[02]=00000002=2          SW=00000000
+  2010ns 00000080 : 012d0038 R[02]=00000002=2          SW=00000000
+  2090ns 00000084 : 09200000 R[02]=00000000=0          SW=00000000
+  2170ns 00000088 : 012d0034 R[02]=00000000=0          SW=00000000
+  2250ns 0000008c : 012d0030 R[02]=00000000=0          SW=00000000
+  2330ns 00000090 : 012d0010 R[02]=00000000=0          SW=00000000
+  2410ns 00000094 : 0930fffb R[03]=fffffffb=-5         SW=00000000
+  2490ns 00000098 : 013d000c R[03]=fffffffb=-5         SW=00000000
+  2570ns 0000009c : 012d0008 R[02]=00000000=0          SW=00000000
+  2650ns 000000a0 : 003d0038 R[03]=00000002=2          SW=00000000
+  2730ns 000000a4 : 004d003c R[04]=0000000b=11         SW=00000000
+  2810ns 000000a8 : 13343000 R[03]=0000000d=13         SW=00000000
+  2890ns 000000ac : 013d0034 R[03]=0000000d=13         SW=00000000
+  2970ns 000000b0 : 003d0038 R[03]=00000002=2          SW=00000000
+  3050ns 000000b4 : 004d003c R[04]=0000000b=11         SW=00000000
+  3130ns 000000b8 : 14343000 R[03]=00000009=9          SW=00000000
+  3210ns 000000bc : 013d0030 R[03]=00000009=9          SW=00000000
+  3290ns 000000c0 : 003d0038 R[03]=00000002=2          SW=00000000
+  3370ns 000000c4 : 004d003c R[04]=0000000b=11         SW=00000000
+  3450ns 000000c8 : 15343000 R[03]=00000016=22         SW=00000000
+  3530ns 000000cc : 013d002c R[03]=00000016=22         SW=00000000
+  3610ns 000000d0 : 003d0038 R[03]=00000002=2          SW=00000000
+  3690ns 000000d4 : 004d003c R[04]=0000000b=11         SW=00000000
+  3770ns 000000d8 : 16430000 HI=00000001 LO=00000005 SW=00000000
+  3850ns 000000dc : 41300000 R[03]=00000005=5          SW=00000000
+  3930ns 000000e0 : 09402aaa R[04]=00002aaa=10922      SW=00000000
+  4010ns 000000e4 : 1e440010 R[04]=2aaa0000=715784192  SW=00000000
+  4090ns 000000e8 : 0950aaab R[05]=ffffaaab=-21845     SW=00000000
+  4170ns 000000ec : 19445000 R[04]=ffffaaab=-21845     SW=00000000
+  4250ns 000000f0 : 013d0028 R[03]=00000005=5          SW=00000000
+  4330ns 000000f4 : 003d003c R[03]=0000000b=11         SW=00000000
+  4410ns 000000f8 : 09330001 R[03]=0000000c=12         SW=00000000
+  4490ns 000000fc : 50340000 HI=ffffffff LO=fffc0004 SW=00000000
+  4570ns 00000100 : 40400000 R[04]=ffffffff=-1         SW=00000000
+  4650ns 00000104 : 1f54001f R[05]=00000001=1          SW=00000000
+  4730ns 00000108 : 1b440001 R[04]=ffffffff=-1         SW=00000000
+  4810ns 0000010c : 13445000 R[04]=00000000=0          SW=00000000
+  4890ns 00000110 : 0950000c R[05]=0000000c=12         SW=00000000
+  4970ns 00000114 : 15445000 R[04]=00000000=0          SW=00000000
+  5050ns 00000118 : 14334000 R[03]=0000000c=12         SW=00000000
+  5130ns 0000011c : 013d0038 R[03]=0000000c=12         SW=00000000
+  5210ns 00000120 : 004d003c R[04]=0000000b=11         SW=00000000
+  5290ns 00000124 : 18343000 R[03]=00000008=8          SW=00000000
+  5370ns 00000128 : 013d0024 R[03]=00000008=8          SW=00000000
+  5450ns 0000012c : 003d0038 R[03]=0000000c=12         SW=00000000
+  5530ns 00000130 : 004d003c R[04]=0000000b=11         SW=00000000
+  5610ns 00000134 : 19343000 R[03]=0000000f=15         SW=00000000
+  5690ns 00000138 : 013d0020 R[03]=0000000f=15         SW=00000000
+  5770ns 0000013c : 003d0038 R[03]=0000000c=12         SW=00000000
+  5850ns 00000140 : 004d003c R[04]=0000000b=11         SW=00000000
+  5930ns 00000144 : 1a343000 R[03]=00000007=7          SW=00000000
+  6010ns 00000148 : 013d001c R[03]=00000007=7          SW=00000000
+  6090ns 0000014c : 003d003c R[03]=0000000b=11         SW=00000000
+  6170ns 00000150 : 1e330002 R[03]=0000002c=44         SW=00000000
+  6250ns 00000154 : 013d0018 R[03]=0000002c=44         SW=00000000
+  6330ns 00000158 : 003d003c R[03]=0000000b=11         SW=00000000
+  // k = (a >> 2); a == 11; 11 >> 2 = 2
+  6410ns 0000015c : 1b330002 R[03]=00000002=2          SW=00000000
+  6490ns 00000160 : 013d0014 R[03]=00000002=2          SW=00000000
+  6570ns 00000164 : 003d000c R[03]=fffffffb=-5         SW=00000000
+  // k1 = (a1 >> 2); a1 = -5 = 0xfffffffb; a1 >> 2 = 3ffffffe
+  6650ns 00000168 : 1f330002 R[03]=3ffffffe=1073741822 SW=00000000
+  6730ns 0000016c : 013d0008 R[03]=3ffffffe=1073741822 SW=00000000
+  6810ns 00000170 : 003d003c R[03]=0000000b=11         SW=00000000
+  6890ns 00000174 : 1a232000 R[02]=0000000b=11         SW=00000000
+  6970ns 00000178 : 09300001 R[03]=00000001=1          SW=00000000
+  7050ns 0000017c : 1a223000 R[02]=0000000a=10         SW=00000000
+  7130ns 00000180 : 18223000 R[02]=00000000=0          SW=00000000
+  7210ns 00000184 : 012d0038 R[02]=00000000=0          SW=00000000
+  7290ns 00000188 : 092d0038 R[02]=000003e4=996        SW=00000000
+  7370ns 0000018c : 012d0000 R[02]=000003e4=996        SW=00000000
+  7450ns 00000190 : 002d0034 R[02]=0000000d=13         SW=00000000
+  7530ns 00000194 : 09dd0040 R[13]=000003ec=1004       SW=00000000
+  7610ns 00000198 : 2c000000 R[00]=00000000=0          SW=00000000
+  7690ns 00000050 : 012d0004 R[02]=0000000d=13         SW=00000000
+  7770ns 00000054 : 2b000144 R[00]=00000000=0          SW=00000000
+  7850ns 0000019c : 09ddffd8 R[13]=000003c4=964        SW=00000000
+  7930ns 000001a0 : 09300000 R[03]=00000000=0          SW=00000000
+  8010ns 000001a4 : 013d0024 R[03]=00000000=0          SW=00000000
+  8090ns 000001a8 : 09200001 R[02]=00000001=1          SW=00000000
+  8170ns 000001ac : 012d0020 R[02]=00000001=1          SW=00000000
+  8250ns 000001b0 : 09400002 R[04]=00000002=2          SW=00000000
+  8330ns 000001b4 : 014d001c R[04]=00000002=2          SW=00000000
+  8410ns 000001b8 : 09400003 R[04]=00000003=3          SW=00000000
+  8490ns 000001bc : 014d0018 R[04]=00000003=3          SW=00000000
+  8570ns 000001c0 : 09400004 R[04]=00000004=4          SW=00000000
+  8650ns 000001c4 : 014d0014 R[04]=00000004=4          SW=00000000
+  8730ns 000001c8 : 09400005 R[04]=00000005=5          SW=00000000
+  8810ns 000001cc : 014d0010 R[04]=00000005=5          SW=00000000
+  8890ns 000001d0 : 09400006 R[04]=00000006=6          SW=00000000
+  8970ns 000001d4 : 014d000c R[04]=00000006=6          SW=00000000
+  9050ns 000001d8 : 09400007 R[04]=00000007=7          SW=00000000
+  9130ns 000001dc : 014d0008 R[04]=00000007=7          SW=00000000
+  9210ns 000001e0 : 09400008 R[04]=00000008=8          SW=00000000
+  9290ns 000001e4 : 014d0004 R[04]=00000008=8          SW=00000000
+  9370ns 000001e8 : 004d0024 R[04]=00000000=0          SW=00000000
+  9450ns 000001ec : 10430000 R[04]=00000000=0          SW=40000000
+  9530ns 000001f0 : 21000010 R[00]=00000000=0          SW=40000000
+  9610ns 000001f4 : 26000000 R[00]=00000000=0          SW=40000000
+  9690ns 000001f8 : 004d0024 R[04]=00000000=0          SW=40000000
+  9770ns 000001fc : 09440001 R[04]=00000001=1          SW=40000000
+  9850ns 00000200 : 014d0024 R[04]=00000001=1          SW=40000000
+  9930ns 00000204 : 004d0020 R[04]=00000001=1          SW=40000000
+  10010ns 00000208 : 10430000 R[04]=00000001=1          SW=00000000
+
+As above result, cpu0s.v dump the memory first after read input cpu0s.hex. 
+After that, it run instructions from address 0 and print each destination 
+register value in fourth column. 
+The first column is the nano seconds of timing. The second 
+is instruction address. The third is instruction content. 
+We have checked the **">>"** is correct on both signed and unsigned int type 
+as comment.
+
+
+
+.. [#] http://www.ece.umd.edu/courses/enee359a/
+
+.. [#] http://www.ece.umd.edu/courses/enee359a/verilog_tutorial.pdf

@@ -109,6 +109,7 @@ cp -rf ${GEN_DIR}/2 .
 rm -rf 3 4 6 7 8 9 10
 cp -rf InputFiles llvm3.1 ${GEN_DIR}/.
 cp -rf InputFiles src_files_modify ${GEN_DIR}/.
+cp -rf cpu0 cpu0_verilog ${GEN_DIR}/.
 mv ${GEN_DIR} ../.
 rm -f `find . -name .DS_Store`
 cd ..
