@@ -187,6 +187,9 @@ module cpu0(input clock, reset, output reg [2:0] tick,
       MULT, SDIV, MTHI, MTLO :
         $display("%4dns %8x : %8x HI=%8x LO=%8x SW=%8x", $stime, pc0, ir, HI, 
         LO, `SW);
+     /* ST :
+        $display("%4dns %8x : %8x m[%-04d+%-04d]=%-d SW=%8x", $stime, pc0, ir, 
+        R[b], c16, R[a], `SW);*/
       default : 
         $display("%4dns %8x : %8x R[%02d]=%-8x=%-d SW=%8x", $stime, pc0, ir, a, 
         R[a], R[a], `SW);
