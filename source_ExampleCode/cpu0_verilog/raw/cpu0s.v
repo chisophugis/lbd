@@ -263,7 +263,7 @@ module main;
     clock = 0;
     reset = 1;
     #20 reset = 0;
-    #10000 $finish;
+    #30000 $finish;
   end
 
   always #10 clock=clock+1;
