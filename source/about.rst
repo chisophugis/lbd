@@ -35,7 +35,7 @@ Revision history
 ----------------
 
 Version 3.2.8, Not Released Yet
-    
+	Add section llvm-objdump -t -r.
 Version 3.2.7, Released February 14, 2013
 	Add chapter Run backend.
 	Add Icarus Verilog tool installation in Appendix A. 

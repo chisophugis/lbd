@@ -722,7 +722,6 @@ enum {
   R_CPU0_GPREL16           =  7,
   R_CPU0_LITERAL           =  8,
   R_CPU0_GOT16             =  9,
-  R_CPU0_GOT               =  9,
   R_CPU0_PC24              = 10,
   R_CPU0_CALL24            = 11,
   R_CPU0_GPREL32           = 12,

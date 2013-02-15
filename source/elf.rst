@@ -520,8 +520,219 @@ Please visit the web site [#]_.
 llvm-objdump
 -------------
 
-In llvm 3.2 release, the llvm-objdump is work on Mips backend.
-Run 8/9/Cpu0 and command ``llvm-objdump`` for dump file from elf to hex as 
+llvm-objdump -t -r
+~~~~~~~~~~~~~~~~~~
+
+In linux, ``objdump -tr`` can display the information of relocation records 
+like ``readelf -tr``. LLVM tool llvm-objdump is the same tool as objdump. 
+Let's run the llvm-objdump command as follows to see the difference. 
+
+.. code-block:: bash
+
+  118-165-83-10:InputFiles Jonathan$ clang -c ch8_3_3.cpp -emit-llvm -I/
+  Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/
+  SDKs/MacOSX10.8.sdk/usr/include/ -o ch8_3_3.bc
+  118-165-83-10:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=obj ch8_3_3.bc -o 
+  ch8_3_3.cpu0.o
+  118-165-83-10:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llvm-objdump -t -r ch8_3_3.cpu0.o
+  
+  118-165-83-10:InputFiles Jonathan$ llvm-objdump -t -r ch8_3_3.cpu0.o
+  
+  ch8_3_3.cpu0.o: file format ELF32-unknown
+  
+  RELOCATION RECORDS FOR [.text]:
+  0 Unknown Unknown
+  8 Unknown Unknown
+  28 Unknown Unknown
+  188 Unknown Unknown
+  224 Unknown Unknown
+  236 Unknown Unknown
+  244 Unknown Unknown
+  324 Unknown Unknown
+  344 Unknown Unknown
+  348 Unknown Unknown
+  356 Unknown Unknown
+  
+  RELOCATION RECORDS FOR [.eh_frame]:
+  28 Unknown Unknown
+  52 Unknown Unknown
+  
+  SYMBOL TABLE:
+  00000000 l    df *ABS*  00000000 ch8_3_3.bc
+  00000000 l       .rodata.str1.1 00000008 $.str
+  00000000 l    d  .text  00000000 .text
+  00000000 l    d  .data  00000000 .data
+  00000000 l    d  .bss 00000000 .bss
+  00000000 l    d  .rodata.str1.1 00000000 .rodata.str1.1
+  00000000 l    d  .eh_frame  00000000 .eh_frame
+  00000000 g     F .text  000000ec _Z5sum_iiz
+  000000ec g     F .text  00000094 main
+  00000000         *UND*  00000000 __stack_chk_fail
+  00000000         *UND*  00000000 __stack_chk_guard
+  00000000         *UND*  00000000 _gp_disp
+  00000000         *UND*  00000000 printf
+  
+  118-165-83-10:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
+  bin/Debug/llvm-objdump -t -r ch8_3_3.cpu0.o
+  
+  ch8_3_3.cpu0.o: file format ELF32-CPU0
+  
+  RELOCATION RECORDS FOR [.text]:
+  0 R_CPU0_HI16 _gp_disp
+  8 R_CPU0_LO16 _gp_disp
+  28 R_CPU0_GOT16 __stack_chk_guard
+  188 R_CPU0_GOT16 __stack_chk_guard
+  224 R_CPU0_CALL24 __stack_chk_fail
+  236 R_CPU0_HI16 _gp_disp
+  244 R_CPU0_LO16 _gp_disp
+  324 R_CPU0_CALL24 _Z5sum_iiz
+  344 R_CPU0_GOT16 $.str
+  348 R_CPU0_LO16 $.str
+  356 R_CPU0_CALL24 printf
+  
+  RELOCATION RECORDS FOR [.eh_frame]:
+  28 R_CPU0_32 .text
+  52 R_CPU0_32 .text
+  
+  SYMBOL TABLE:
+  00000000 l    df *ABS*  00000000 ch8_3_3.bc
+  00000000 l       .rodata.str1.1 00000008 $.str
+  00000000 l    d  .text  00000000 .text
+  00000000 l    d  .data  00000000 .data
+  00000000 l    d  .bss 00000000 .bss
+  00000000 l    d  .rodata.str1.1 00000000 .rodata.str1.1
+  00000000 l    d  .eh_frame  00000000 .eh_frame
+  00000000 g     F .text  000000ec _Z5sum_iiz
+  000000ec g     F .text  00000094 main
+  00000000         *UND*  00000000 __stack_chk_fail
+  00000000         *UND*  00000000 __stack_chk_guard
+  00000000         *UND*  00000000 _gp_disp
+  00000000         *UND*  00000000 printf
+
+The latter llvm-objdump can display the file format and relocation records 
+information since we add the relocation records information in ELF.h as follows, 
+
+.. code-block:: c++
+
+  // include/support/ELF.h
+  ...
+  // Machine architectures
+  enum {
+    ...
+    EM_CPU0          = 201, // Document Write An LLVM Backend Tutorial For Cpu0
+    ...
+  }
+  
+  // include/object/ELF.h
+  ...
+  template<support::endianness target_endianness, bool is64Bits>
+  error_code ELFObjectFile<target_endianness, is64Bits>
+              ::getRelocationTypeName(DataRefImpl Rel,
+                        SmallVectorImpl<char> &Result) const {
+    ...
+    switch (Header->e_machine) {
+    case ELF::EM_CPU0:  // llvm-objdump -t -r
+    switch (type) {
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_NONE);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_32);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_REL32);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_24);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_HI16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_LO16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GPREL16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_LITERAL);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GOT16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_PC24);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_CALL24);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GPREL32);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_SHIFT5);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_SHIFT6);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_64);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GOT_DISP);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GOT_PAGE);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GOT_OFST);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GOT_HI16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GOT_LO16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_SUB);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_INSERT_A);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_INSERT_B);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_DELETE);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_HIGHER);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_HIGHEST);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_CALL_HI16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_CALL_LO16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_SCN_DISP);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_REL16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_ADD_IMMEDIATE);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_PJUMP);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_RELGOT);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_JALR);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_DTPMOD32);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_DTPREL32);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_DTPMOD64);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_DTPREL64);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_GD);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_LDM);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_DTPREL_HI16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_DTPREL_LO16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_GOTTPREL);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_TPREL32);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_TPREL64);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_TPREL_HI16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_TLS_TPREL_LO16);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_GLOB_DAT);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_COPY);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_JUMP_SLOT);
+      LLVM_ELF_SWITCH_RELOC_TYPE_NAME(R_CPU0_NUM);
+    default:
+      res = "Unknown";
+    }
+    break;
+    ...
+    }
+  
+  
+  template<support::endianness target_endianness, bool is64Bits>
+  error_code ELFObjectFile<target_endianness, is64Bits>
+              ::getRelocationValueString(DataRefImpl Rel,
+                        SmallVectorImpl<char> &Result) const {
+    ...
+    case ELF::EM_CPU0:  // llvm-objdump -t -r
+    res = symname;
+    break;
+    ...
+  }
+  
+  template<support::endianness target_endianness, bool is64Bits>
+  StringRef ELFObjectFile<target_endianness, is64Bits>
+               ::getFileFormatName() const {
+    switch(Header->e_ident[ELF::EI_CLASS]) {
+    case ELF::ELFCLASS32:
+    switch(Header->e_machine) {
+    ...
+    case ELF::EM_CPU0:  // llvm-objdump -t -r
+      return "ELF32-CPU0";
+    ...
+  }
+  
+  template<support::endianness target_endianness, bool is64Bits>
+  unsigned ELFObjectFile<target_endianness, is64Bits>::getArch() const {
+    switch(Header->e_machine) {
+    ...
+    case ELF::EM_CPU0:  // llvm-objdump -t -r
+    return (target_endianness == support::little) ?
+         Triple::cpu0el : Triple::cpu0;
+    ...
+  }
+
+
+llvm-objdump -d
+~~~~~~~~~~~~~~~~
+
+Run 8/9/Cpu0 and command ``llvm-objdump -d`` for dump file from elf to hex as 
 follows, 
 
 .. code-block:: bash
@@ -958,7 +1169,7 @@ LLVM table generate system will print operand 1 and 2
 ($ra and $rb) in the table generated function printInstruction(). 
 The operand 0 ($rc) didn't be printed in printInstruction() since assembly 
 print $ra and $rb only. 
-In the CMP decode function, we didn't decode shamt field because the we 
+In the CMP decode function, we didn't decode shamt field because we 
 don't want it to be displayed and it's not in the assembler print pattern of 
 Cpu0InstrInfo.td.
 
@@ -979,7 +1190,7 @@ the following result.
   JonathantekiiMac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_
   build/bin/Debug/llvm-objdump -d ch7_1_1.cpu0.o
   
-  ch7_1_1.cpu0.o: file format ELF32-unknown
+  ch7_1_1.cpu0.o: file format ELF32-CPU0
   
   Disassembly of section .text:
   .text:
@@ -1079,42 +1290,6 @@ the following result.
      174: 00 2d 00 20                                   ld  $2, 32($sp)
      178: 09 dd 00 28                                   addiu $sp, $sp, 40
      17c: 2c 00 00 00                                   ret $zero
-
-Please notify the LLVM recognize the Cpu0 backend architecture and relocation 
-records by the following code we added in directory 
-LLVMBackendTutorialExampleCode/src_files_modify/src_files_modify/src.
-
-.. code-block:: c++
-
-  // include/llvm/Object/ELF.h
-  template<support::endianness target_endianness, bool is64Bits>
-  unsigned ELFObjectFile<target_endianness, is64Bits>::getArch() const {
-    switch(Header->e_machine) {
-    ...
-    // Support "llvm-objdump -d chxxx.cpu0.o" which translate obj into asm
-    case ELF::EM_CPU0:
-    return (target_endianness == support::little) ?
-         Triple::cpu0el : Triple::cpu0;
-    case ELF::EM_PPC64:
-    return Triple::ppc64;
-    default:
-    return Triple::UnknownArch;
-    }
-  }
-  
-  // include/llvm/Support/ELF.h
-  // ELF Relocation types for Cpu0
-  // .
-  enum {
-    R_CPU0_NONE              =  0,
-    R_CPU0_16                =  1,
-    R_CPU0_32                =  2,
-    R_CPU0_REL32             =  3,
-    R_CPU0_24                =  4,
-    R_CPU0_HI16              =  5,
-    R_CPU0_LO16              =  6,
-    ...
-  }
 
 
 .. _section Handle $gp register in PIC addressing mode:
