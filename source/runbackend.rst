@@ -1806,6 +1806,9 @@ further explanation.
   JonathantekiiMac:raw Jonathan$ iverilog -o cpu0s cpu0s.v 
 
 
+Run program on CPU0 machine
+---------------------------
+
 Now let's compile ch10_2.cpp as below. Since code size grows up from low to high 
 address and stack grows up from high to low address. We set $sp at 1020 since 
 cpu0s.v use 1024 bytes of memory.
@@ -1931,11 +1934,90 @@ cpu0s.v use 1024 bytes of memory.
   $1 " */\t" $2 " " $3 " " $4 " " $5 "\t/* " $6"\t" $7" " $8" " $9" " $10 "\t*/"}'
    > ../cpu0_verilog/raw/cpu0s.hex
   
-Since our backend didn't implement the linker and loader, we adjust the 
-**"jsub #offset"** by hand as follow,
+  118-165-81-39:raw Jonathan$ cat cpu0s.hex 
+  ...
+  /* 4c: */ 2b 00 00 20 /* jsub 0    */
+  /* 50: */ 01 2d 00 04 /* st $2, 4($sp)    */
+  /* 54: */ 2b 00 01 44 /* jsub 0    */
+  
+  
+As above code the subroutine address for **"jsub #offset"** are 0. 
+This is correct since C language support separate compile and the subroutine 
+address is decided at link time for static address mode or at 
+load time for PIC address mode.
+Since our backend didn't implement the linker and loader, we change the  
+**"jsub #offset"** encode in 10/2/Cpu0 as follow,
 
 .. code-block:: c++
 
+  // Cpu0MCCodeEmitter.cpp
+  unsigned Cpu0MCCodeEmitter::
+  getJumpTargetOpValue(const MCInst &MI, unsigned OpNo,
+             SmallVectorImpl<MCFixup> &Fixups) const {
+  
+    unsigned Opcode = MI.getOpcode();
+    ...
+    if (Opcode == Cpu0::JSUB)
+    Fixups.push_back(MCFixup::Create(0, Expr,
+                     MCFixupKind(Cpu0::fixup_Cpu0_PC24)));
+    else if (Opcode == Cpu0::JSUB)
+    Fixups.push_back(MCFixup::Create(0, Expr,
+                     MCFixupKind(Cpu0::fixup_Cpu0_24)));
+    else
+    llvm_unreachable("unexpect opcode in getJumpAbsoluteTargetOpValue()");
+    
+    return 0;
+  }
+
+We change JSUB from Relocation Records fixup_Cpu0_24 to Non-Relocaton Records 
+fixup_Cpu0_PC24 as the definition below. This change is fine since if call a 
+outside defined subroutine, it will add a Relocation Record for this 
+**"jsub #offset"**. At this point, we set it to Non-Relocaton Records for 
+run on CPU0 Verilog machine. If one day, the CPU0 linker is appeared and the 
+linker do the sections arrangement, we should adjust it back to Relocation 
+Records. A good linker will reorder the sections for optimization in 
+data/function access. In other word, 
+keep the global variable access as close as possible to reduce cache miss 
+possibility.
+
+.. code-block:: c++
+
+  // Cpu0AsmBackend.cpp
+    const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const {
+    const static MCFixupKindInfo Infos[Cpu0::NumTargetFixupKinds] = {
+      // This table *must* be in same the order of fixup_* kinds in
+      // Cpu0FixupKinds.h.
+      //
+      // name                    offset  bits  flags
+      ...
+      { "fixup_Cpu0_24",           0,     24,   0 },
+      ...
+      { "fixup_Cpu0_PC24",         0,     24,  MCFixupKindInfo::FKF_IsPCRel },
+      ...
+    }
+    ...
+    }
+
+Let's run the 10/2/Cpu0 with ``llvm-objdump -d`` again, wiil get the hex file 
+as follows,
+
+.. code-block:: bash
+
+  JonathantekiiMac:InputFiles Jonathan$ pwd
+  /Users/Jonathan/test/2/lbd/LLVMBackendTutorialExampleCode/InputFiles
+  JonathantekiiMac:InputFiles Jonathan$ clang -c ch10_2.cpp -emit-llvm -o 
+  ch10_2.bc
+  JonathantekiiMac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_
+  build/bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=obj 
+  ch10_2.bc -o ch10_2.cpu0.o
+  JonathantekiiMac:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_
+  build/bin/Debug/llvm-objdump -d ch10_2.cpu0.o | tail -n +6| awk '{print "/* " 
+  $1 " */\t" $2 " " $3 " " $4 " " $5 "\t/* " $6"\t" $7" " $8" " $9" " $10 "\t*/"}'
+   > ../cpu0_verilog/raw/cpu0s.hex
+
+.. code-block:: c++
+  
+  118-165-81-39:raw Jonathan$ cat cpu0s.hex
   /* 0: */  09 10 00 00 /* addiu  $at, $zero, 0   */
   /* 4: */  09 20 00 00 /* addiu  $2, $zero, 0  */
   /* 8: */  09 30 00 00 /* addiu  $3, $zero, 0  */
@@ -1955,9 +2037,9 @@ Since our backend didn't implement the linker and loader, we adjust the
   /* 40: */ 09 20 00 00 /* addiu  $2, $zero, 0  */
   /* 44: */ 01 2d 00 08 /* st $2, 8($sp)    */
   /* 48: */ 01 2d 00 04 /* st $2, 4($sp)    */
-  /* 4c: */ 2b 00 00 20 /* jsub 0x20    */ // Change jsub offset
+  /* 4c: */ 2b 00 00 20 /* jsub 32    */
   /* 50: */ 01 2d 00 04 /* st $2, 4($sp)    */
-  /* 54: */ 2b 00 01 44 /* jsub 0 x144    */ // Change jsub offset
+  /* 54: */ 2b 00 01 44 /* jsub 324    */
   /* 58: */ 00 3d 00 04 /* ld $3, 4($sp)    */
   /* 5c: */ 13 23 20 00 /* add  $2, $3, $2  */
   /* 60: */ 01 2d 00 04 /* st $2, 4($sp)    */
