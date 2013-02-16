@@ -1,6 +1,6 @@
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
---- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -64,14 +64,24 @@
    // Set up the register classes
    addRegisterClass(MVT::i32, &Cpu0::CPURegsRegClass);
@@ -61,8 +61,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.cpp 7/1/Cpu0/Cpu0ISelLowering.cpp
  /// and generate load operations for arguments places on the stack.
  SDValue
 diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
---- 6/2/Cpu0/Cpu0ISelLowering.h	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0ISelLowering.h	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0ISelLowering.h	2013-02-16 16:00:10.000000000 +0800
 @@ -77,6 +77,7 @@
      const Cpu0Subtarget *Subtarget;
  
@@ -83,8 +83,8 @@ diff -Naur 6/2/Cpu0/Cpu0ISelLowering.h 7/1/Cpu0/Cpu0ISelLowering.h
      virtual SDValue
        LowerReturn(SDValue Chain,
 diff -Naur 6/2/Cpu0/Cpu0InstrInfo.cpp 7/1/Cpu0/Cpu0InstrInfo.cpp
---- 6/2/Cpu0/Cpu0InstrInfo.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrInfo.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -42,12 +42,18 @@
        Opc = Cpu0::MFHI, SrcReg = 0;
      else if (SrcReg == Cpu0::LO)
@@ -105,8 +105,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.cpp 7/1/Cpu0/Cpu0InstrInfo.cpp
  
    assert(Opc && "Cannot copy registers");
 diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
---- 6/2/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:00:10.000000000 +0800
 @@ -53,6 +53,12 @@
  //===----------------------------------------------------------------------===//
  // Cpu0 Operand, Complex Patterns and Transformations Definitions.
@@ -236,8 +236,8 @@ diff -Naur 6/2/Cpu0/Cpu0InstrInfo.td 7/1/Cpu0/Cpu0InstrInfo.td
  multiclass SeteqPats<RegisterClass RC, Instruction XOROp> {
    def : Pat<(seteq RC:$lhs, RC:$rhs),
 diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
---- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0MCInstLower.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -42,6 +42,8 @@
  
    switch(MO.getTargetFlags()) {
@@ -269,8 +269,8 @@ diff -Naur 6/2/Cpu0/Cpu0MCInstLower.cpp 7/1/Cpu0/Cpu0MCInstLower.cpp
    case MachineOperand::MO_RegisterMask:
      break;
 diff -Naur 6/2/Cpu0/Cpu0RegisterInfo.cpp 7/1/Cpu0/Cpu0RegisterInfo.cpp
---- 6/2/Cpu0/Cpu0RegisterInfo.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0RegisterInfo.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0RegisterInfo.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0RegisterInfo.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -70,7 +70,7 @@
  getReservedRegs(const MachineFunction &MF) const {
    static const uint16_t ReservedCPURegs[] = {
@@ -281,8 +281,8 @@ diff -Naur 6/2/Cpu0/Cpu0RegisterInfo.cpp 7/1/Cpu0/Cpu0RegisterInfo.cpp
    BitVector Reserved(getNumRegs());
    typedef TargetRegisterClass::iterator RegIter;
 diff -Naur 6/2/Cpu0/Cpu0RegisterInfo.td 7/1/Cpu0/Cpu0RegisterInfo.td
---- 6/2/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/Cpu0RegisterInfo.td	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/Cpu0RegisterInfo.td	2013-02-16 16:00:10.000000000 +0800
 @@ -65,8 +65,11 @@
    // Callee save
    S0, S1, S2, 
@@ -297,8 +297,8 @@ diff -Naur 6/2/Cpu0/Cpu0RegisterInfo.td 7/1/Cpu0/Cpu0RegisterInfo.td
 +def SR   : RegisterClass<"Cpu0", [i32], 32, (add SW)>;
 +
 diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp
---- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/InstPrinter/Cpu0InstPrinter.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -58,6 +58,7 @@
    case MCSymbolRefExpr::VK_None:           break;
  // Cpu0_GPREL is for llc -march=cpu0 -relocation-model=static
@@ -308,8 +308,8 @@ diff -Naur 6/2/Cpu0/InstPrinter/Cpu0InstPrinter.cpp 7/1/Cpu0/InstPrinter/Cpu0Ins
    case MCSymbolRefExpr::VK_Cpu0_GOT:       OS << "%got(";    break;
    case MCSymbolRefExpr::VK_Cpu0_ABS_HI:    OS << "%hi(";     break;
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 7/1/Cpu0/MCTargetDesc/Cpu0BaseInfo.h
---- 6/2/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0BaseInfo.h	2013-02-16 16:00:10.000000000 +0800
 @@ -143,6 +143,10 @@
      return 14;
    case Cpu0::PC:
@@ -322,8 +322,8 @@ diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0BaseInfo.h 7/1/Cpu0/MCTargetDesc/Cpu0BaseIn
    }
  }
 diff -Naur 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 6/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -69,10 +69,18 @@
  
    void EncodeInstruction(const MCInst &MI, raw_ostream &OS,

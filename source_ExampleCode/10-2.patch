@@ -1,0 +1,47 @@
+diff -Naur 10/1/Cpu0/Cpu0InstrInfo.td 10/2/Cpu0/Cpu0InstrInfo.td
+--- 10/1/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:15:36.000000000 +0800
++++ 10/2/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:22:39.000000000 +0800
+@@ -477,6 +477,7 @@
+   def RET   : FJ <0x2C, (outs), (ins CPURegs:$target),
+                 "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
+ 
++def IRET    : JumpFR<0x2D, "iret", CPURegs>;
+ def JALR    : JumpLinkReg<0x2E, "jalr", CPURegs>;
+ 
+ /// No operation
+diff -Naur 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 10/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
+--- 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:15:36.000000000 +0800
++++ 10/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:20:06.000000000 +0800
+@@ -163,19 +163,29 @@
+ }
+ 
+ /// getJumpTargetOpValue - Return binary encoding of the jump
+-/// target operand. Such as SWI and JSUB.
++/// target operand. Such as SWI and JSUB. 
++/// If the machine operand requires relocation,
++/// record the relocation and return zero.
+ unsigned Cpu0MCCodeEmitter::
+ getJumpTargetOpValue(const MCInst &MI, unsigned OpNo,
+                      SmallVectorImpl<MCFixup> &Fixups) const {
+ 
++  unsigned Opcode = MI.getOpcode();
+   const MCOperand &MO = MI.getOperand(OpNo);
+   // If the destination is an immediate, we have nothing to do.
+   if (MO.isImm()) return MO.getImm();
+   assert(MO.isExpr() && "getJumpTargetOpValue expects only expressions");
+ 
+   const MCExpr *Expr = MO.getExpr();
+-  Fixups.push_back(MCFixup::Create(0, Expr,
+-                                   MCFixupKind(Cpu0::fixup_Cpu0_24)));
++  if (Opcode == Cpu0::JSUB)
++    Fixups.push_back(MCFixup::Create(0, Expr,
++                                     MCFixupKind(Cpu0::fixup_Cpu0_PC24)));
++  else if (Opcode == Cpu0::JSUB)
++    Fixups.push_back(MCFixup::Create(0, Expr,
++                                     MCFixupKind(Cpu0::fixup_Cpu0_24)));
++  else
++    llvm_unreachable("unexpect opcode in getJumpAbsoluteTargetOpValue()");
++  
+   return 0;
+ }
+ 

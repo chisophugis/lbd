@@ -1,6 +1,6 @@
 diff -Naur 7/1/Cpu0/Cpu0CallingConv.td 8/2/Cpu0/Cpu0CallingConv.td
---- 7/1/Cpu0/Cpu0CallingConv.td	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0CallingConv.td	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0CallingConv.td	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0CallingConv.td	2013-02-16 16:07:39.000000000 +0800
 @@ -13,6 +13,37 @@
  class CCIfSubtarget<string F, CCAction A>:
    CCIf<!strconcat("State.getTarget().getSubtarget<Cpu0Subtarget>().", F), A>;
@@ -40,8 +40,8 @@ diff -Naur 7/1/Cpu0/Cpu0CallingConv.td 8/2/Cpu0/Cpu0CallingConv.td
                                     (sequence "S%u", 2, 0))>;
  
 diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp 8/2/Cpu0/Cpu0ISelLowering.cpp
---- 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0ISelLowering.cpp	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0ISelLowering.cpp	2013-02-16 16:07:39.000000000 +0800
 @@ -235,6 +235,58 @@
                                           DebugLoc dl, SelectionDAG &DAG,
                                           SmallVectorImpl<SDValue> &InVals)
@@ -102,8 +102,8 @@ diff -Naur 7/1/Cpu0/Cpu0ISelLowering.cpp 8/2/Cpu0/Cpu0ISelLowering.cpp
  }
  
 diff -Naur 7/1/Cpu0/Cpu0InstrFormats.td 8/2/Cpu0/Cpu0InstrFormats.td
---- 7/1/Cpu0/Cpu0InstrFormats.td	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrFormats.td	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrFormats.td	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrFormats.td	2013-02-16 16:07:39.000000000 +0800
 @@ -69,6 +69,13 @@
    field bits<32> SoftFail = 0;
  }
@@ -119,8 +119,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrFormats.td 8/2/Cpu0/Cpu0InstrFormats.td
  // Format A instruction class in Cpu0 : <|opcode|ra|rb|rc|cx|>
  //===----------------------------------------------------------------------===//
 diff -Naur 7/1/Cpu0/Cpu0InstrInfo.cpp 8/2/Cpu0/Cpu0InstrInfo.cpp
---- 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrInfo.cpp	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.cpp	2013-02-16 16:07:39.000000000 +0800
 @@ -13,6 +13,7 @@
  
  #include "Cpu0InstrInfo.h"
@@ -165,8 +165,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.cpp 8/2/Cpu0/Cpu0InstrInfo.cpp
  Cpu0InstrInfo::emitFrameIndexDebugValue(MachineFunction &MF, int FrameIx,
                                          uint64_t Offset, const MDNode *MDPtr,
 diff -Naur 7/1/Cpu0/Cpu0InstrInfo.h 8/2/Cpu0/Cpu0InstrInfo.h
---- 7/1/Cpu0/Cpu0InstrInfo.h	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrInfo.h	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrInfo.h	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.h	2013-02-16 16:07:39.000000000 +0800
 @@ -42,6 +42,12 @@
                             bool KillSrc) const;
  
@@ -181,8 +181,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.h 8/2/Cpu0/Cpu0InstrInfo.h
                                                   int FrameIx, uint64_t Offset,
                                                   const MDNode *MDPtr,
 diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
---- 7/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:07:39.000000000 +0800
 @@ -27,6 +27,13 @@
                                           [SDTCisInt<0>,
                                            SDTCisSameAs<0, 1>]>;
@@ -202,7 +202,7 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
  }
  
 +def calltarget  : Operand<iPTR> {
-+  let EncoderMethod = "getJumpAbsoluteTargetOpValue";
++  let EncoderMethod = "getJumpTargetOpValue";
 +}
 +
  // Signed Operand
@@ -233,7 +233,7 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
  // Mul, Div
  class Mult<bits<8> op, string instr_asm, InstrItinClass itin,
             RegisterClass RC, list<Register> DefRegs>:
-@@ -374,16 +403,22 @@
+@@ -374,16 +403,21 @@
  
  def JMP     : UncondBranch<0x26, "jmp">;
  
@@ -248,7 +248,6 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
 +  def RET   : FJ <0x2C, (outs), (ins CPURegs:$target),
                  "ret\t$target", [(Cpu0Ret CPURegs:$target)], IIBranch>;
  
-+def IRET    : JumpFR<0x2D, "iret", CPURegs>;
 +def JALR    : JumpLinkReg<0x2E, "jalr", CPURegs>;
 +
  /// No operation
@@ -259,7 +258,7 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
  // FrameIndexes are legalized when they are operands from load/store
  // instructions. The same not happens for stack address copies, so an
  // add op with mem ComplexPattern is used and the stack address copy
-@@ -405,6 +440,9 @@
+@@ -405,6 +439,9 @@
            (OR (SHL (ADDiu ZERO, (HI16 imm:$imm)), 16), (ADDiu ZERO, (LO16 
                imm:$imm)))>;
  
@@ -270,8 +269,8 @@ diff -Naur 7/1/Cpu0/Cpu0InstrInfo.td 8/2/Cpu0/Cpu0InstrInfo.td
  def : Pat<(Cpu0Hi tglobaladdr:$in), (SHL (ADDiu ZERO, tglobaladdr:$in), 16)>;
  // Expect cpu0 add LUi support, like Mips
 diff -Naur 7/1/Cpu0/Cpu0MCInstLower.cpp 8/2/Cpu0/Cpu0MCInstLower.cpp
---- 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0MCInstLower.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0MCInstLower.cpp	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0MCInstLower.cpp	2013-02-16 16:07:39.000000000 +0800
 @@ -48,6 +48,7 @@
  //  format=false (global var in .sdata).
    case Cpu0II::MO_GPREL:     Kind = MCSymbolRefExpr::VK_Cpu0_GPREL; break;
@@ -281,8 +280,8 @@ diff -Naur 7/1/Cpu0/Cpu0MCInstLower.cpp 8/2/Cpu0/Cpu0MCInstLower.cpp
    case Cpu0II::MO_GOT:       Kind = MCSymbolRefExpr::VK_Cpu0_GOT; break;
  // ABS_HI and ABS_LO is for llc -march=cpu0 -relocation-model=static (global 
 diff -Naur 7/1/Cpu0/Cpu0MachineFunction.h 8/2/Cpu0/Cpu0MachineFunction.h
---- 7/1/Cpu0/Cpu0MachineFunction.h	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/Cpu0MachineFunction.h	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/Cpu0MachineFunction.h	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/Cpu0MachineFunction.h	2013-02-16 16:07:39.000000000 +0800
 @@ -30,19 +30,64 @@
    /// use as the global base register. This is used for PIC in some PIC
    /// relocation models.
@@ -351,33 +350,35 @@ diff -Naur 7/1/Cpu0/Cpu0MachineFunction.h 8/2/Cpu0/Cpu0MachineFunction.h
  
  } // end of namespace llvm
 diff -Naur 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:35:33.000000000 +0800
-+++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:35:33.000000000 +0800
+--- 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:07:39.000000000 +0800
++++ 8/2/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:13:16.000000000 +0800
 @@ -81,6 +81,13 @@
    unsigned getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
                                    SmallVectorImpl<MCFixup> &Fixups) const;
  
-+  // getJumpAbsoulteTargetOpValue - Return binary encoding of the jump
++  // getJumpTargetOpValue - Return binary encoding of the jump
 +  // target operand, such as SWI #interrupt_addr and JSUB #function_addr. 
 +  // If the machine operand requires relocation,
 +  // record the relocation and return zero.
-+   unsigned getJumpAbsoluteTargetOpValue(const MCInst &MI, unsigned OpNo,
++   unsigned getJumpTargetOpValue(const MCInst &MI, unsigned OpNo,
 +                                 SmallVectorImpl<MCFixup> &Fixups) const;
 +
     // getMachineOpValue - Return binary encoding of operand. If the machin
     // operand requires relocation, record the relocation and return zero.
    unsigned getMachineOpValue(const MCInst &MI,const MCOperand &MO,
-@@ -152,6 +159,21 @@
+@@ -152,6 +159,23 @@
    return 0;
  }
  
-+/// getJumpAbsoluteTargetOpValue - Return binary encoding of the jump
-+/// target operand. Such as SWI.
++/// getJumpTargetOpValue - Return binary encoding of the jump
++/// target operand. Such as SWI and JSUB.
 +unsigned Cpu0MCCodeEmitter::
-+getJumpAbsoluteTargetOpValue(const MCInst &MI, unsigned OpNo,
++getJumpTargetOpValue(const MCInst &MI, unsigned OpNo,
 +                     SmallVectorImpl<MCFixup> &Fixups) const {
 +
 +  const MCOperand &MO = MI.getOperand(OpNo);
++  // If the destination is an immediate, we have nothing to do.
++  if (MO.isImm()) return MO.getImm();
 +  assert(MO.isExpr() && "getJumpTargetOpValue expects only expressions");
 +
 +  const MCExpr *Expr = MO.getExpr();
@@ -389,7 +390,7 @@ diff -Naur 7/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 8/2/Cpu0/MCTargetDesc/Cpu
  /// getMachineOpValue - Return binary encoding of operand. If the machine
  /// operand requires relocation, record the relocation and return zero.
  unsigned Cpu0MCCodeEmitter::
-@@ -187,6 +209,9 @@
+@@ -187,6 +211,9 @@
    case MCSymbolRefExpr::VK_Cpu0_GPREL:
      FixupKind = Cpu0::fixup_Cpu0_GPREL16;
      break;

@@ -1,6 +1,6 @@
 diff -Naur 9/1/Cpu0/AsmParser/CMakeLists.txt 10/1/Cpu0/AsmParser/CMakeLists.txt
 --- 9/1/Cpu0/AsmParser/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
-+++ 10/1/Cpu0/AsmParser/CMakeLists.txt	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/AsmParser/CMakeLists.txt	2013-02-16 16:00:10.000000000 +0800
 @@ -0,0 +1,6 @@
 +include_directories( ${CMAKE_CURRENT_BINARY_DIR}/.. ${CMAKE_CURRENT_SOURCE_DIR}/.. )
 +add_llvm_library(LLVMCpu0AsmParser
@@ -10,7 +10,7 @@ diff -Naur 9/1/Cpu0/AsmParser/CMakeLists.txt 10/1/Cpu0/AsmParser/CMakeLists.txt
 +add_dependencies(LLVMCpu0AsmParser Cpu0CommonTableGen)
 diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParser.cpp
 --- 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ 10/1/Cpu0/AsmParser/Cpu0AsmParser.cpp	2013-02-10 10:28:37.000000000 +0800
++++ 10/1/Cpu0/AsmParser/Cpu0AsmParser.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -0,0 +1,1064 @@
 +//===-- Cpu0AsmParser.cpp - Parse Cpu0 assembly to MCInst instructions ----===//
 +//
@@ -1078,7 +1078,7 @@ diff -Naur 9/1/Cpu0/AsmParser/Cpu0AsmParser.cpp 10/1/Cpu0/AsmParser/Cpu0AsmParse
 +
 diff -Naur 9/1/Cpu0/AsmParser/LLVMBuild.txt 10/1/Cpu0/AsmParser/LLVMBuild.txt
 --- 9/1/Cpu0/AsmParser/LLVMBuild.txt	1970-01-01 08:00:00.000000000 +0800
-+++ 10/1/Cpu0/AsmParser/LLVMBuild.txt	2013-02-13 09:38:40.000000000 +0800
++++ 10/1/Cpu0/AsmParser/LLVMBuild.txt	2013-02-16 16:00:10.000000000 +0800
 @@ -0,0 +1,23 @@
 +;===- ./lib/Target/Mips/AsmParser/LLVMBuild.txt ----------------*- Conf -*--===;
 +;
@@ -1104,8 +1104,8 @@ diff -Naur 9/1/Cpu0/AsmParser/LLVMBuild.txt 10/1/Cpu0/AsmParser/LLVMBuild.txt
 +required_libraries = MC MCParser Support MipsDesc MipsInfo
 +add_to_library_groups = Cpu0
 diff -Naur 9/1/Cpu0/CMakeLists.txt 10/1/Cpu0/CMakeLists.txt
---- 9/1/Cpu0/CMakeLists.txt	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/CMakeLists.txt	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/CMakeLists.txt	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/CMakeLists.txt	2013-02-16 16:00:10.000000000 +0800
 @@ -12,12 +12,12 @@
  tablegen(LLVM Cpu0GenDisassemblerTables.inc -gen-disassembler)
  tablegen(LLVM Cpu0GenCodeEmitter.inc -gen-emitter)
@@ -1126,8 +1126,8 @@ diff -Naur 9/1/Cpu0/CMakeLists.txt 10/1/Cpu0/CMakeLists.txt
  add_subdirectory(MCTargetDesc)
 +add_subdirectory(AsmParser)
 diff -Naur 9/1/Cpu0/Cpu0.td 10/1/Cpu0/Cpu0.td
---- 9/1/Cpu0/Cpu0.td	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/Cpu0.td	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/Cpu0.td	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/Cpu0.td	2013-02-16 16:00:10.000000000 +0800
 @@ -49,6 +49,17 @@
    bit isMCAsmWriter = 1;
  }
@@ -1155,8 +1155,8 @@ diff -Naur 9/1/Cpu0/Cpu0.td 10/1/Cpu0/Cpu0.td
 +  let AssemblyParserVariants = [Cpu0AsmParserVariant];
  }
 diff -Naur 9/1/Cpu0/Cpu0InstrFormats.td 10/1/Cpu0/Cpu0InstrFormats.td
---- 9/1/Cpu0/Cpu0InstrFormats.td	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/Cpu0InstrFormats.td	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/Cpu0InstrFormats.td	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/Cpu0InstrFormats.td	2013-02-16 16:00:10.000000000 +0800
 @@ -76,6 +76,15 @@
    let isPseudo = 1;
  }
@@ -1174,8 +1174,8 @@ diff -Naur 9/1/Cpu0/Cpu0InstrFormats.td 10/1/Cpu0/Cpu0InstrFormats.td
  // Format A instruction class in Cpu0 : <|opcode|ra|rb|rc|cx|>
  //===----------------------------------------------------------------------===//
 diff -Naur 9/1/Cpu0/Cpu0InstrInfo.td 10/1/Cpu0/Cpu0InstrInfo.td
---- 9/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/Cpu0InstrInfo.td	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/Cpu0InstrInfo.td	2013-02-16 16:00:10.000000000 +0800
 @@ -92,11 +92,17 @@
    let PrintMethod = "printUnsignedImm";
  }
@@ -1242,8 +1242,8 @@ diff -Naur 9/1/Cpu0/Cpu0InstrInfo.td 10/1/Cpu0/Cpu0InstrInfo.td
  
  /// Load and Store Instructions
 diff -Naur 9/1/Cpu0/Cpu0RegisterInfo.td 10/1/Cpu0/Cpu0RegisterInfo.td
---- 9/1/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/Cpu0RegisterInfo.td	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/Cpu0RegisterInfo.td	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/Cpu0RegisterInfo.td	2013-02-16 16:00:10.000000000 +0800
 @@ -26,11 +26,11 @@
  //===----------------------------------------------------------------------===//
  //  Registers
@@ -1308,8 +1308,8 @@ diff -Naur 9/1/Cpu0/Cpu0RegisterInfo.td 10/1/Cpu0/Cpu0RegisterInfo.td
  // Hi/Lo Registers
  def HILO : RegisterClass<"Cpu0", [i32], 32, (add HI, LO)>;
 diff -Naur 9/1/Cpu0/LLVMBuild.txt 10/1/Cpu0/LLVMBuild.txt
---- 9/1/Cpu0/LLVMBuild.txt	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/LLVMBuild.txt	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/LLVMBuild.txt	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/LLVMBuild.txt	2013-02-16 16:00:10.000000000 +0800
 @@ -18,7 +18,7 @@
  # Following comments extracted from http://llvm.org/docs/LLVMBuild.html
  
@@ -1329,8 +1329,8 @@ diff -Naur 9/1/Cpu0/LLVMBuild.txt 10/1/Cpu0/LLVMBuild.txt
  has_disassembler = 1
  #has_jit = 1
 diff -Naur 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp
---- 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:38:40.000000000 +0800
-+++ 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-13 09:38:40.000000000 +0800
+--- 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:00:10.000000000 +0800
++++ 10/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp	2013-02-16 16:00:10.000000000 +0800
 @@ -151,6 +151,9 @@
                         SmallVectorImpl<MCFixup> &Fixups) const {
  
@@ -1339,14 +1339,5 @@ diff -Naur 9/1/Cpu0/MCTargetDesc/Cpu0MCCodeEmitter.cpp 10/1/Cpu0/MCTargetDesc/Cp
 +  // If the destination is an immediate, we have nothing to do.
 +  if (MO.isImm()) return MO.getImm();
    assert(MO.isExpr() && "getBranchTargetOpValue expects only expressions");
- 
-   const MCExpr *Expr = MO.getExpr();
-@@ -166,6 +169,8 @@
-                      SmallVectorImpl<MCFixup> &Fixups) const {
- 
-   const MCOperand &MO = MI.getOperand(OpNo);
-+  // If the destination is an immediate, we have nothing to do.
-+  if (MO.isImm()) return MO.getImm();
-   assert(MO.isExpr() && "getJumpTargetOpValue expects only expressions");
  
    const MCExpr *Expr = MO.getExpr();

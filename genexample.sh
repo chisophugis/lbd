@@ -105,6 +105,9 @@ patch -fp0 < 10-1.patch
 mkdir 10
 mv 9/1 10/1
 cp -rf 10/1 ${GEN_DIR}/10/.
+patch -fp0 < 10-2.patch
+mv 10/1 10/2
+cp -rf 10/2 ${GEN_DIR}/10/.
 cp -rf ${GEN_DIR}/2 .
 rm -rf 3 4 6 7 8 9 10
 cp -rf InputFiles llvm3.1 ${GEN_DIR}/.
