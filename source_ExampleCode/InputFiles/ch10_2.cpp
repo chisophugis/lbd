@@ -4,19 +4,49 @@
 
 #include "InitRegs.h"
 
+#define OUT_MEM 0x7000 // 28672
+
 asm("addiu $sp, $zero, 1020");
 
+void print_integer(int x);
 int test_operators();
 int test_control();
 
 int main()
 {
   int a = 0;
-  a = test_operators();
-  a += test_control();
+  a = test_operators(); // a = 13
+  print_integer(a);
+  a += test_control();	// a = 31
+  print_integer(a);
 
   return a;
 }
+
+// For memory IO
+void print_integer(int x)
+{
+  int *p = (int*)OUT_MEM;
+  *p = x;
+ return;
+}
+
+void print1_integer(int x)
+{
+  asm("ld $at, 8($sp)");
+  asm("st $at, 28672($0)");
+ return;
+}
+
+#if 0
+// For instruction IO
+void print2_integer(int x)
+{
+  asm("ld $at, 8($sp)");
+  asm("outw $tat");
+  return;
+}
+#endif
 
 int test_operators()
 {
@@ -37,29 +67,24 @@ int test_operators()
   i = (a ^ b);
   j = (a << 2);
   k = (a >> 2);
+  print_integer(k);
   k1 = (a1 >> 2);
+  print_integer((int)k1);
 
   b = !a;
   int* p = &b;
   
-  return c;
+  return c; // 13
 }
 
 int test_control()
 {
-  unsigned int a = 0;
   int b = 1;
   int c = 2;
   int d = 3;
   int e = 4;
   int f = 5;
-  int g = 6;
-  int h = 7;
-  int i = 8;
   
-  if (a == 0) {
-    a++;
-  }
   if (b != 0) {
     b++;
   }
@@ -75,19 +100,7 @@ int test_control()
   if (f <= 0) {
     f++;
   }
-  if (g <= 1) {
-    g++;
-  }
-  if (h >= 1) {
-    h++;
-  }
-  if (i < h) {
-    i++;
-  }
-  if (a != b) {
-    a++;
-  }
   
-  return (b+c+d+e+f+g+h+i);
+  return (b+c+d+e+f); // (2+3+4+4+5)=18
 }
 
