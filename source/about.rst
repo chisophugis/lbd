@@ -34,7 +34,9 @@ have been finished and published online.
 Revision history
 ----------------
 
-Version 3.2.8, Not Released Yet
+Version 3.2.9, Not Released Yet
+
+Version 3.2.8, Released February 20, 2013
 	Add section llvm-objdump -t -r.
 Version 3.2.7, Released February 14, 2013
 	Add chapter Run backend.
