@@ -1807,7 +1807,7 @@ Run 8/6/Cpu0 with ch8_3.cpp to get the following error,
   
   int main()
   {
-    int a = sum_i(6, 1, 2, 3, 4, 5, 6);
+    int a = sum_i(6, 0, 1, 2, 3, 4, 5);
   //  printf("a = %d\n", a);
     
     return a;
@@ -1815,7 +1815,8 @@ Run 8/6/Cpu0 with ch8_3.cpp to get the following error,
 
 .. code-block:: bash
 
-  118-165-78-230:InputFiles Jonathan$ clang -c ch8_3.cpp -emit-llvm -o ch8_3.bc
+  118-165-78-230:InputFiles Jonathan$ clang -target `llvm-config --host-target` -c 
+  ch8_3.cpp -emit-llvm -o ch8_3.bc
   118-165-78-230:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build/
   bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_3.bc -o 
   ch8_3.cpu0.s
@@ -1824,10 +1825,13 @@ Run 8/6/Cpu0 with ch8_3.cpp to get the following error,
     0x7f8b6902fb10: i32 = FrameIndex<5> [ORD=7] [ID=9]
   In function: _Z5sum_iiz
 
-Run 8/7/Cpu0 with ch8_3.cpp to get the following result,
+Run 8/7/Cpu0 with ch8_3.cpp as well as clang option, 
+**clang -target `llvm-config --host-target`**, to get the following result,
 
 .. code-block:: bash
 
+  118-165-76-131:InputFiles Jonathan$ clang -target `llvm-config --host-target` -c 
+  ch8_3.cpp -emit-llvm -o ch8_3.bc
   118-165-76-131:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
   cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm 
   ch8_3.bc -o ch8_3.cpu0.s
@@ -1841,95 +1845,58 @@ Run 8/7/Cpu0 with ch8_3.cpp to get the following result,
     .type _Z5sum_iiz,@function
     .ent  _Z5sum_iiz              # @_Z5sum_iiz
   _Z5sum_iiz:
-    .cfi_startproc
-    .frame  $sp,56,$lr
-    .mask   0x00004000,-4
+    .frame  $sp,24,$lr
+    .mask   0x00000000,0
     .set  noreorder
-    .cpload $t9
     .set  nomacro
   # BB#0:
-    addiu $sp, $sp, -56
-  $tmp2:
-    .cfi_def_cfa_offset 56
-    st  $lr, 52($sp)            # 4-byte Folded Spill
-  $tmp3:
-    .cfi_offset 14, -4
-    .cprestore  0
-    ld  $2, %got(__stack_chk_guard)($gp)
-    ld  $2, 0($2)
-    st  $2, 48($sp) // 48($sp) = 0
-    ld  $2, 56($sp) // amount
-    st  $2, 44($sp) // amount
+    addiu $sp, $sp, -24
+    ld  $2, 24($sp)     // amount
+    st  $2, 20($sp)     // amount
     addiu $2, $zero, 0
-    st  $2, 40($sp) // i  = 0
-    st  $2, 36($sp) // val = 0
-    st  $2, 32($sp) // sum = 0
-    addiu $3, $sp, 48 // $3 = 48($sp)
-    st  $3, 8($sp)  // 8($sp) = 48($sp) = arg_ptr 
-    st  $2, 40($sp) // i = 0
-    addiu $2, $zero, 40 // $2 = 40
+    st  $2, 16($sp)     // i
+    st  $2, 12($sp)     // val
+    st  $2, 8($sp)      // sum
+    addiu $3, $sp, 28
+    st  $3, 4($sp)      // arg_ptr = 2nd argument = &arg[1], 
+                // since &arg[0] = 24($sp)
+    st  $2, 16($sp)
   $BB0_1:                                 # =>This Inner Loop Header: Depth=1
-    ld  $3, 44($sp) // $3 = amount
-    ld  $4, 40($sp) // $4 = i
-    cmp $4, $3
-    jge $BB0_7    // i >= amount
+    ld  $2, 20($sp)
+    ld  $3, 16($sp)
+    cmp $3, $2        // compare(i, amount)
+    jge $BB0_4
     jmp $BB0_2
   $BB0_2:                                 #   in Loop: Header=BB0_1 Depth=1 
-                  // i < amount
-    ld  $3, 8($sp)  // $3 = arg_ptr
-    cmp $3, $2
-    jgt $BB0_4    // arg_ptr > 40
-    jmp $BB0_3
-  $BB0_3:                                 #   in Loop: Header=BB0_1 Depth=1 
-                  // arg_ptr <= 40
-    addiu $4, $3, 8
-    ld  $5, 20($sp) // *(20($sp)) = arg_offset = 12
-    st  $4, 8($sp)  // arg_ptr += 8
-    add $3, $5, $3  // $3 = (arg_ptr + arg_offset) 
-    jmp $BB0_5
-  $BB0_4:                                 #   in Loop: Header=BB0_1 Depth=1 
-    ld  $3, 16($sp)
-    addiu $4, $3, 8
-    st  $4, 16($sp)
-  $BB0_5:                                 #   in Loop: Header=BB0_1 Depth=1
-    ld  $3, 0($3)   // $3 = val = *(arg_ptr + arg_offset) 
-    st  $3, 36($sp)
-    ld  $4, 32($sp) // $4 = sum
-    add $3, $4, $3
-    st  $3, 32($sp) // sum += val
-  # BB#6:                                 #   in Loop: Header=BB0_1 Depth=1
-    ld  $3, 40($sp) // $3 = i
-    addiu $3, $3, 1
-    st  $3, 40($sp) // i = i + 1
+                // i < amount
+    ld  $2, 4($sp)
+    addiu $3, $2, 4   // arg_ptr  + 4
+    st  $3, 4($sp)  
+    ld  $2, 0($2)     // *arg_ptr
+    st  $2, 12($sp)
+    ld  $3, 8($sp)      // sum
+    add $2, $3, $2      // sum += *arg_ptr
+    st  $2, 8($sp)
+  # BB#3:                                 #   in Loop: Header=BB0_1 Depth=1
+                // i >= amount
+    ld  $2, 16($sp)
+    addiu $2, $2, 1   // i++
+    st  $2, 16($sp)
     jmp $BB0_1
-  $BB0_7:
-    ld  $2, %got(__stack_chk_guard)($gp)
-    ld  $2, 0($2)
-    ld  $3, 48($sp)
-    cmp $2, $3
-    jne $BB0_9
-    jmp $BB0_8
-  $BB0_8:                                 # %SP_return
-    ld  $lr, 52($sp)            # 4-byte Folded Reload
-    addiu $sp, $sp, 56
+  $BB0_4:
+    addiu $sp, $sp, 24
     ret $lr
-  $BB0_9:                                 # %CallStackCheckFailBlk
-    ld  $6, %call24(__stack_chk_fail)($gp)
-    jalr  $6
-    ld  $gp, 0($sp)
     .set  macro
     .set  reorder
     .end  _Z5sum_iiz
-  $tmp4:
-    .size _Z5sum_iiz, ($tmp4)-_Z5sum_iiz
-    .cfi_endproc
+  $tmp1:
+    .size _Z5sum_iiz, ($tmp1)-_Z5sum_iiz
   
     .globl  main
     .align  2
     .type main,@function
     .ent  main                    # @main
   main:
-    .cfi_startproc
     .frame  $sp,88,$lr
     .mask   0x00004000,-4
     .set  noreorder
@@ -1937,26 +1904,22 @@ Run 8/7/Cpu0 with ch8_3.cpp to get the following result,
     .set  nomacro
   # BB#0:
     addiu $sp, $sp, -88
-  $tmp7:
-    .cfi_def_cfa_offset 88
     st  $lr, 84($sp)            # 4-byte Folded Spill
-  $tmp8:
-    .cfi_offset 14, -4
     .cprestore  32
     addiu $2, $zero, 0
     st  $2, 80($sp)
-    addiu $2, $zero, 5
-    st  $2, 20($sp)
-    addiu $2, $zero, 4
-    st  $2, 16($sp)
-    addiu $2, $zero, 3
-    st  $2, 12($sp)
-    addiu $2, $zero, 2
-    st  $2, 8($sp)
-    addiu $2, $zero, 1
+    addiu $3, $zero, 5
+    st  $3, 24($sp)
+    addiu $3, $zero, 4
+    st  $3, 20($sp)
+    addiu $3, $zero, 3
+    st  $3, 16($sp)
+    addiu $3, $zero, 2
+    st  $3, 12($sp)
+    addiu $3, $zero, 1
+    st  $3, 8($sp)
     st  $2, 4($sp)
     addiu $2, $zero, 6
-    st  $2, 24($sp)
     st  $2, 0($sp)
     ld  $6, %call24(_Z5sum_iiz)($gp)
     jalr  $6
@@ -1968,474 +1931,18 @@ Run 8/7/Cpu0 with ch8_3.cpp to get the following result,
     .set  macro
     .set  reorder
     .end  main
-  $tmp9:
-    .size main, ($tmp9)-main
-      .cfi_endproc
-
-We have problem in analysis of the output ch8_3.cpu0.s. 
-We guess and try to analysis as follows. 
-As above code, we get the first argument **“amount”** from **“ld $2, 56($sp)”** 
-since the stack size of the callee function **“_Z5sum_iiz()”** is 56. 
-Next, check i < amount in block $BB0_1. If  i < amount, than enter into $BB0_2. 
-We assume arg_ptr < 40 and the content of address 8($sp) is the arg_ptr. 
-When it exits $BB0_2 and enter into $BB0_3, the register ($3 + $5) = (arg_ptr 
-+ arg_offset=12) is point to the second argument and it do the sum += val in 
-$BB0_5. 
-It do i += 1 in $BB0_6 and jumb to $BB0_1 enter into second round. 
-The second round do as above again, it will get the third argument and add to 
-sum in $BB0_5 since the ptr_arg (16($sp)) is added 8 in the previous run. 
-We assume the arg_prt < 40 but actually according the analysis the arg_prt is 
-48($sp) which > 40, so the above analysis is not satisfied. 
-The compare arg_prt with 40 is exist in llvm IR, and mips has the same 
-translated output. 
-So, we don't know what's wrong. 
-We believe the arg < 40 is satisfied because the native Intel CPU has the 
-arg_ptr < 40 in it's assembly code and the Intel CPU native execution file can 
-print correct result. 
-You will see it soon in the bellow code. 
-If the arg_ptr < 40 is satisfied and *(20($sp)) = arg_offset = 12, then the 
-assembly output is correct. 
-The llvm IR and mips assembly output as follows,
-
-.. code-block:: bash
-
-  118-165-78-221:InputFiles Jonathan$ llvm-dis ch8_3.bc -o ch8_3.ll
-  118-165-78-221:InputFiles Jonathan$ cat ch8_3.ll 
-  ; ModuleID = 'ch8_3.bc'
-  target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-
-  f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:
-  32:64-S128"
-  target triple = "x86_64-apple-macosx10.8.0"
-  
-  %struct.__va_list_tag = type { i32, i32, i8*, i8* }
-  
-  define i32 @_Z5sum_iiz(i32 %amount, ...) nounwind uwtable ssp {
-  ...
-  ; <label>:8                                       ; preds = %4
-  ...
-    %12 = icmp ule i32 %11, 40
-    br i1 %12, label %13, label %19
-
-  118-165-67-185:InputFiles Jonathan$ cat ch8_3.mips.s
-    .section .mdebug.abi32
-    .previous
-    .file "ch8_3.bc"
-    .text
-    .globl  _Z5sum_iiz
-    .align  2
-    .type _Z5sum_iiz,@function
-    .ent  _Z5sum_iiz              # @_Z5sum_iiz
-  _Z5sum_iiz:
-    .cfi_startproc
-    .frame  $sp,64,$ra
-    .mask   0x80000000,-4
-    .fmask  0x00000000,0
-    .set  noreorder
-    .set  nomacro
-	.set	noat
-  # BB#0:
-	lui	$2, %hi(_gp_disp)
-	addiu	$2, $2, %lo(_gp_disp)
-	addiu	$sp, $sp, -64
-  $tmp2:
-	.cfi_def_cfa_offset 64
-	sw	$ra, 60($sp)            # 4-byte Folded Spill
-  $tmp3:
-    .cfi_offset 31, -4
-    .cprestore  16
-    sw  $7, 76($sp)
-    sw  $6, 72($sp)
-    sw  $5, 68($sp) // 68($sp) = arg[1]
-	lw	$3, %got(__stack_chk_guard)($gp)
-	lw	$1, 0($3)
-	sw	$1, 56($sp)
-    sw  $4, 52($sp) // 52($sp) = amount = arg[0]
-    sw  $zero, 48($sp)  // i
-    sw  $zero, 44($sp)  // val
-    sw  $zero, 40($sp)  // sum
-    addiu $2, $sp, 68
-    sw  $2, 16($sp) // 16($sp) = arg_ptr
-    sw  $zero, 48($sp)
-	b	$BB0_2
-    addiu $2, $zero, 40 // $2 = 40
-  $BB0_1:                                 #   in Loop: Header=BB0_2 Depth=1
-    lw  $1, 0($4)   // $4 = *arg_ptr
-    sw  $1, 44($sp) // val
-    lw  $4, 40($sp) // sum
-    addu  $1, $4, $1  //
-    sw  $1, 40($sp) // sum += val
-    lw  $1, 48($sp)
-    addiu $1, $1, 1
-    sw  $1, 48($sp) // i += 1
-  $BB0_2:                                 # =>This Inner Loop Header: Depth=1
-    lw  $1, 52($sp)
-    lw  $4, 48($sp)
-    slt $1, $4, $1  // set if i < amount
-    beq $1, $zero, $BB0_6 // i >= amount
-    nop
-  # BB#3:                                 #   in Loop: Header=BB0_2 Depth=1
-    lw  $4, 16($sp) // $4 = arg_ptr
-    sltu  $1, $2, $4  // set if 40 < arg_ptr
-    bne $1, $zero, $BB0_5
-    nop
-  # BB#4:                                 #   in Loop: Header=BB0_2 Depth=1 
-                      // arg_ptr <= 40
-    addiu $1, $4, 8
-    lw  $5, 28($sp) // 28($sp) = 0, assume even though we didn't find the 
-                    // 28($sp) is 0
-    sw  $4, 16($sp) // arg_ptr += 8
-    b $BB0_1
-    addu  $4, $5, $4  // arg_ptr + 0
-  $BB0_5:                                 #   in Loop: Header=BB0_1 Depth=1 
-                     // 40 < arg_ptr
-    lw  $4, 24($sp)
-    addiu $1, $4, 8
-    sw  $1, 24($sp)
-    b $BB0_1
-    nop
-  $BB0_6:
-	lw	$1, 0($3)
-	lw	$3, 56($sp)
-	bne	$1, $3, $BB0_8
-	lw	$2, 40($sp)
-  # BB#7:                                 # %SP_return
-    lw  $ra, 60($sp)            # 4-byte Folded Reload
-    jr  $ra
-    addiu $sp, $sp, 64
-  $BB0_8:                                 # %CallStackCheckFailBlk
-    lw  $25, %call16(__stack_chk_fail)($gp)
-    jalr  $25
-    nop
-    .set  at
-    .set  macro
-    .set  reorder
-    .end  _Z5sum_iiz
   $tmp4:
-    .size _Z5sum_iiz, ($tmp4)-_Z5sum_iiz
-    .cfi_endproc
-  
-    .globl  main
-    .align  2
-    .type main,@function
-    .set  nomips16                # @main
-    .ent  main
-  main:
-    .cfi_startproc
-    .frame  $sp,48,$ra
-    .mask   0x80000000,-4
-    .fmask  0x00000000,0
-    .set  noreorder
-    .set  nomacro
-    .set  noat
-  # BB#0:
-    lui $2, %hi(_gp_disp)
-    addiu $2, $2, %lo(_gp_disp)
-    addiu $sp, $sp, -48
-  $tmp7:
-    .cfi_def_cfa_offset 48
-    sw  $ra, 44($sp)            # 4-byte Folded Spill
-  $tmp8:
-    .cfi_offset 31, -4
-    addu  $gp, $2, $25
-    sw  $zero, 40($sp)
-    addiu $1, $zero, 5
-    sw  $1, 20($sp)
-    addiu $1, $zero, 4
-    sw  $1, 16($sp)
-    addiu $1, $zero, 6
-    sw  $1, 24($sp)
-    lw  $25, %call16(_Z5sum_iiz)($gp)
-    addiu $4, $zero, 6
-    addiu $5, $zero, 1
-    addiu $6, $zero, 2
-    jalr  $25
-    addiu $7, $zero, 3
-    sw  $2, 36($sp)
-    lw  $ra, 44($sp)            # 4-byte Folded Reload
-    jr  $ra
-    addiu $sp, $sp, 48
-    .set  at
-    .set  macro
-    .set  reorder
-    .end  main
-  $tmp9:
-    .size main, ($tmp9)-main
-    .cfi_endproc
+    .size main, ($tmp4)-main
 
 
-We have verified the translation of ch8_3.cpp is correct by add printf in 
-ch8_3.cpp to get ch8_3_3.cpp and run with ``lli`` llvm interpreter. 
-We also translate it into native Intel CPU code and get the correct print 
-result. 
-Following are the ch8_3_3.cpp, and lli, Intel native code run result.
-
-.. code-block:: c++
-
-  // ch8_3_3.cpp
-  // clang -c ch8_3_3.cpp -emit-llvm -I/Applications/Xcode.app/Contents/
-  Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/usr/
-  include/ -o ch8_3_3.bc
-  // /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc 
-  ch8_3_3.bc -o ch8_3_3.s
-  // clang++ ch8_3_3.s -o ch8_3_3.native
-  // ./ch8_3_3.native
-  // lldb -- ch8_3_3.native
-  // b main
-  // s
-  // ...
-  // print $rsp   ; print %rsp, choose $ instead of % in assembly code
-  
-  // mips-linux-gnu-g++ -g ch8_3_3.cpp -o ch8_3_3 -static
-  // qemu-mips ch8_3_3
-  // mips-linux-gnu-g++ -S ch8_3_3.cpp
-  // cat ch8_3_3.s
-
-  #include <stdio.h>
-  #include <stdarg.h>
-  
-  int sum_i(int amount, ...)
-  {
-    int i = 0;
-    int val = 0;
-    int sum = 0;
-    
-    va_list vl;
-    va_start(vl, amount);
-    for (i = 0; i < amount; i++)
-    {
-    val = va_arg(vl, int);
-    sum += val;
-    }
-    va_end(vl);
-    
-    return sum; 
-  }
-  
-  int main()
-  {
-    int a = sum_i(6, 1, 2, 3, 4, 5, 6);
-    printf("a = %d\n", a);
-    
-    return a;
-  }
-
-.. code-block:: bash
-
-  118-165-78-221:InputFiles Jonathan$ lli ch8_3_3.bc 
-  a = 21
-  
-  118-165-67-185:InputFiles Jonathan$ clang -c ch8_3_3.cpp -emit-llvm -I
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/
-  Developer/SDKs/MacOSX10.8.sdk/usr/include/ -o ch8_3_3.bc
-  118-165-67-185:InputFiles Jonathan$ /Users/Jonathan/llvm/test/
-  cmake_debug_build/bin/Debug/llc ch8_3_3.bc -o ch8_3_3.s
-  118-165-67-185:InputFiles Jonathan$ clang++ ch8_3_3.s -o ch8_3_3.native
-  118-165-67-185:InputFiles Jonathan$ ./ch8_3_3.native
-  a = 21
-  
-  118-165-67-185:InputFiles Jonathan$ cat ch8_3_3.s
-  ...
-  LBB0_3:                                 ## =>This Inner Loop Header: Depth=1
-    movl  216(%rsp), %eax
-    cmpl  220(%rsp), %eax
-    jge LBB0_8    // i >= amount
-  ## BB#4:                                ##   in Loop: Header=BB0_3 Depth=1
-    movl  176(%rsp), %eax // i < amount
-    cmpl  $40, %eax // arg_ptr < 40
-    ja  LBB0_6
-    
-We have run mips qemu on Linux by gcc. 
-It get the correct print result, and the mips code has no analysis problem 
-since it hasn't the arg_ptr < 40 in assembly output. 
-The qemu mips gcc result as follows,
-
-.. code-block:: bash
-
-  [Gamma@localhost InputFiles]$ qemu-mips ch8_3_3
-  a = 21
-  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -g ch8_3_3.cpp -o ch8_3_3 
-  -static
-  [Gamma@localhost InputFiles]$ qemu-mips ch8_3_3
-  a = 21
-  [Gamma@localhost InputFiles]$ mips-linux-gnu-g++ -S ch8_3_3.cpp
-  [Gamma@localhost InputFiles]$ cat ch8_3_3.s
-    .file 1 "ch8_3_3.cpp"
-    .section .mdebug.abi32
-    .previous
-    .gnu_attribute 4, 1
-    .abicalls
-    .option pic0
-    .text
-    .align  2
-    .globl  _Z5sum_iiz
-  $LFB0 = .
-    .set  nomips16
-    .ent  _Z5sum_iiz
-    .type _Z5sum_iiz, @function
-  _Z5sum_iiz:
-    .frame  $fp,32,$31    # vars= 16, regs= 1/0, args= 0, gp= 8
-    .mask 0x40000000,-4
-    .fmask  0x00000000,0
-    .set  noreorder
-    .set  nomacro
-    
-    addiu $sp,$sp,-32
-  $LCFI0:
-    sw  $fp,28($sp)
-  $LCFI1:
-    move  $fp,$sp
-  $LCFI2:
-    sw  $5,36($fp)  // arg[1]
-    sw  $6,40($fp)
-    sw  $7,44($fp)
-    sw  $4,32($fp)  // amount = arg[0]
-    sw  $0,16($fp)  // i = 0
-    sw  $0,12($fp)  // val = 0
-    sw  $0,8($fp)   // sum = 0
-    addiu $2,$fp,36
-    sw  $2,20($fp)  // arg_ptr = &arg[1]
-    sw  $0,16($fp)
-    j $L2
-    nop
-  
-  $L3:              // i < amount
-    lw  $2,20($fp)  // arg_ptr
-    addiu $3,$2,4
-    sw  $3,20($fp)  // arg_ptr += 4
-    lw  $2,0($2)    // $2 = *arg_ptr
-    sw  $2,12($fp)  // val = *arg_ptr
-    lw  $3,8($fp)
-    lw  $2,12($fp)
-    addu  $2,$3,$2
-    sw  $2,8($fp)   // sum += val
-    lw  $2,16($fp)
-    addiu $2,$2,1
-    sw  $2,16($fp)  // i += 1
-  $L2:
-    lw  $3,16($fp)
-    lw  $2,32($fp)
-    slt $2,$3,$2  // set if i < amount
-    andi  $2,$2,0x00ff
-    bne $2,$0,$L3
-    nop
-  
-    lw  $2,8($fp)  // i >= amount
-    move  $sp,$fp
-    lw  $fp,28($sp)
-    addiu $sp,$sp,32
-    j $31
-    nop
-  
-    .set  macro
-    .set  reorder
-    .end  _Z5sum_iiz
-  $LFE0:
-    .size _Z5sum_iiz, .-_Z5sum_iiz
-    .rdata
-    .align  2
-  $LC0:
-    .ascii  "a = %d\012\000"
-    .text
-    .align  2
-    .globl  main
-  $LFB1 = .
-    .set  nomips16
-    .ent  main
-    .type main, @function
-  main:
-    .frame  $fp,56,$31    # vars= 8, regs= 2/0, args= 32, gp= 8
-    .mask 0xc0000000,-4
-    .fmask  0x00000000,0
-    .set  noreorder
-    .set  nomacro
-    
-    addiu $sp,$sp,-56
-  $LCFI3:
-    sw  $31,52($sp)
-  $LCFI4:
-    sw  $fp,48($sp)
-  $LCFI5:
-    move  $fp,$sp
-  $LCFI6:
-    li  $2,4      # 0x4
-    sw  $2,16($sp)
-    li  $2,5      # 0x5
-    sw  $2,20($sp)
-    li  $2,6      # 0x6
-    sw  $2,24($sp)
-    li  $4,6      # 0x6
-    li  $5,1      # 0x1
-    li  $6,2      # 0x2
-    li  $7,3      # 0x3
-    jal _Z5sum_iiz
-    nop
-  
-    sw  $2,40($fp)
-    lui $2,%hi($LC0)
-    addiu $4,$2,%lo($LC0)
-    lw  $5,40($fp)
-    jal printf
-    nop
-  
-    lw  $2,40($fp)
-    move  $sp,$fp
-    lw  $31,52($sp)
-    lw  $fp,48($sp)
-    addiu $sp,$sp,56
-    j $31
-    nop
-  
-    .set  macro
-    .set  reorder
-    .end  main
-  $LFE1:
-    .size main, .-main
-    .section  .eh_frame,"a",@progbits
-  $Lframe1:
-    .4byte  $LECIE1-$LSCIE1
-  $LSCIE1:
-    .4byte  0x0
-    .byte 0x1
-    .globl  __gxx_personality_v0
-    .ascii  "zP\000"
-    .uleb128 0x1
-    .sleb128 -4
-    .byte 0x1f
-    .uleb128 0x5
-    .byte 0x0
-    .4byte  __gxx_personality_v0
-    .byte 0xc
-    .uleb128 0x1d
-    .uleb128 0x0
-    .align  2
-  $LECIE1:
-  $LSFDE3:
-    .4byte  $LEFDE3-$LASFDE3
-  $LASFDE3:
-    .4byte  $LASFDE3-$Lframe1
-    .4byte  $LFB1
-    .4byte  $LFE1-$LFB1
-    .uleb128 0x0
-    .byte 0x4
-    .4byte  $LCFI3-$LFB1
-    .byte 0xe
-    .uleb128 0x38
-    .byte 0x4
-    .4byte  $LCFI5-$LCFI3
-    .byte 0x11
-    .uleb128 0x1e
-    .sleb128 2
-    .byte 0x11
-    .uleb128 0x1f
-    .sleb128 1
-    .byte 0x4
-    .4byte  $LCFI6-$LCFI5
-    .byte 0xd
-    .uleb128 0x1e
-    .align  2
-  $LEFDE3:
-    .ident  "GCC: (GNU) 4.4.6"
-  [Gamma@localhost InputFiles]$ 
+The analysis of output ch8_3.cpu0.s as above in comment. 
+As above code, in # BB#0, we get the first argument **“amount”** from 
+**“ld $2, 24($sp)”** since the stack size of the callee function 
+**“_Z5sum_iiz()”** is 24. And set argument pointer, arg_ptr, to 28($sp), 
+&arg[1]. 
+Next, check i < amount in block $BB0_1. If  i < amount, than enter into $BB0_2. 
+In $BB0_2, it do sum += *arg_ptr as well as arg_ptr+=4.
+In # BB#3, do i+=1.
 
 To support variable number of arguments, the following code needed to 
 add in 8/7/Cpu0. 
@@ -2488,7 +1995,29 @@ backend code too.
     return DAG.getStore(Op.getOperand(0), dl, FI, Op.getOperand(1),
               MachinePointerInfo(SV), false, false, 0);
   }
+  ...
+  SDValue
+  Cpu0TargetLowering::LowerFormalArguments(SDValue Chain,
+                       CallingConv::ID CallConv,
+                       bool isVarArg,
+                      const SmallVectorImpl<ISD::InputArg> &Ins,
+                       DebugLoc dl, SelectionDAG &DAG,
+                       SmallVectorImpl<SDValue> &InVals)
+                        const {
+    ...
+    if (isVarArg) {
+    unsigned RegSize = Cpu0::CPURegsRegClass.getSize();
+    // Offset of the first variable argument from stack pointer.
+    int FirstVaArgOffset = RegSize;
   
+    // Record the frame index of the first variable argument
+    // which is a value necessary to VASTART.
+    LastFI = MFI->CreateFixedObject(RegSize, FirstVaArgOffset, true);
+    Cpu0FI->setVarArgsFrameIndex(LastFI);
+    }
+    ...
+  }
+
 
 .. code-block:: c++
 
@@ -2524,7 +2053,9 @@ backend code too.
     return a;
   }
 
-Mips qemu reference [#]_.
+Mips qemu reference [#]_, you can download and run it with gcc to verify the 
+result with printf() function. We will verify the code correction in chapter 
+"Run backend" through the CPU0 Verilog language machine.
 
 
 Correct the return of main()

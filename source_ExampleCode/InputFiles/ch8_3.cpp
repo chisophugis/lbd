@@ -1,4 +1,4 @@
-// clang -c ch8_3.cpp -emit-llvm -o ch8_3.bc
+// clang -target `llvm-config --host-target` -c ch8_3.cpp -emit-llvm -o ch8_3.bc
 // /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=cpu0 -relocation-model=pic -filetype=asm ch8_3.bc -o ch8_3.cpu0.s
 // /Users/Jonathan/llvm/test/cmake_debug_build/bin/Debug/llc -march=mips -relocation-model=pic -filetype=asm ch8_3.bc -o ch8_3.mips.s
 
@@ -25,7 +25,7 @@ int sum_i(int amount, ...)
 
 int main()
 {
-  int a = sum_i(6, 1, 2, 3, 4, 5, 6);
+  int a = sum_i(6, 0, 1, 2, 3, 4, 5);
 //  printf("a = %d\n", a);
 	
   return a;

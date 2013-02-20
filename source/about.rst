@@ -28,14 +28,26 @@ Acknowledgments
 
 We would like to thank Sean Silva, silvas@purdue.edu, for his help, encouragement, and
 assistance with the Sphinx document generator.  Without his help, this book would not 
-have been finished and published online.
+have been finished and published online. 
+
+We also get the kind help from LLVM development mail list, llvmdev@cs.uiuc.edu, 
+even we don't know them. So, our experience is you are not 
+alone and can get help from the development list members in working with the LLVM 
+project. They are:
+
+Akira Hatanaka <ahatanak@gmail.com> in va_arg question answer.
+
+Ulrich Weigand <Ulrich.Weigand@de.ibm.com> in AsmParser question answer.
 
 
 Revision history
 ----------------
 
-Version 3.2.9, Not Released Yet
+Version 3.2.10, Not Released Yet
 
+Version 3.2.9, Released February 20, 2013
+	Correct the "Variable number of arguments" such as sum_i(int amount, ...) 
+	errors. 
 Version 3.2.8, Released February 20, 2013
 	Add section llvm-objdump -t -r.
 Version 3.2.7, Released February 14, 2013

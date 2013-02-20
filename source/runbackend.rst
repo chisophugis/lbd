@@ -2671,6 +2671,73 @@ We have checked the **">>"** is correct on both signed and unsigned int type
 , and tracking the variable **a** value by print_integer(). You can verify it 
 with the **OUTPUT=xxx** in Verilog output.
 
+Now, let's run ch_10_3.cpp to verify the result as follows,
+
+.. code-block:: c++
+
+  // ch10_3.cpp
+  #include <stdarg.h>
+  
+  #include "InitRegs.h"
+  
+  #define OUT_MEM 0x7000 // 28672
+  
+  asm("addiu $sp, $zero, 1020");
+  
+  void print_integer(int x);
+  int sum_i(int amount, ...);
+  
+  int main()
+  {
+    int a = sum_i(6, 0, 1, 2, 3, 4, 5);
+    print_integer(a);
+    
+    return a;
+  }
+  
+  // For memory IO
+  void print_integer(int x)
+  {
+    int *p = (int*)OUT_MEM;
+    *p = x;
+   return;
+  }
+  
+  int sum_i(int amount, ...)
+  {
+    int i = 0;
+    int val = 0;
+    int sum = 0;
+    
+    va_list vl;
+    va_start(vl, amount);
+    for (i = 0; i < amount; i++)
+    {
+    val = va_arg(vl, int);
+    sum += val;
+    }
+    va_end(vl);
+    
+    return sum; 
+  }
+
+.. code-block:: bash
+
+  118-165-75-175:InputFiles Jonathan$ clang -target `llvm-config --host-target` 
+  -c ch10_3.cpp -emit-llvm -o ch10_3.bc
+  118-165-75-175:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build
+  /bin/Debug/llc -march=cpu0 -relocation-model=static -filetype=obj ch10_3.bc 
+  -o ch10_3.cpu0.o
+  118-165-75-175:InputFiles Jonathan$ /Users/Jonathan/llvm/test/cmake_debug_build
+  /bin/Debug/llvm-objdump -d ch10_3.cpu0.o | tail -n +6| awk '{print "/* " $1 " 
+  */\t" $2 " " $3 " " $4 " " $5 "\t/* " $6"\t" $7" " $8" " $9" " $10 "\t*/"}' 
+  > ../cpu0_verilog/raw/cpu0s.hex
+  
+  118-165-75-175:raw Jonathan$ ./cpu0s
+  ...
+  12890ns 0000012c : 01320000 OUTPUT=15        
+  ...
+
 We show Verilog PC output by display the I/O memory mapped address but we 
 didn't implement the output hardware interface or port. The output hardware 
 interface/port is dependent on hardware output device, such as RS232, speaker, 

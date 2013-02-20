@@ -1,6 +1,6 @@
 diff -Naur 8/8/Cpu0/Cpu0ISelLowering.cpp 8/9/Cpu0/Cpu0ISelLowering.cpp
---- 8/8/Cpu0/Cpu0ISelLowering.cpp	2013-02-16 16:00:10.000000000 +0800
-+++ 8/9/Cpu0/Cpu0ISelLowering.cpp	2013-02-16 16:00:10.000000000 +0800
+--- 8/8/Cpu0/Cpu0ISelLowering.cpp	2013-02-20 16:08:34.000000000 +0800
++++ 8/9/Cpu0/Cpu0ISelLowering.cpp	2013-02-20 16:08:34.000000000 +0800
 @@ -169,6 +169,18 @@
  //  Lower helper functions
  //===----------------------------------------------------------------------===//
@@ -125,11 +125,10 @@ diff -Naur 8/8/Cpu0/Cpu0ISelLowering.cpp 8/9/Cpu0/Cpu0ISelLowering.cpp
        continue;
      }
      // sanity check
-@@ -531,6 +620,22 @@
-                                  MachinePointerInfo::getFixedStack(LastFI),
+@@ -532,6 +621,21 @@
                                   false, false, false, 0));
    }
-+  
+ 
 +#if 1	// Without this, it will use $3 instead of $2 as return register.
 +  // The cpu0 ABIs for returning structs by value requires that we copy
 +  // the sret argument into $v0 for the return. Save the argument into
@@ -145,10 +144,10 @@ diff -Naur 8/8/Cpu0/Cpu0ISelLowering.cpp 8/9/Cpu0/Cpu0ISelLowering.cpp
 +  }
 +#endif
 +
-   Cpu0FI->setLastInArgFI(LastFI);
-   // All stores are grouped in one node to allow the matching between
-   // the size of Ins and InVals. This only happens when on varg functions
-@@ -585,6 +690,25 @@
+   if (isVarArg) {
+     unsigned RegSize = Cpu0::CPURegsRegClass.getSize();
+     // Offset of the first variable argument from stack pointer.
+@@ -597,6 +701,25 @@
      // stuck together, avoiding something bad
      Flag = Chain.getValue(1);
    }
