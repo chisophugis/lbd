@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 cd source_ExampleCode
 GEN_DIR=LLVMBackendTutorialExampleCode
-rm -rf 3 4 5 6 7 8 9 10
+rm -rf 3 4 5 6 7 8 9 10 11
 rm -rf ${GEN_DIR}
 mkdir ${GEN_DIR}
 mkdir ${GEN_DIR}/3
@@ -11,6 +11,7 @@ mkdir ${GEN_DIR}/7
 mkdir ${GEN_DIR}/8
 mkdir ${GEN_DIR}/9
 mkdir ${GEN_DIR}/10
+mkdir ${GEN_DIR}/11
 cp -rf 2 ${GEN_DIR}/.
 patch -fp0 < 3-1.patch
 mkdir 3
@@ -108,8 +109,12 @@ cp -rf 10/1 ${GEN_DIR}/10/.
 patch -fp0 < 10-2.patch
 mv 10/1 10/2
 cp -rf 10/2 ${GEN_DIR}/10/.
+patch -fp0 < 11-1.patch
+mkdir 11
+mv 10/2 11/1
+cp -rf 11/1 ${GEN_DIR}/11/.
 cp -rf ${GEN_DIR}/2 .
-rm -rf 3 4 6 7 8 9 10
+rm -rf 3 4 6 7 8 9 10 11
 cp -rf InputFiles llvm3.1 ${GEN_DIR}/.
 cp -rf InputFiles src_files_modify ${GEN_DIR}/.
 cp -rf cpu0 cpu0_verilog ${GEN_DIR}/.

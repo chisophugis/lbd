@@ -22,6 +22,7 @@ Table of Contents
    funccall
    elf
    runbackend
+   optimize
    install
    oldver
    instdiscuss
