@@ -14,9 +14,6 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
-# Custom
-GH_PAGES_SOURCES = Fig source Table source_ExampleCode Makefile genexample.sh
-
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext gh-pages
 
 help:
@@ -155,21 +152,32 @@ doctest:
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
+
+BACKEND_TUTORIAL_SUBDIR = docs/BackendTutorial
+TMP_PREFIX = tmp
+
+# Note: we have to run this as one big command in order to have the initial
+# 'cd' take effect for the whole command.
+# TODO: is there a nicer way of doing this?
 gh-pages:
-	git checkout gh-pages
-	rm -rf build _sources _static _images
-	git checkout master $(GH_PAGES_SOURCES)
-	git reset HEAD
-	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode .DS_Store
-	sh genexample.sh
-	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
-	make html latexpdf epub
-	mv -fv build/html/* ./
-	mv -fv build/latex/TutorialLLVMBackendCpu0.pdf "./TutorialLLVMBackendCpu0.pdf"
-	mv -fv build/epub/TutorialLLVMBackendCpu0.epub "./TutorialLLVMBackendCpu0.epub"
-	rm -rf $(GH_PAGES_SOURCES) build LLVMBackendTutorialExampleCode
-	git add -A
-	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
+	cd ../../ &&\
+	git checkout gh-pages &&\
+	rm -rf build _sources _static _images &&\
+	git read-tree --prefix=$(TMP_PREFIX)/ -u HEAD master:$(BACKEND_TUTORIAL_SUBDIR) &&\
+	mv $(TMP_PREFIX)/* . &&\
+	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode .DS_Store &&\
+	sh genexample.sh &&\
+	tar -zcvf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode &&\
+	make html latexpdf epub &&\
+	mv -fv build/html/* ./ &&\
+	mv -fv build/latex/TutorialLLVMBackendCpu0.pdf "./TutorialLLVMBackendCpu0.pdf" &&\
+	mv -fv build/epub/TutorialLLVMBackendCpu0.epub "./TutorialLLVMBackendCpu0.epub" &&\
+	rm -rf `git ls-tree master:$(BACKEND_TUTORIAL_SUBDIR) | cut -f2` &&\
+	rm -rf build LLVMBackendTutorialExampleCode &&\
+	git add -A &&\
+	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" &&\
+	git push origin gh-pages &&\
+	git checkout master
 
 genexample:
 	rm -rf LLVMBackendTutorialExampleCode.tar.gz LLVMBackendTutorialExampleCode
