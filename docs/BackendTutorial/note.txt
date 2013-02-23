@@ -1,0 +1,6 @@
+1. Use 80 characters width in .rst and ident with 2 spaces since git diff 
+window fit 80 characters, even though some of them will have warning as 
+follows,
+
+WARNING: Bullet list ends without a blank line; unexpected unindent.
+

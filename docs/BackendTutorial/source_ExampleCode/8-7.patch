@@ -1,0 +1,86 @@
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.cpp 8/7/Cpu0/Cpu0ISelLowering.cpp
+--- 8/6/Cpu0/Cpu0ISelLowering.cpp	2013-02-20 16:08:34.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.cpp	2013-02-20 16:08:34.000000000 +0800
+@@ -73,7 +73,8 @@
+   // Cpu0 Custom Operations
+   setOperationAction(ISD::GlobalAddress,      MVT::i32,   Custom);
+   setOperationAction(ISD::BRCOND,             MVT::Other, Custom);
+-  
++  setOperationAction(ISD::VASTART,            MVT::Other, Custom);
++
+   setOperationAction(ISD::SDIV, MVT::i32, Expand);
+   setOperationAction(ISD::SREM, MVT::i32, Expand);
+   setOperationAction(ISD::UDIV, MVT::i32, Expand);
+@@ -82,6 +83,12 @@
+   // Operations not directly supported by Cpu0.
+   setOperationAction(ISD::BR_CC,             MVT::Other, Expand);
+ 
++  // Support va_arg(): variable numbers (not fixed numbers) of arguments 
++  //  (parameters) for function all
++  setOperationAction(ISD::VAARG,             MVT::Other, Expand);
++  setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
++  setOperationAction(ISD::VAEND,             MVT::Other, Expand);
++
+   setTargetDAGCombine(ISD::SDIVREM);
+   setTargetDAGCombine(ISD::UDIVREM);
+ 
+@@ -153,6 +160,7 @@
+   {
+     case ISD::BRCOND:             return LowerBRCOND(Op, DAG);
+     case ISD::GlobalAddress:      return LowerGlobalAddress(Op, DAG);
++    case ISD::VASTART:            return LowerVASTART(Op, DAG);
+   }
+   return SDValue();
+ }
+@@ -217,6 +225,21 @@
+   return DAG.getNode(ISD::ADD, dl, ValTy, ResNode, Lo);
+ }
+ 
++SDValue Cpu0TargetLowering::LowerVASTART(SDValue Op, SelectionDAG &DAG) const {
++  MachineFunction &MF = DAG.getMachineFunction();
++  Cpu0FunctionInfo *FuncInfo = MF.getInfo<Cpu0FunctionInfo>();
++
++  DebugLoc dl = Op.getDebugLoc();
++  SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
++                                 getPointerTy());
++
++  // vastart just stores the address of the VarArgsFrameIndex slot into the
++  // memory location argument.
++  const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
++  return DAG.getStore(Op.getOperand(0), dl, FI, Op.getOperand(1),
++                      MachinePointerInfo(SV), false, false, 0);
++}
++
+ #include "Cpu0GenCallingConv.inc"
+ 
+ SDValue
+@@ -508,6 +531,18 @@
+                                  MachinePointerInfo::getFixedStack(LastFI),
+                                  false, false, false, 0));
+   }
++
++  if (isVarArg) {
++    unsigned RegSize = Cpu0::CPURegsRegClass.getSize();
++    // Offset of the first variable argument from stack pointer.
++    int FirstVaArgOffset = RegSize;
++
++    // Record the frame index of the first variable argument
++    // which is a value necessary to VASTART.
++    LastFI = MFI->CreateFixedObject(RegSize, FirstVaArgOffset, true);
++    Cpu0FI->setVarArgsFrameIndex(LastFI);
++  }
++
+   Cpu0FI->setLastInArgFI(LastFI);
+   // All stores are grouped in one node to allow the matching between
+   // the size of Ins and InVals. This only happens when on varg functions
+diff -Naur 8/6/Cpu0/Cpu0ISelLowering.h 8/7/Cpu0/Cpu0ISelLowering.h
+--- 8/6/Cpu0/Cpu0ISelLowering.h	2013-02-20 16:08:34.000000000 +0800
++++ 8/7/Cpu0/Cpu0ISelLowering.h	2013-02-20 16:08:34.000000000 +0800
+@@ -86,6 +86,7 @@
+     // Lower Operand specifics
+     SDValue LowerBRCOND(SDValue Op, SelectionDAG &DAG) const;
+     SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) const;
++    SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG) const;
+ 
+ 	//- must be exist without function all
+     virtual SDValue
